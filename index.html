@@ -52,6 +52,7 @@
     font-size: 22px; color: var(--color-brass);
     margin: 0 auto 14px;
   }
+  .logo { display: block; margin: 0 auto 16px; max-width: 240px; width: 100%; height: auto; }
 
   .stack { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
 
@@ -532,8 +533,7 @@
   function renderHome() {
     return '' +
       '<div class="hero">' +
-        '<div class="seal">&#9993;</div>' +
-        '<p class="eyebrow">UPH College</p>' +
+        '<img src="UPHC-Horizontal.png" alt="UPH College" class="logo">' +
         '<h1>Layanan Surat Siswa</h1>' +
         '<p class="sub">Ajukan surat tanpa harus kirim email. Isi data, bayar, dan pantau statusnya sendiri.</p>' +
       '</div>' +
