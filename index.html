@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layanan Surat Siswa — UPH College</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --color-navy: #1B2A4A;
+    --color-navy-light: #2C4270;
+    --color-paper: #F6F2E9;
+    --color-card: #FFFFFF;
+    --color-brass: #A6803D;
+    --color-ink: #262420;
+    --color-ink-soft: #6B6560;
+    --color-red: #B4453A;
+    --color-green: #3F6F4C;
+    --font-display: 'Source Serif 4', Georgia, serif;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  }
+  * { box-sizing: border-box; }
+  button { font: inherit; cursor: pointer; }
+  a { color: inherit; }
+  body {
+    margin: 0;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  #app { max-width: 480px; margin: 0 auto; padding: 32px 20px 60px; min-height: 100vh; }
+  @media (min-width: 820px) { #app { max-width: 680px; padding-top: 52px; } }
+
+  h1, h2 { font-family: var(--font-display); color: var(--color-navy); margin: 0 0 8px; }
+  h1 { font-size: 27px; font-weight: 700; }
+  h2 { font-size: 20px; font-weight: 600; margin-top: 4px; margin-bottom: 16px; }
+
+  .hero { text-align: center; margin-bottom: 26px; }
+  .hero.small { margin-bottom: 18px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brass); margin: 0 0 6px; }
+  .sub { color: var(--color-ink-soft); font-size: 14px; line-height: 1.55; margin: 8px auto 0; max-width: 320px; }
+
+  .seal {
+    width: 52px; height: 52px; border-radius: 50%;
+    border: 2px solid var(--color-brass);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: var(--color-brass);
+    margin: 0 auto 14px;
+  }
+
+  .stack { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+
+  .card {
+    background: var(--color-card);
+    border-left: 3px solid var(--color-navy);
+    border-radius: 4px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(27,42,74,0.08);
+    margin-bottom: 12px;
+  }
+  .card.center { text-align: center; }
+
+  .type-card {
+    display: flex; flex-direction: column; gap: 6px; text-align: left;
+    background: var(--color-card); border: none; border-left: 3px solid var(--color-navy);
+    border-radius: 4px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(27,42,74,0.08);
+    font-family: var(--font-body); width: 100%;
+  }
+  .type-card:hover { border-left-color: var(--color-brass); }
+  .type-card-label { font-family: var(--font-display); font-size: 15.5px; color: var(--color-navy); font-weight: 600; }
+  .type-card-desc { font-size: 12.5px; color: var(--color-ink-soft); line-height: 1.45; }
+  .type-card-fee { font-family: var(--font-mono); font-size: 12.5px; color: var(--color-brass); margin-top: 2px; }
+
+  .btn-primary {
+    background: var(--color-navy); color: var(--color-paper); border: none; border-radius: 4px;
+    padding: 14px 20px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px; width: 100%;
+  }
+  .btn-primary:disabled { opacity: 0.6; }
+  .btn-outline {
+    background: transparent; color: var(--color-navy); border: 1.5px solid var(--color-navy);
+    border-radius: 4px; padding: 13px 20px; font-size: 15px; font-weight: 600; width: 100%;
+  }
+  .btn-text { background: none; border: none; color: var(--color-ink-soft); font-size: 14px; text-decoration: underline; padding: 8px; width: 100%; }
+  .btn-text.danger { color: var(--color-red); }
+
+  .back-btn { background: none; border: none; color: var(--color-ink-soft); font-size: 13px; padding: 0; margin-bottom: 18px; }
+  .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .top-row .back-btn { margin-bottom: 0; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+  .field-label { font-size: 12px; letter-spacing: 0.3px; color: var(--color-ink-soft); text-transform: uppercase; }
+  .req { color: var(--color-red); }
+  .field-input {
+    border: none; border-bottom: 2px solid #D8D2C4; background: transparent; padding: 8px 2px;
+    font-family: var(--font-body); font-size: 15px; color: var(--color-ink); outline: none; width: 100%;
+  }
+  .field-input:focus { border-bottom-color: var(--color-brass); }
+  textarea.field-input { resize: vertical; min-height: 60px; }
+  select.field-input { border: 1px solid #D8D2C4; border-radius: 4px; padding: 10px; background: var(--color-card); }
+  .field-error { color: var(--color-red); font-size: 12px; }
+
+  .checkbox-field { flex-direction: row; align-items: center; gap: 10px; font-size: 14px; }
+  .checkbox-field input { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .hint { font-size: 13px; color: var(--color-ink-soft); line-height: 1.55; }
+  .hint.center { text-align: center; }
+
+  .stamp {
+    display: inline-block; padding: 5px 14px; border: 2px dashed currentColor;
+    border-radius: 50% / 40%; transform: rotate(-3deg); font-family: var(--font-mono);
+    font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 600; margin: 8px 0;
+  }
+  .stamp.baru { color: var(--color-red); }
+  .stamp.lunas { color: var(--color-brass); }
+  .stamp.selesai { color: var(--color-green); }
+
+  .req-id { font-family: var(--font-mono); font-size: 19px; color: var(--color-navy); font-weight: 600; margin: 6px 0; }
+  .req-id-small { font-family: var(--font-mono); font-size: 12.5px; color: var(--color-navy); }
+  .amount-big { font-family: var(--font-mono); font-size: 26px; color: var(--color-navy); font-weight: 700; margin: 4px 0; }
+  .mono { font-family: var(--font-mono); }
+  .mono-area { font-family: var(--font-mono); font-size: 12.5px; white-space: pre-wrap; line-height: 1.5; }
+
+  .list-item { display: block; width: 100%; text-align: left; font-family: var(--font-body); }
+  button.list-item { border: none; border-left: 3px solid var(--color-navy); background: var(--color-card); }
+  .list-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px; }
+  .list-item-bottom { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--color-ink-soft); gap: 8px; }
+
+  .footer-link { text-align: center; margin-top: 34px; }
+  .footer-link a { color: var(--color-ink-soft); font-size: 12px; text-decoration: none; opacity: 0.55; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0; }
+  .stat { background: var(--color-card); border-radius: 4px; padding: 12px 4px; text-align: center; box-shadow: 0 1px 3px rgba(27,42,74,0.08); }
+  .stat-num { display: block; font-family: var(--font-display); font-size: 21px; color: var(--color-navy); font-weight: 700; }
+  .stat-label { display: block; font-size: 9.5px; color: var(--color-ink-soft); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+
+  .filter-row { display: flex; gap: 8px; margin: 16px 0; }
+  .filter-row .field-input { flex: 1; }
+
+  .detail-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #EEE8DA; font-size: 14px; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { color: var(--color-ink-soft); flex-shrink: 0; }
+  .detail-value { text-align: right; font-weight: 500; word-break: break-word; }
+
+  .loading-screen { display: flex; align-items: center; justify-content: center; min-height: 60vh; }
+  .summary-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+  // ============================================================
+  // KONFIGURASI SUPABASE — isi 2 nilai ini dari Project Settings > API
+  // di dashboard Supabase kamu setelah menjalankan schema.sql
+  // ============================================================
+  var SUPABASE_URL = 'https://jxyfiinqxeswyljmzhge.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_mRKDBw_XWZwHPAZQFEKYDg_n6au_AkQ';
+  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var FEE = 20000;
+  var DEFAULT_PAYMENT_INFO = 'Transfer ke CIMB Niaga 800.10.907.7600 a.n. Yayasan Pendidikan Pelita Harapan, lalu centang konfirmasi di bawah.';
+  var MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  var ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+  var GENDER_OPTIONS = [{ value: 'L', label: 'Laki-laki' }, { value: 'P', label: 'Perempuan' }];
+
+  function pronoun(g) {
+    if (g === 'P') return { subject: 'she', possessive: 'her', object: 'her' };
+    return { subject: 'he', possessive: 'his', object: 'him' };
+  }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function parseDateParts(dateStr) {
+    var parts = (dateStr || '').split('-');
+    return { y: parseInt(parts[0], 10) || 0, m: (parseInt(parts[1], 10) || 1) - 1, d: parseInt(parts[2], 10) || 0 };
+  }
+  function formatDateEN(dateStr) {
+    if (!dateStr) return '____________';
+    var p = parseDateParts(dateStr);
+    return MONTHS_EN[p.m] + ' ' + p.d + ', ' + p.y;
+  }
+  function formatDateID(dateStr) {
+    if (!dateStr) return '____________';
+    var p = parseDateParts(dateStr);
+    return p.d + ' ' + MONTHS_ID[p.m] + ' ' + p.y;
+  }
+  function romanMonth(dateStr) { return ROMAN[parseDateParts(dateStr).m]; }
+  function yearOf(dateStr) { return parseDateParts(dateStr).y; }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function suggestedNomor(settings, tanggalStr) {
+    var next = (settings && settings.nextSuratNumber) || 1;
+    return String(next).padStart(4, '0') + '/DI/UPHC/' + romanMonth(tanggalStr) + '/' + yearOf(tanggalStr);
+  }
+
+  var LETTER_TYPES = {
+    KETERANGAN: {
+      shortLabel: 'Ket. Siswa',
+      label: 'Surat Keterangan Siswa',
+      desc: 'Konfirmasi status siswa aktif di kelas & tahun ajaran tertentu — untuk keperluan umum.',
+      fields: [
+        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
+        { key: 'ttl', label: 'Tempat, Tanggal Lahir', placeholder: 'Contoh: Tangerang, 12 Mei 2008', type: 'text', required: true },
+        { key: 'studentId', label: 'Student ID / NISN', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas', placeholder: 'Contoh: 12A', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', placeholder: 'Contoh: 2026/2027', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+      ],
+      generator: function (d, nomor, tgl) {
+        return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
+          'LETTER OF STATEMENT\n' +
+          'No. : ' + nomor + '\n\n' +
+          'The undersigned below :\n\n' +
+          'Name              : Hans Deny\n' +
+          'Position          : Academic Principal\n' +
+          'School Address    : Jl. MH Thamrin Boulevard 1100, Lippo Village\n\n' +
+          'hereby declares and truly confirms that the student listed below :\n\n' +
+          'Name                  : ' + d.namaLengkap + '\n' +
+          'Place, Date of Birth  : ' + d.ttl + '\n' +
+          'Student ID            : ' + d.studentId + '\n\n' +
+          'is a grade ' + d.kelas + ' student of UPH College in the Academic Year ' + d.tahunAjaran + '.\n\n' +
+          'This letter of statement is issued to be used as required.\n\n' +
+          'Sincerely,\n\n\n' +
+          'Hans Deny\n' +
+          'Academic Principal';
+      }
+    },
+    SKL_EXPECTED: {
+      shortLabel: 'SKL (Belum Lulus)',
+      label: 'SKL Luar Negeri — Belum Lulus',
+      desc: 'Untuk siswa yang belum lulus, dipakai buat daftar universitas luar negeri (expected graduation).',
+      fields: [
+        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
+        { key: 'jenisKelamin', label: 'Jenis Kelamin', type: 'select', options: GENDER_OPTIONS, required: true },
+        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', type: 'text', required: false },
+        { key: 'studentNumber', label: 'Student Number', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', placeholder: 'Contoh: 2026/2027', type: 'text', required: true },
+        { key: 'expectedLulus', label: 'Perkiraan Bulan & Tahun Lulus', placeholder: 'Contoh: June 2027', type: 'text', required: true },
+        { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+      ],
+      generator: function (d, nomor, tgl) {
+        var p = pronoun(d.jenisKelamin);
+        return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
+          'LETTER OF STATEMENT\n' +
+          'No. : ' + nomor + '\n\n' +
+          'This letter serves to certify that,\n\n' +
+          'Name             : ' + d.namaLengkap + '\n' +
+          'Major            : ' + (d.major || '-') + '\n' +
+          'Student Number   : ' + d.studentNumber + '\n\n' +
+          'is a grade 12 student of UPH College in the Academic Year ' + d.tahunAjaran + ' and is expected to complete ' + p.possessive + ' course of study in ' + d.expectedLulus + '.\n\n' +
+          'This letter of statement is intended for admission purposes to ' + d.namaUniversitas + '.\n\n' +
+          'Faithfully Yours,\n\n\n' +
+          'Hans Deny\n' +
+          'Academic Principal';
+      }
+    },
+    SKL_COMPLETED: {
+      shortLabel: 'SKL (Lulus)',
+      label: 'SKL Luar Negeri — Sudah Lulus',
+      desc: 'Untuk siswa yang sudah lulus, dipakai buat daftar universitas luar negeri (graduation).',
+      fields: [
+        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
+        { key: 'jenisKelamin', label: 'Jenis Kelamin', type: 'select', options: GENDER_OPTIONS, required: true },
+        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', type: 'text', required: false },
+        { key: 'studentNumber', label: 'Student Number', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', placeholder: 'Contoh: 2025/2026', type: 'text', required: true },
+        { key: 'tanggalLulus', label: 'Tanggal Lulus', type: 'date', required: true },
+        { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+      ],
+      generator: function (d, nomor, tgl) {
+        var p = pronoun(d.jenisKelamin);
+        return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
+          'LETTER OF STATEMENT\n' +
+          'No. : ' + nomor + '\n\n' +
+          'This letter serves to certify that,\n\n' +
+          'Name             : ' + d.namaLengkap + '\n' +
+          'Major            : ' + (d.major || '-') + '\n' +
+          'Student Number   : ' + d.studentNumber + '\n\n' +
+          'is a grade 12 student of UPH College in the Academic Year ' + d.tahunAjaran + ' and has completed ' + p.possessive + ' course of study and graduated on ' + formatDateEN(d.tanggalLulus) + '.\n\n' +
+          'This is also to confirm that in UPH College report cards are printed in English and the expected learning outcome (minimum passing grade) for students is 65.\n\n' +
+          'This letter of statement is intended for admission purposes to ' + d.namaUniversitas + '.\n\n' +
+          'Faithfully Yours,\n\n\n' +
+          'Hans Deny\n' +
+          'Academic Principal';
+      }
+    },
+    ANAK_KARYAWAN: {
+      shortLabel: 'Anak Karyawan',
+      label: 'Surat Keterangan Anak Karyawan',
+      desc: 'Untuk pengajuan bantuan dana pendidikan anak karyawan ke tempat kerja orang tua.',
+      fields: [
+        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
+        { key: 'ttl', label: 'Tempat, Tanggal Lahir', placeholder: 'Contoh: Tangerang, 12 Mei 2008', type: 'text', required: true },
+        { key: 'namaAyah', label: 'Nama Ayah', type: 'text', required: true },
+        { key: 'namaIbu', label: 'Nama Ibu', type: 'text', required: true },
+        { key: 'alamat', label: 'Alamat', type: 'textarea', required: true },
+        { key: 'kelas', label: 'Kelas', placeholder: 'Contoh: 10A', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', placeholder: 'Contoh: 2026/2027', type: 'text', required: true },
+        { key: 'namaPerusahaan', label: 'Nama Tempat Kerja Orang Tua', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+      ],
+      generator: function (d, nomor, tgl) {
+        return 'Tangerang, ' + formatDateID(tgl) + '\n\n' +
+          'SURAT KETERANGAN\n' +
+          'No. : ' + nomor + '\n\n' +
+          'Yang bertandatangan di bawah ini :\n\n' +
+          'Nama         : Hans Deny\n' +
+          'Jabatan      : Kepala Sekolah\n' +
+          'Alamat SMA   : Jl. MH Thamrin Boulevard 1100, Karawaci\n\n' +
+          'menyatakan dan menerangkan dengan sesungguhnya bahwa siswa yang tercantum di bawah ini :\n\n' +
+          'Nama                     : ' + d.namaLengkap + '\n' +
+          'Tempat, Tanggal Lahir    : ' + d.ttl + '\n' +
+          'Nama Ayah                : ' + d.namaAyah + '\n' +
+          'Nama Ibu                 : ' + d.namaIbu + '\n' +
+          'Alamat                   : ' + d.alamat + '\n\n' +
+          'adalah benar siswa kelas ' + d.kelas + ' pada TA ' + d.tahunAjaran + ' di UPH College.\n\n' +
+          'Demikian surat keterangan ini diberikan untuk mengurus administrasi pengajuan bantuan pendidikan anak karyawan ' + d.namaPerusahaan + '.\n\n' +
+          'Hormat Kami,\n\n\n' +
+          'Hans Deny\n' +
+          'Kepala Sekolah';
+      }
+    },
+    VISA: {
+      shortLabel: 'Visa',
+      label: 'Surat Keterangan Visa',
+      desc: 'Ditujukan ke kedutaan negara tujuan, sebagai dokumen pendukung pengajuan visa.',
+      fields: [
+        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
+        { key: 'jenisKelamin', label: 'Jenis Kelamin', type: 'select', options: GENDER_OPTIONS, required: true },
+        { key: 'kelas', label: 'Kelas', placeholder: 'Contoh: 9B', type: 'text', required: true },
+        { key: 'negaraTujuan', label: 'Negara Tujuan', placeholder: 'Contoh: Italy, Australia, Japan', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+      ],
+      generator: function (d, nomor, tgl) {
+        var p = pronoun(d.jenisKelamin);
+        return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
+          'No: ' + nomor + '\n\n' +
+          'To:\n\n' +
+          'Embassy of ' + d.negaraTujuan + '\n' +
+          'Jakarta\n\n' +
+          'Attention : Visa Section\n\n' +
+          'Re. : Supporting Document for Visa Application\n\n' +
+          'Dear Sir/Madam,\n\n' +
+          'This is to inform you that the parents of our student ' + d.namaLengkap + ' (Grade ' + d.kelas + '), have requested for this letter to support for visa application to travel to ' + d.negaraTujuan + '. ' +
+          cap(p.subject) + ' will return to Indonesia to finish ' + p.possessive + ' study after the trip.\n\n' +
+          'Yours Sincerely,\n\n\n' +
+          'Hans Deny\n' +
+          'Academic Principal';
+      }
+    }
+  };
+
+  var STATUS_LABEL = { baru: 'Menunggu Verifikasi', lunas: 'Lunas - Diproses', selesai: 'Selesai' };
+
+  var S = {
+    view: 'home',
+    loading: true,
+    requests: [],
+    settings: null,
+    selectedType: null,
+    formDraft: {},
+    formErrors: {},
+    pendingId: null,
+    pendingCode: null,
+    paymentChecked: false,
+    paymentNote: '',
+    lastRequest: null,
+    adminAuthed: false,
+    adminFilterType: 'all',
+    adminFilterStatus: 'all',
+    adminSelectedId: null,
+    adminEditingSettings: false,
+    statusQuery: '',
+    statusResults: null
+  };
+
+  function escapeHtml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  function formatDateShort(iso) {
+    try { var d = new Date(iso); return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }); }
+    catch (e) { return iso; }
+  }
+  function formatRupiah(n) { return 'Rp' + n.toLocaleString('id-ID'); }
+  function generateId(type) {
+    var d = new Date();
+    var yy = String(d.getFullYear()).slice(-2);
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    var rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return type + '-' + yy + mm + dd + '-' + rand;
+  }
+  function paymentCode(id) {
+    var suffix = id.split('-').pop();
+    var sum = 0;
+    for (var i = 0; i < suffix.length; i++) sum += suffix.charCodeAt(i);
+    return 100 + (sum % 900);
+  }
+  function generateLetterText(req, nomor, tgl) {
+    return LETTER_TYPES[req.type].generator(req.data, nomor, tgl);
+  }
+
+  // ============================================================
+  // LAPISAN DATA — Supabase (menggantikan window.storage)
+  // ============================================================
+  function mapPublicRow(row) {
+    return { id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status, data: { namaLengkap: row.nama_lengkap } };
+  }
+  function mapFullRow(row) {
+    return {
+      id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status,
+      paymentChecked: row.payment_checked, paymentNote: row.payment_note, paymentCode: row.payment_code, amount: row.amount,
+      adminNote: row.admin_note, nomorSurat: row.nomor_surat, tanggalSurat: row.tanggal_surat, generatedText: row.generated_text,
+      data: row.data
+    };
+  }
+  function toDbRow(req) {
+    return {
+      id: req.id, type: req.type, submitted_at: req.submittedAt, status: req.status,
+      payment_checked: req.paymentChecked, payment_note: req.paymentNote, payment_code: req.paymentCode, amount: req.amount,
+      admin_note: req.adminNote, nomor_surat: req.nomorSurat || null, tanggal_surat: req.tanggalSurat || null, generated_text: req.generatedText,
+      data: req.data
+    };
+  }
+  async function getRequestsPublic() {
+    try {
+      var res = await sb.from('requests_public').select('*');
+      if (res.error) { console.error(res.error); return []; }
+      return res.data.map(mapPublicRow);
+    } catch (e) { console.error(e); return []; }
+  }
+  async function getRequestsAdmin() {
+    try {
+      var res = await sb.from('requests').select('*').order('submitted_at', { ascending: false });
+      if (res.error) { console.error(res.error); return []; }
+      return res.data.map(mapFullRow);
+    } catch (e) { console.error(e); return []; }
+  }
+  async function insertRequest(req) {
+    try {
+      var res = await sb.from('requests').insert(toDbRow(req));
+      if (res.error) return { ok: false, error: res.error.message };
+      return { ok: true };
+    } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
+  }
+  async function updateRequest(req) {
+    try {
+      var res = await sb.from('requests').update(toDbRow(req)).eq('id', req.id);
+      if (res.error) return { ok: false, error: res.error.message };
+      return { ok: true };
+    } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
+  }
+  async function deleteRequestRow(id) {
+    try {
+      var res = await sb.from('requests').delete().eq('id', id);
+      return !res.error;
+    } catch (e) { return false; }
+  }
+  async function getSettings() {
+    try {
+      var res = await sb.from('settings').select('*').eq('id', 1).single();
+      if (res.error || !res.data) return { paymentInfo: DEFAULT_PAYMENT_INFO, nextSuratNumber: 1 };
+      return { paymentInfo: res.data.payment_info, nextSuratNumber: res.data.next_surat_number };
+    } catch (e) { return { paymentInfo: DEFAULT_PAYMENT_INFO, nextSuratNumber: 1 }; }
+  }
+  async function saveSettings(obj) {
+    try {
+      var res = await sb.from('settings').update({ payment_info: obj.paymentInfo, next_surat_number: obj.nextSuratNumber }).eq('id', 1);
+      return !res.error;
+    } catch (e) { return false; }
+  }
+  async function adminLogin(email, password) {
+    try {
+      var res = await sb.auth.signInWithPassword({ email: email, password: password });
+      if (res.error) return { ok: false, error: res.error.message };
+      return { ok: true };
+    } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
+  }
+  async function adminLogout() { try { await sb.auth.signOut(); } catch (e) {} }
+  async function hasAdminSession() {
+    try {
+      var res = await sb.auth.getSession();
+      return !!(res && res.data && res.data.session);
+    } catch (e) { return false; }
+  }
+
+  function go(view, extra) {
+    S.view = view;
+    if (extra) Object.assign(S, extra);
+    render();
+    window.scrollTo(0, 0);
+  }
+  function backBar(view, label) {
+    return '<button class="back-btn" data-go="' + view + '">‹ ' + escapeHtml(label) + '</button>';
+  }
+
+  function render() {
+    var app = document.getElementById('app');
+    if (S.loading) { app.innerHTML = renderLoading(); return; }
+    var html = '';
+    switch (S.view) {
+      case 'home': html = renderHome(); break;
+      case 'pilihJenis': html = renderPilihJenis(); break;
+      case 'form': html = renderForm(); break;
+      case 'pembayaran': html = renderPembayaran(); break;
+      case 'konfirmasi': html = renderKonfirmasi(); break;
+      case 'cekStatus': html = renderCekStatus(); break;
+      case 'adminGate': html = renderAdminGate(); break;
+      case 'adminDashboard': html = renderAdminDashboard(); break;
+      case 'adminDetail': html = renderAdminDetail(); break;
+      default: html = renderHome();
+    }
+    app.innerHTML = html;
+    attachHandlers();
+  }
+
+  function renderLoading() { return '<div class="loading-screen"><div class="stamp lunas">Memuat...</div></div>'; }
+
+  function renderHome() {
+    return '' +
+      '<div class="hero">' +
+        '<div class="seal">&#9993;</div>' +
+        '<p class="eyebrow">UPH College</p>' +
+        '<h1>Layanan Surat Siswa</h1>' +
+        '<p class="sub">Ajukan surat tanpa harus kirim email. Isi data, bayar, dan pantau statusnya sendiri.</p>' +
+      '</div>' +
+      '<div class="stack">' +
+        '<button class="btn-primary" data-go="pilihJenis">Ajukan Surat</button>' +
+        '<button class="btn-outline" data-go="cekStatus">Cek Status Permintaan</button>' +
+      '</div>' +
+      '<div class="footer-link"><a href="#" id="adminLink">Admin</a></div>';
+  }
+
+  function renderPilihJenis() {
+    var cards = Object.keys(LETTER_TYPES).map(function (key) {
+      var t = LETTER_TYPES[key];
+      return '<button class="type-card" data-type="' + key + '">' +
+        '<span class="type-card-label">' + escapeHtml(t.label) + '</span>' +
+        '<span class="type-card-desc">' + escapeHtml(t.desc) + '</span>' +
+        '<span class="type-card-fee">' + formatRupiah(FEE) + '</span>' +
+      '</button>';
+    }).join('');
+    return backBar('home', 'Beranda') + '<h2>Pilih Jenis Surat</h2><div class="stack">' + cards + '</div>';
+  }
+
+  function renderForm() {
+    var t = LETTER_TYPES[S.selectedType];
+    if (!t) return renderPilihJenis();
+    var fieldsHtml = t.fields.map(function (f) {
+      var val = escapeHtml((S.formDraft && S.formDraft[f.key]) || '');
+      var err = S.formErrors[f.key] ? '<span class="field-error">' + escapeHtml(S.formErrors[f.key]) + '</span>' : '';
+      var inputEl;
+      if (f.type === 'textarea') {
+        inputEl = '<textarea class="field-input" data-field="' + f.key + '" placeholder="' + escapeHtml(f.placeholder || '') + '" rows="2">' + val + '</textarea>';
+      } else if (f.type === 'select') {
+        var opts = f.options.map(function (o) {
+          return '<option value="' + o.value + '"' + ((S.formDraft && S.formDraft[f.key]) === o.value ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
+        }).join('');
+        inputEl = '<select class="field-input" data-field="' + f.key + '"><option value="">Pilih...</option>' + opts + '</select>';
+      } else if (f.type === 'date') {
+        inputEl = '<input class="field-input" data-field="' + f.key + '" type="date" value="' + val + '">';
+      } else {
+        inputEl = '<input class="field-input" data-field="' + f.key + '" type="text" placeholder="' + escapeHtml(f.placeholder || '') + '" value="' + val + '">';
+      }
+      return '<label class="field">' +
+        '<span class="field-label">' + escapeHtml(f.label) + (f.required ? ' <span class="req">*</span>' : '') + '</span>' +
+        inputEl + err +
+      '</label>';
+    }).join('');
+    return backBar('pilihJenis', 'Jenis Surat') +
+      '<h2>' + escapeHtml(t.label) + '</h2>' +
+      '<p class="hint">Isi data sesuai dokumen resmi. Field bertanda * wajib diisi.</p>' +
+      '<form id="dataForm" class="stack">' + fieldsHtml + '<button type="submit" class="btn-primary">Lanjut ke Pembayaran</button></form>';
+  }
+
+  function renderPembayaran() {
+    var t = LETTER_TYPES[S.selectedType];
+    var total = FEE + S.pendingCode;
+    return backBar('form', 'Data Surat') +
+      '<h2>Pembayaran</h2>' +
+      '<div class="card summary-card">' +
+        '<div class="summary-row"><span>Jenis Surat</span><strong>' + escapeHtml(t.shortLabel) + '</strong></div>' +
+        '<div class="summary-row"><span>Nama</span><strong>' + escapeHtml(S.formDraft.namaLengkap || '-') + '</strong></div>' +
+        '<div class="summary-row"><span>Kode Permintaan</span><strong class="mono">' + escapeHtml(S.pendingId) + '</strong></div>' +
+      '</div>' +
+      '<div class="card center">' +
+        '<p class="field-label">Transfer Tepat Sejumlah</p>' +
+        '<p class="amount-big">' + formatRupiah(total) + '</p>' +
+        '<p class="hint">3 digit terakhir (' + S.pendingCode + ') adalah kode unik kamu — jangan dibulatkan, biar cepat dicek admin.</p>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="field-label">Ke Rekening</p>' +
+        '<p>' + escapeHtml((S.settings && S.settings.paymentInfo) || DEFAULT_PAYMENT_INFO) + '</p>' +
+      '</div>' +
+      '<label class="field checkbox-field">' +
+        '<input type="checkbox" id="paymentChecked" ' + (S.paymentChecked ? 'checked' : '') + '>' +
+        '<span>Saya sudah transfer ' + formatRupiah(total) + '</span>' +
+      '</label>' +
+      '<label class="field">' +
+        '<span class="field-label">Nama Pengirim Transfer (opsional)</span>' +
+        '<input class="field-input" id="paymentNote" type="text" value="' + escapeHtml(S.paymentNote) + '" placeholder="Nama di rekening pengirim">' +
+      '</label>' +
+      (S.formErrors._payment ? '<span class="field-error">' + escapeHtml(S.formErrors._payment) + '</span>' : '') +
+      '<button class="btn-primary" id="submitRequestBtn" style="margin-top:12px">Kirim Permintaan</button>';
+  }
+
+  function renderKonfirmasi() {
+    var req = S.lastRequest;
+    if (!req) return renderHome();
+    return '' +
+      '<div class="hero small">' +
+        '<div class="seal">&#10003;</div>' +
+        '<h1>Permintaan Diterima</h1>' +
+        '<p class="sub">Simpan kode ini untuk cek status kapan saja.</p>' +
+      '</div>' +
+      '<div class="card center">' +
+        '<p class="field-label">Kode Permintaan</p>' +
+        '<p class="req-id">' + escapeHtml(req.id) + '</p>' +
+        '<p class="hint">Jumlah transfer: ' + formatRupiah(req.amount) + '</p>' +
+        '<div class="stamp ' + req.status + '">' + escapeHtml(STATUS_LABEL[req.status]) + '</div>' +
+      '</div>' +
+      '<p class="hint center">Surat biasanya selesai 2-3 hari kerja setelah pembayaran diverifikasi admin.</p>' +
+      '<div class="stack">' +
+        '<button class="btn-outline" data-go="pilihJenis">Ajukan Surat Lain</button>' +
+        '<button class="btn-text" data-go="home">Kembali ke Beranda</button>' +
+      '</div>';
+  }
+
+  function renderCekStatus() {
+    var results = S.statusResults;
+    var resultsHtml = '';
+    if (results) {
+      if (results.length === 0) {
+        resultsHtml = '<p class="hint">Tidak ditemukan. Coba cek kode atau nama lagi.</p>';
+      } else {
+        resultsHtml = results.map(function (r) {
+          return '<div class="card list-item">' +
+            '<div class="list-item-top">' +
+              '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
+              '<span class="stamp ' + r.status + '">' + escapeHtml(STATUS_LABEL[r.status]) + '</span>' +
+            '</div>' +
+            '<div class="list-item-bottom">' +
+              '<span>' + escapeHtml(LETTER_TYPES[r.type] ? LETTER_TYPES[r.type].shortLabel : r.type) + '</span>' +
+              '<span>' + escapeHtml(formatDateShort(r.submittedAt)) + '</span>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+    }
+    return backBar('home', 'Beranda') +
+      '<h2>Cek Status Permintaan</h2>' +
+      '<div class="field"><input class="field-input" id="statusQuery" type="text" placeholder="Kode permintaan atau nama" value="' + escapeHtml(S.statusQuery) + '"></div>' +
+      '<button class="btn-primary" id="searchStatusBtn" style="margin-top:12px">Cari</button>' +
+      '<div class="stack" style="margin-top:16px">' + resultsHtml + '</div>';
+  }
+
+  function renderAdminGate() {
+    return backBar('home', 'Beranda') +
+      '<h2>Masuk Admin</h2>' +
+      '<label class="field"><span class="field-label">Email Admin</span><input class="field-input" id="adminEmail" type="email" placeholder="admin@uphcollege.com"></label>' +
+      '<label class="field"><span class="field-label">Password</span><input class="field-input" id="adminPassword" type="password" placeholder="Masukkan password"></label>' +
+      '<span class="field-error" id="adminError"></span>' +
+      '<button class="btn-primary" id="adminLoginBtn" style="margin-top:12px">Masuk</button>';
+  }
+
+  function renderAdminDashboard() {
+    var filtered = S.requests.filter(function (r) {
+      if (S.adminFilterType !== 'all' && r.type !== S.adminFilterType) return false;
+      if (S.adminFilterStatus !== 'all' && r.status !== S.adminFilterStatus) return false;
+      return true;
+    }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
+
+    var total = S.requests.length;
+    var menunggu = S.requests.filter(function (r) { return r.status === 'baru'; }).length;
+    var lunas = S.requests.filter(function (r) { return r.status === 'lunas'; }).length;
+    var selesai = S.requests.filter(function (r) { return r.status === 'selesai'; }).length;
+    var pendapatan = S.requests.filter(function (r) { return r.status !== 'baru'; })
+      .reduce(function (sum, r) { return sum + (r.amount || FEE); }, 0);
+
+    var typeOptions = Object.keys(LETTER_TYPES).map(function (key) {
+      return '<option value="' + key + '"' + (S.adminFilterType === key ? ' selected' : '') + '>' + escapeHtml(LETTER_TYPES[key].shortLabel) + '</option>';
+    }).join('');
+
+    var rows = filtered.map(function (r) {
+      return '<button class="card list-item" data-detail="' + r.id + '">' +
+        '<div class="list-item-top">' +
+          '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
+          '<span class="stamp ' + r.status + '">' + escapeHtml(STATUS_LABEL[r.status]) + '</span>' +
+        '</div>' +
+        '<div class="list-item-bottom">' +
+          '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' · ' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span>' +
+          '<span>' + escapeHtml(formatDateShort(r.submittedAt)) + '</span>' +
+        '</div>' +
+      '</button>';
+    }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
+
+    return '' +
+      '<div class="top-row">' + backBar('home', 'Beranda') + '<button class="btn-text" id="adminLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
+      '<h2>Dashboard Admin</h2>' +
+      '<div class="stats-grid">' +
+        '<div class="stat"><span class="stat-num">' + total + '</span><span class="stat-label">Total</span></div>' +
+        '<div class="stat"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Menunggu</span></div>' +
+        '<div class="stat"><span class="stat-num">' + lunas + '</span><span class="stat-label">Lunas</span></div>' +
+        '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
+      '</div>' +
+      '<p class="hint">Estimasi pendapatan terverifikasi: <strong>' + formatRupiah(pendapatan) + '</strong></p>' +
+      '<div class="filter-row">' +
+        '<select id="filterType" class="field-input"><option value="all"' + (S.adminFilterType === 'all' ? ' selected' : '') + '>Semua Jenis</option>' + typeOptions + '</select>' +
+        '<select id="filterStatus" class="field-input">' +
+          '<option value="all"' + (S.adminFilterStatus === 'all' ? ' selected' : '') + '>Semua Status</option>' +
+          '<option value="baru"' + (S.adminFilterStatus === 'baru' ? ' selected' : '') + '>Menunggu</option>' +
+          '<option value="lunas"' + (S.adminFilterStatus === 'lunas' ? ' selected' : '') + '>Lunas</option>' +
+          '<option value="selesai"' + (S.adminFilterStatus === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="stack">' + rows + '</div>' +
+      '<button class="btn-outline" id="exportBtn">Salin Semua sebagai CSV</button>' +
+      '<button class="btn-text" id="editSettingsBtn">Pengaturan (Rekening & Nomor Surat)</button>' +
+      (S.adminEditingSettings ? renderSettingsEditor() : '');
+  }
+
+  function renderSettingsEditor() {
+    return '<div class="card">' +
+      '<label class="field"><span class="field-label">Info Pembayaran (ditampilkan ke siswa)</span>' +
+      '<textarea class="field-input" id="paymentInfoInput" rows="3">' + escapeHtml((S.settings && S.settings.paymentInfo) || DEFAULT_PAYMENT_INFO) + '</textarea></label>' +
+      '<label class="field"><span class="field-label">Nomor Surat Berikutnya</span>' +
+      '<input class="field-input" id="nextSuratInput" type="number" min="1" value="' + ((S.settings && S.settings.nextSuratNumber) || 1) + '"></label>' +
+      '<button class="btn-primary" id="saveSettingsBtn">Simpan</button></div>';
+  }
+
+  function renderAdminDetail() {
+    var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+    if (!req) return renderAdminDashboard();
+    var t = LETTER_TYPES[req.type];
+    var fieldsHtml = t.fields.map(function (f) {
+      return '<div class="detail-row"><span class="detail-label">' + escapeHtml(f.label) + '</span><span class="detail-value">' + escapeHtml(req.data[f.key] || '-') + '</span></div>';
+    }).join('');
+    var defaultTgl = req.tanggalSurat || todayISO();
+    var defaultNomor = req.nomorSurat || suggestedNomor(S.settings, defaultTgl);
+    return backBar('adminDashboard', 'Dashboard') +
+      '<h2>' + escapeHtml(req.id) + '</h2>' +
+      '<div class="stamp ' + req.status + '">' + escapeHtml(STATUS_LABEL[req.status]) + '</div>' +
+      '<div class="card">' + fieldsHtml + '</div>' +
+      '<div class="card">' +
+        '<div class="detail-row"><span class="detail-label">Jumlah Harus Masuk</span><span class="detail-value">' + formatRupiah(req.amount || FEE) + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Kode Unik</span><span class="detail-value">' + (req.paymentCode || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Klaim Sudah Bayar</span><span class="detail-value">' + (req.paymentChecked ? 'Ya' : 'Belum') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Nama Pengirim</span><span class="detail-value">' + escapeHtml(req.paymentNote || '-') + '</span></div>' +
+      '</div>' +
+      '<label class="field"><span class="field-label">Ubah Status</span>' +
+        '<select id="statusSelect" class="field-input">' +
+          '<option value="baru"' + (req.status === 'baru' ? ' selected' : '') + '>Menunggu Verifikasi</option>' +
+          '<option value="lunas"' + (req.status === 'lunas' ? ' selected' : '') + '>Lunas - Diproses</option>' +
+          '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
+        '</select>' +
+      '</label>' +
+      '<label class="field"><span class="field-label">Catatan Admin</span><textarea class="field-input" id="adminNoteInput" rows="2">' + escapeHtml(req.adminNote || '') + '</textarea></label>' +
+      '<div class="card">' +
+        '<p class="field-label">Generate Teks Surat</p>' +
+        '<label class="field"><span class="field-label">Nomor Surat</span><input class="field-input" id="nomorSuratInput" type="text" value="' + escapeHtml(defaultNomor) + '"></label>' +
+        '<label class="field"><span class="field-label">Tanggal Surat</span><input class="field-input" id="tanggalSuratInput" type="date" value="' + escapeHtml(defaultTgl) + '"></label>' +
+        '<button class="btn-outline" id="generateLetterBtn" style="margin-top:8px">Generate Teks Surat</button>' +
+        '<label class="field" style="margin-top:12px"><span class="field-label">Hasil (bisa diedit sebelum disalin)</span>' +
+        '<textarea class="field-input mono-area" id="generatedTextArea" rows="16">' + escapeHtml(req.generatedText || '') + '</textarea></label>' +
+        '<button class="btn-primary" id="copyLetterBtn">Salin Teks Surat</button>' +
+      '</div>' +
+      '<div class="stack">' +
+        '<button class="btn-primary" id="saveDetailBtn">Simpan Perubahan</button>' +
+        '<button class="btn-text danger" id="deleteReqBtn">Hapus Permintaan</button>' +
+      '</div>';
+  }
+
+  function attachHandlers() {
+    document.querySelectorAll('[data-go]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        var target = btn.getAttribute('data-go');
+        if (target === 'home') {
+          S.selectedType = null; S.formDraft = {}; S.formErrors = {};
+          S.paymentChecked = false; S.paymentNote = ''; S.pendingId = null; S.pendingCode = null;
+          S.statusResults = null; S.statusQuery = '';
+        }
+        go(target);
+      });
+    });
+    var adminLink = document.getElementById('adminLink');
+    if (adminLink) adminLink.addEventListener('click', async function (e) {
+      e.preventDefault();
+      if (S.adminAuthed) { S.requests = await getRequestsAdmin(); go('adminDashboard'); }
+      else go('adminGate');
+    });
+
+    switch (S.view) {
+      case 'pilihJenis': attachPilihJenis(); break;
+      case 'form': attachForm(); break;
+      case 'pembayaran': attachPembayaran(); break;
+      case 'cekStatus': attachCekStatus(); break;
+      case 'adminGate': attachAdminGate(); break;
+      case 'adminDashboard': attachAdminDashboard(); break;
+      case 'adminDetail': attachAdminDetail(); break;
+    }
+  }
+
+  function attachPilihJenis() {
+    document.querySelectorAll('.type-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        S.selectedType = card.getAttribute('data-type');
+        S.formDraft = {}; S.formErrors = {};
+        go('form');
+      });
+    });
+  }
+
+  function attachForm() {
+    var formEl = document.getElementById('dataForm');
+    document.querySelectorAll('.field-input').forEach(function (inp) {
+      var handler = function () {
+        if (!S.formDraft) S.formDraft = {};
+        S.formDraft[inp.getAttribute('data-field')] = inp.value;
+      };
+      inp.addEventListener('input', handler);
+      inp.addEventListener('change', handler);
+    });
+    formEl.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var t = LETTER_TYPES[S.selectedType];
+      var errors = {};
+      t.fields.forEach(function (f) {
+        if (f.required && !(S.formDraft[f.key] && String(S.formDraft[f.key]).trim())) errors[f.key] = 'Wajib diisi';
+      });
+      S.formErrors = errors;
+      if (Object.keys(errors).length > 0) { render(); return; }
+      var id = generateId(S.selectedType);
+      S.pendingId = id;
+      S.pendingCode = paymentCode(id);
+      go('pembayaran');
+    });
+  }
+
+  function attachPembayaran() {
+    var chk = document.getElementById('paymentChecked');
+    chk.addEventListener('change', function () { S.paymentChecked = chk.checked; });
+    var noteInp = document.getElementById('paymentNote');
+    noteInp.addEventListener('input', function () { S.paymentNote = noteInp.value; });
+    document.getElementById('submitRequestBtn').addEventListener('click', async function () {
+      if (!S.paymentChecked) { S.formErrors._payment = 'Centang konfirmasi pembayaran dulu, ya.'; render(); return; }
+      S.formErrors = {};
+      var newReq = {
+        id: S.pendingId, type: S.selectedType, submittedAt: new Date().toISOString(), status: 'baru',
+        paymentChecked: S.paymentChecked, paymentNote: S.paymentNote, paymentCode: S.pendingCode, amount: FEE + S.pendingCode,
+        adminNote: '', nomorSurat: '', tanggalSurat: '', generatedText: '',
+        data: Object.assign({}, S.formDraft)
+      };
+      var btn = document.getElementById('submitRequestBtn');
+      btn.disabled = true; btn.textContent = 'Mengirim...';
+      var result = await insertRequest(newReq);
+      if (!result.ok) {
+        alert('Gagal mengirim.\n\nDetail: ' + result.error + '\n\nCoba lagi, atau screenshot pesan ini kalau masih gagal.');
+        btn.disabled = false; btn.textContent = 'Kirim Permintaan';
+        return;
+      }
+      S.lastRequest = newReq;
+      S.paymentChecked = false; S.paymentNote = ''; S.pendingId = null; S.pendingCode = null;
+      go('konfirmasi');
+    });
+  }
+
+  function attachCekStatus() {
+    var inp = document.getElementById('statusQuery');
+    inp.addEventListener('input', function () { S.statusQuery = inp.value; });
+    document.getElementById('searchStatusBtn').addEventListener('click', async function () {
+      var q = S.statusQuery.trim().toLowerCase();
+      if (!q) { S.statusResults = []; render(); return; }
+      var btn = document.getElementById('searchStatusBtn');
+      btn.disabled = true; btn.textContent = 'Mencari...';
+      var all = await getRequestsPublic();
+      btn.disabled = false; btn.textContent = 'Cari';
+      S.statusResults = all.filter(function (r) {
+        return r.id.toLowerCase().indexOf(q) !== -1 || (r.data.namaLengkap || '').toLowerCase().indexOf(q) !== -1;
+      });
+      render();
+    });
+  }
+
+  function attachAdminGate() {
+    document.getElementById('adminLoginBtn').addEventListener('click', async function () {
+      var btn = document.getElementById('adminLoginBtn');
+      var email = document.getElementById('adminEmail').value.trim();
+      var password = document.getElementById('adminPassword').value;
+      document.getElementById('adminError').textContent = '';
+      btn.disabled = true; btn.textContent = 'Memeriksa...';
+      var result = await adminLogin(email, password);
+      btn.disabled = false; btn.textContent = 'Masuk';
+      if (!result.ok) { document.getElementById('adminError').textContent = 'Login gagal: ' + result.error; return; }
+      S.adminAuthed = true;
+      S.requests = await getRequestsAdmin();
+      go('adminDashboard');
+    });
+  }
+
+  function attachAdminDashboard() {
+    document.getElementById('filterType').addEventListener('change', function (e) { S.adminFilterType = e.target.value; render(); });
+    document.getElementById('filterStatus').addEventListener('change', function (e) { S.adminFilterStatus = e.target.value; render(); });
+    document.getElementById('adminLogoutBtn').addEventListener('click', async function () {
+      await adminLogout();
+      S.adminAuthed = false; S.requests = [];
+      go('home');
+    });
+    document.querySelectorAll('[data-detail]').forEach(function (btn) {
+      btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
+    });
+    document.getElementById('exportBtn').addEventListener('click', async function () {
+      var csv = buildCsv(S.requests);
+      try { await navigator.clipboard.writeText(csv); alert('CSV disalin ke clipboard. Paste ke Excel/Sheets.'); }
+      catch (e) { alert('Gagal menyalin otomatis.'); console.log(csv); }
+    });
+    document.getElementById('editSettingsBtn').addEventListener('click', function () {
+      S.adminEditingSettings = !S.adminEditingSettings; render();
+    });
+    var saveBtn = document.getElementById('saveSettingsBtn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async function () {
+        var val = document.getElementById('paymentInfoInput').value;
+        var nextNum = parseInt(document.getElementById('nextSuratInput').value, 10) || 1;
+        S.settings = Object.assign({}, S.settings || {}, { paymentInfo: val, nextSuratNumber: nextNum });
+        await saveSettings(S.settings);
+        S.adminEditingSettings = false;
+        render();
+      });
+    }
+  }
+
+  function buildCsv(requests) {
+    var headers = ['ID', 'Jenis', 'Tanggal', 'Status', 'Nama', 'Jumlah', 'Nomor Surat', 'Detail (JSON)'];
+    var lines = [headers.join(',')];
+    requests.forEach(function (r) {
+      var nama = r.data.namaLengkap || '';
+      var rest = JSON.stringify(r.data).replace(/"/g, '""');
+      lines.push([r.id, r.type, r.submittedAt, r.status, '"' + nama + '"', r.amount || '', r.nomorSurat || '', '"' + rest + '"'].join(','));
+    });
+    return lines.join('\n');
+  }
+
+  function attachAdminDetail() {
+    document.getElementById('saveDetailBtn').addEventListener('click', async function () {
+      var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+      req.status = document.getElementById('statusSelect').value;
+      req.adminNote = document.getElementById('adminNoteInput').value;
+      var genArea = document.getElementById('generatedTextArea');
+      if (genArea) req.generatedText = genArea.value;
+      var nomorInput = document.getElementById('nomorSuratInput');
+      if (nomorInput) req.nomorSurat = nomorInput.value.trim();
+      var tglInput = document.getElementById('tanggalSuratInput');
+      if (tglInput) req.tanggalSurat = tglInput.value;
+      var btn = document.getElementById('saveDetailBtn');
+      btn.disabled = true; btn.textContent = 'Menyimpan...';
+      var result = await updateRequest(req);
+      btn.disabled = false; btn.textContent = 'Simpan Perubahan';
+      if (!result.ok) { alert('Gagal menyimpan: ' + result.error); return; }
+      go('adminDashboard');
+    });
+    document.getElementById('generateLetterBtn').addEventListener('click', async function () {
+      var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+      var nomor = document.getElementById('nomorSuratInput').value.trim();
+      var tanggal = document.getElementById('tanggalSuratInput').value;
+      var isFirstTime = !req.generatedText;
+      var text = generateLetterText(req, nomor, tanggal);
+      document.getElementById('generatedTextArea').value = text;
+      req.nomorSurat = nomor;
+      req.tanggalSurat = tanggal;
+      req.generatedText = text;
+      await updateRequest(req);
+      if (isFirstTime) {
+        var currentNext = (S.settings && S.settings.nextSuratNumber) || 1;
+        S.settings = Object.assign({}, S.settings || {}, { nextSuratNumber: currentNext + 1 });
+        await saveSettings(S.settings);
+      }
+    });
+    document.getElementById('copyLetterBtn').addEventListener('click', async function () {
+      var text = document.getElementById('generatedTextArea').value;
+      try { await navigator.clipboard.writeText(text); alert('Teks surat disalin! Tinggal paste ke template & print.'); }
+      catch (e) { alert('Gagal menyalin otomatis. Salin manual dari kotak teks di atas.'); }
+    });
+    document.getElementById('deleteReqBtn').addEventListener('click', async function () {
+      if (!confirm('Hapus permintaan ini? Tindakan tidak bisa dibatalkan.')) return;
+      var ok = await deleteRequestRow(S.adminSelectedId);
+      if (!ok) { alert('Gagal menghapus.'); return; }
+      S.requests = S.requests.filter(function (r) { return r.id !== S.adminSelectedId; });
+      go('adminDashboard');
+    });
+  }
+
+  async function init() {
+    S.settings = await getSettings();
+    S.adminAuthed = await hasAdminSession();
+    if (S.adminAuthed) S.requests = await getRequestsAdmin();
+    S.loading = false;
+    render();
+  }
+  init();
+</script>
+</body>
+</html>
