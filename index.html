@@ -167,7 +167,7 @@
   var MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   var MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   var ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
-  var GENDER_OPTIONS = [{ value: 'L', label: 'Laki-laki' }, { value: 'P', label: 'Perempuan' }];
+  var GENDER_OPTIONS = [{ value: 'L', label: 'Laki-laki', labelEn: 'Male' }, { value: 'P', label: 'Perempuan', labelEn: 'Female' }];
 
   function pronoun(g) {
     if (g === 'P') return { subject: 'she', possessive: 'her', object: 'her' };
@@ -202,15 +202,18 @@
   var LETTER_TYPES = {
     KETERANGAN: {
       shortLabel: 'Ket. Siswa',
+      shortLabelEn: 'Student Status',
       label: 'Surat Keterangan Siswa',
+      labelEn: 'Student Status Letter',
       desc: 'Konfirmasi status siswa aktif di kelas & tahun ajaran tertentu — untuk keperluan umum.',
+      descEn: 'Confirms active student status in a specific grade & academic year — for general purposes.',
       fields: [
-        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-        { key: 'ttl', label: 'Tempat, Tanggal Lahir', placeholder: 'Contoh: Tangerang, 12 Mei 2008', type: 'text', required: true },
-        { key: 'studentId', label: 'Student ID / NISN', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas', placeholder: 'Contoh: 12A', type: 'text', required: true },
-        { key: 'tahunAjaran', label: 'Tahun Ajaran', placeholder: 'Contoh: 2026/2027', type: 'text', required: true },
-        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+        { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'ttl', label: 'Tempat, Tanggal Lahir', labelEn: 'Place, Date of Birth', placeholder: 'Contoh: Tangerang, 12 Mei 2008', placeholderEn: 'e.g. Tangerang, May 12, 2008', type: 'text', required: true },
+        { key: 'studentId', label: 'Student ID / NISN', labelEn: 'Student ID / NISN', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 12A', placeholderEn: 'e.g. 12A', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', labelEn: 'Active Contact (WhatsApp/Email)', type: 'text', required: true }
       ],
       generator: function (d, nomor, tgl) {
         return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
@@ -233,17 +236,20 @@
     },
     SKL_EXPECTED: {
       shortLabel: 'SKL (Belum Lulus)',
+      shortLabelEn: 'SKL (Not Graduated)',
       label: 'SKL Luar Negeri — Belum Lulus',
+      labelEn: 'Overseas SKL — Not Yet Graduated',
       desc: 'Untuk siswa yang belum lulus, dipakai buat daftar universitas luar negeri (expected graduation).',
+      descEn: "For students who haven't graduated yet, used for overseas university applications (expected graduation).",
       fields: [
-        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-        { key: 'jenisKelamin', label: 'Jenis Kelamin', type: 'select', options: GENDER_OPTIONS, required: true },
-        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', type: 'text', required: false },
-        { key: 'studentNumber', label: 'Student Number', type: 'text', required: true },
-        { key: 'tahunAjaran', label: 'Tahun Ajaran', placeholder: 'Contoh: 2026/2027', type: 'text', required: true },
-        { key: 'expectedLulus', label: 'Perkiraan Bulan & Tahun Lulus', placeholder: 'Contoh: June 2027', type: 'text', required: true },
-        { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', type: 'text', required: true },
-        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+        { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
+        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', labelEn: 'Major / Study Program (if any)', type: 'text', required: false },
+        { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
+        { key: 'expectedLulus', label: 'Perkiraan Bulan & Tahun Lulus', labelEn: 'Expected Graduation Month & Year', placeholder: 'Contoh: June 2027', placeholderEn: 'e.g. June 2027', type: 'text', required: true },
+        { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', labelEn: 'Destination University Name', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', labelEn: 'Active Contact (WhatsApp/Email)', type: 'text', required: true }
       ],
       generator: function (d, nomor, tgl) {
         var p = pronoun(d.jenisKelamin);
@@ -263,17 +269,20 @@
     },
     SKL_COMPLETED: {
       shortLabel: 'SKL (Lulus)',
+      shortLabelEn: 'SKL (Graduated)',
       label: 'SKL Luar Negeri — Sudah Lulus',
+      labelEn: 'Overseas SKL — Graduated',
       desc: 'Untuk siswa yang sudah lulus, dipakai buat daftar universitas luar negeri (graduation).',
+      descEn: 'For graduated students, used for overseas university applications (graduation).',
       fields: [
-        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-        { key: 'jenisKelamin', label: 'Jenis Kelamin', type: 'select', options: GENDER_OPTIONS, required: true },
-        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', type: 'text', required: false },
-        { key: 'studentNumber', label: 'Student Number', type: 'text', required: true },
-        { key: 'tahunAjaran', label: 'Tahun Ajaran', placeholder: 'Contoh: 2025/2026', type: 'text', required: true },
-        { key: 'tanggalLulus', label: 'Tanggal Lulus', type: 'date', required: true },
-        { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', type: 'text', required: true },
-        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+        { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
+        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', labelEn: 'Major / Study Program (if any)', type: 'text', required: false },
+        { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2025/2026', placeholderEn: 'e.g. 2025/2026', type: 'text', required: true },
+        { key: 'tanggalLulus', label: 'Tanggal Lulus', labelEn: 'Graduation Date', type: 'date', required: true },
+        { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', labelEn: 'Destination University Name', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', labelEn: 'Active Contact (WhatsApp/Email)', type: 'text', required: true }
       ],
       generator: function (d, nomor, tgl) {
         var p = pronoun(d.jenisKelamin);
@@ -294,18 +303,21 @@
     },
     ANAK_KARYAWAN: {
       shortLabel: 'Anak Karyawan',
+      shortLabelEn: "Employee's Child",
       label: 'Surat Keterangan Anak Karyawan',
+      labelEn: "Employee's Child Certificate",
       desc: 'Untuk pengajuan bantuan dana pendidikan anak karyawan ke tempat kerja orang tua.',
+      descEn: "For applying for employee children's education assistance at the parent's workplace.",
       fields: [
-        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-        { key: 'ttl', label: 'Tempat, Tanggal Lahir', placeholder: 'Contoh: Tangerang, 12 Mei 2008', type: 'text', required: true },
-        { key: 'namaAyah', label: 'Nama Ayah', type: 'text', required: true },
-        { key: 'namaIbu', label: 'Nama Ibu', type: 'text', required: true },
-        { key: 'alamat', label: 'Alamat', type: 'textarea', required: true },
-        { key: 'kelas', label: 'Kelas', placeholder: 'Contoh: 10A', type: 'text', required: true },
-        { key: 'tahunAjaran', label: 'Tahun Ajaran', placeholder: 'Contoh: 2026/2027', type: 'text', required: true },
-        { key: 'namaPerusahaan', label: 'Nama Tempat Kerja Orang Tua', type: 'text', required: true },
-        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+        { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'ttl', label: 'Tempat, Tanggal Lahir', labelEn: 'Place, Date of Birth', placeholder: 'Contoh: Tangerang, 12 Mei 2008', placeholderEn: 'e.g. Tangerang, May 12, 2008', type: 'text', required: true },
+        { key: 'namaAyah', label: 'Nama Ayah', labelEn: "Father's Name", type: 'text', required: true },
+        { key: 'namaIbu', label: 'Nama Ibu', labelEn: "Mother's Name", type: 'text', required: true },
+        { key: 'alamat', label: 'Alamat', labelEn: 'Address', type: 'textarea', required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 10A', placeholderEn: 'e.g. 10A', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
+        { key: 'namaPerusahaan', label: 'Nama Tempat Kerja Orang Tua', labelEn: "Parent's Workplace Name", type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', labelEn: 'Active Contact (WhatsApp/Email)', type: 'text', required: true }
       ],
       generator: function (d, nomor, tgl) {
         return 'Tangerang, ' + formatDateID(tgl) + '\n\n' +
@@ -330,14 +342,17 @@
     },
     VISA: {
       shortLabel: 'Visa',
+      shortLabelEn: 'Visa',
       label: 'Surat Keterangan Visa',
+      labelEn: 'Visa Support Letter',
       desc: 'Ditujukan ke kedutaan negara tujuan, sebagai dokumen pendukung pengajuan visa.',
+      descEn: "Addressed to the destination country's embassy, as a supporting document for the visa application.",
       fields: [
-        { key: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-        { key: 'jenisKelamin', label: 'Jenis Kelamin', type: 'select', options: GENDER_OPTIONS, required: true },
-        { key: 'kelas', label: 'Kelas', placeholder: 'Contoh: 9B', type: 'text', required: true },
-        { key: 'negaraTujuan', label: 'Negara Tujuan', placeholder: 'Contoh: Italy, Australia, Japan', type: 'text', required: true },
-        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', type: 'text', required: true }
+        { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 9B', placeholderEn: 'e.g. 9B', type: 'text', required: true },
+        { key: 'negaraTujuan', label: 'Negara Tujuan', labelEn: 'Destination Country', placeholder: 'Contoh: Italy, Australia, Japan', placeholderEn: 'e.g. Italy, Australia, Japan', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', labelEn: 'Active Contact (WhatsApp/Email)', type: 'text', required: true }
       ],
       generator: function (d, nomor, tgl) {
         var p = pronoun(d.jenisKelamin);
@@ -359,10 +374,116 @@
   };
 
   var STATUS_LABEL = { baru: 'Menunggu Verifikasi', lunas: 'Lunas - Diproses', selesai: 'Selesai' };
+  var STATUS_LABEL_EN = { baru: 'Pending Verification', lunas: 'Paid - Processing', selesai: 'Completed' };
+
+  // Teks UI untuk halaman siswa saja (Dashboard Admin tetap Bahasa Indonesia).
+  var UI_TEXT = {
+    id: {
+      homeTitle: 'Layanan Surat Siswa',
+      homeSub: 'Ajukan surat tanpa harus kirim email. Isi data, bayar, dan pantau statusnya sendiri.',
+      ajukanSurat: 'Ajukan Surat',
+      cekStatusBtn: 'Cek Status Permintaan',
+      beranda: 'Beranda',
+      pilihJenisTitle: 'Pilih Jenis Surat',
+      jenisSurat: 'Jenis Surat',
+      formHint: 'Isi data sesuai dokumen resmi. Field bertanda * wajib diisi.',
+      lanjutPembayaran: 'Lanjut ke Pembayaran',
+      dataSurat: 'Data Surat',
+      pembayaranTitle: 'Pembayaran',
+      nama: 'Nama',
+      kodePermintaan: 'Kode Permintaan',
+      transferTepat: 'Transfer Tepat Sejumlah',
+      kodeUnikHint: function (code) { return '3 digit terakhir (' + code + ') adalah kode unik kamu — jangan dibulatkan, biar cepat dicek admin.'; },
+      keRekening: 'Ke Rekening',
+      sudahTransfer: function (total) { return 'Saya sudah transfer ' + total; },
+      namaPengirim: 'Nama Pengirim Transfer (opsional)',
+      namaPengirimPlaceholder: 'Nama di rekening pengirim',
+      kirimPermintaan: 'Kirim Permintaan',
+      mengirim: 'Mengirim...',
+      checkPaymentFirst: 'Centang konfirmasi pembayaran dulu, ya.',
+      permintaanDiterima: 'Permintaan Diterima',
+      simpanKode: 'Simpan kode ini untuk cek status kapan saja.',
+      jumlahTransfer: 'Jumlah transfer:',
+      prosesHint: 'Surat biasanya selesai 2-3 hari kerja setelah pembayaran diverifikasi admin.',
+      ajukanLain: 'Ajukan Surat Lain',
+      kembaliBeranda: 'Kembali ke Beranda',
+      cekStatusTitle: 'Cek Status Permintaan',
+      statusPlaceholder: 'Kode permintaan atau nama',
+      cari: 'Cari',
+      mencari: 'Mencari...',
+      tidakDitemukan: 'Tidak ditemukan. Coba cek kode atau nama lagi.',
+      fieldWajib: 'Wajib diisi',
+      pilihOpsi: 'Pilih...',
+      gagalKirim: function (err) { return 'Gagal mengirim.\n\nDetail: ' + err + '\n\nCoba lagi, atau screenshot pesan ini kalau masih gagal.'; }
+    },
+    en: {
+      homeTitle: 'Student Letter Service',
+      homeSub: 'Request a letter without sending an email. Fill in your details, pay, and track the status yourself.',
+      ajukanSurat: 'Request a Letter',
+      cekStatusBtn: 'Check Request Status',
+      beranda: 'Home',
+      pilihJenisTitle: 'Choose Letter Type',
+      jenisSurat: 'Letter Type',
+      formHint: 'Fill in your details as they appear on official documents. Fields marked * are required.',
+      lanjutPembayaran: 'Continue to Payment',
+      dataSurat: 'Letter Details',
+      pembayaranTitle: 'Payment',
+      nama: 'Name',
+      kodePermintaan: 'Request Code',
+      transferTepat: 'Transfer the Exact Amount',
+      kodeUnikHint: function (code) { return "The last 3 digits (" + code + ") are your unique code — don't round it, so the admin can verify it quickly."; },
+      keRekening: 'To Account',
+      sudahTransfer: function (total) { return 'I have transferred ' + total; },
+      namaPengirim: "Sender's Name (optional)",
+      namaPengirimPlaceholder: "Sender's name on the transfer",
+      kirimPermintaan: 'Submit Request',
+      mengirim: 'Sending...',
+      checkPaymentFirst: 'Please check the payment confirmation box first.',
+      permintaanDiterima: 'Request Received',
+      simpanKode: 'Save this code to check your status anytime.',
+      jumlahTransfer: 'Transfer amount:',
+      prosesHint: 'Letters are usually ready 2-3 business days after payment is verified by the admin.',
+      ajukanLain: 'Submit Another Letter',
+      kembaliBeranda: 'Back to Home',
+      cekStatusTitle: 'Check Request Status',
+      statusPlaceholder: 'Request code or name',
+      cari: 'Search',
+      mencari: 'Searching...',
+      tidakDitemukan: 'Not found. Try checking the code or name again.',
+      fieldWajib: 'Required',
+      pilihOpsi: 'Select...',
+      gagalKirim: function (err) { return 'Failed to send.\n\nDetail: ' + err + '\n\nPlease try again, or screenshot this message if it keeps failing.'; }
+    }
+  };
+  var STUDENT_VIEWS = ['home', 'pilihJenis', 'form', 'pembayaran', 'konfirmasi', 'cekStatus'];
+
+  function tt(key) { return UI_TEXT[S.lang][key]; }
+  function typeLabel(t) { return S.lang === 'en' ? (t.labelEn || t.label) : t.label; }
+  function typeShortLabel(t) { return S.lang === 'en' ? (t.shortLabelEn || t.shortLabel) : t.shortLabel; }
+  function typeDesc(t) { return S.lang === 'en' ? (t.descEn || t.desc) : t.desc; }
+  function fieldLabel(f) { return S.lang === 'en' ? (f.labelEn || f.label) : f.label; }
+  function fieldPlaceholder(f) { return S.lang === 'en' ? (f.placeholderEn || f.placeholder || '') : (f.placeholder || ''); }
+  function optionLabel(o) { return S.lang === 'en' ? (o.labelEn || o.label) : o.label; }
+  function studentStatusLabel(status) { return S.lang === 'en' ? STATUS_LABEL_EN[status] : STATUS_LABEL[status]; }
+  function getLang() {
+    try { return localStorage.getItem('surat-lang') || 'id'; } catch (e) { return 'id'; }
+  }
+  function toggleLang() {
+    S.lang = S.lang === 'id' ? 'en' : 'id';
+    try { localStorage.setItem('surat-lang', S.lang); } catch (e) {}
+    render();
+  }
+  function renderLangToggle() {
+    return '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">' +
+      '<button id="langToggle" type="button" style="background:none;border:1px solid var(--color-brass);color:var(--color-brass);border-radius:20px;padding:4px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:1px;">' +
+      (S.lang === 'id' ? 'EN' : 'ID') +
+      '</button></div>';
+  }
 
   var S = {
     view: 'home',
     loading: true,
+    lang: getLang(),
     requests: [],
     settings: null,
     selectedType: null,
@@ -524,6 +645,7 @@
       case 'adminDetail': html = renderAdminDetail(); break;
       default: html = renderHome();
     }
+    if (STUDENT_VIEWS.indexOf(S.view) !== -1) html = renderLangToggle() + html;
     app.innerHTML = html;
     attachHandlers();
   }
@@ -534,12 +656,12 @@
     return '' +
       '<div class="hero">' +
         '<img src="UPHC-Horizontal.png" alt="UPH College" class="logo">' +
-        '<h1>Layanan Surat Siswa</h1>' +
-        '<p class="sub">Ajukan surat tanpa harus kirim email. Isi data, bayar, dan pantau statusnya sendiri.</p>' +
+        '<h1>' + escapeHtml(tt('homeTitle')) + '</h1>' +
+        '<p class="sub">' + escapeHtml(tt('homeSub')) + '</p>' +
       '</div>' +
       '<div class="stack">' +
-        '<button class="btn-primary" data-go="pilihJenis">Ajukan Surat</button>' +
-        '<button class="btn-outline" data-go="cekStatus">Cek Status Permintaan</button>' +
+        '<button class="btn-primary" data-go="pilihJenis">' + escapeHtml(tt('ajukanSurat')) + '</button>' +
+        '<button class="btn-outline" data-go="cekStatus">' + escapeHtml(tt('cekStatusBtn')) + '</button>' +
       '</div>' +
       '<div class="footer-link"><a href="#" id="adminLink">Admin</a></div>';
   }
@@ -548,12 +670,12 @@
     var cards = Object.keys(LETTER_TYPES).map(function (key) {
       var t = LETTER_TYPES[key];
       return '<button class="type-card" data-type="' + key + '">' +
-        '<span class="type-card-label">' + escapeHtml(t.label) + '</span>' +
-        '<span class="type-card-desc">' + escapeHtml(t.desc) + '</span>' +
+        '<span class="type-card-label">' + escapeHtml(typeLabel(t)) + '</span>' +
+        '<span class="type-card-desc">' + escapeHtml(typeDesc(t)) + '</span>' +
         '<span class="type-card-fee">' + formatRupiah(FEE) + '</span>' +
       '</button>';
     }).join('');
-    return backBar('home', 'Beranda') + '<h2>Pilih Jenis Surat</h2><div class="stack">' + cards + '</div>';
+    return backBar('home', tt('beranda')) + '<h2>' + escapeHtml(tt('pilihJenisTitle')) + '</h2><div class="stack">' + cards + '</div>';
   }
 
   function renderForm() {
@@ -564,57 +686,57 @@
       var err = S.formErrors[f.key] ? '<span class="field-error">' + escapeHtml(S.formErrors[f.key]) + '</span>' : '';
       var inputEl;
       if (f.type === 'textarea') {
-        inputEl = '<textarea class="field-input" data-field="' + f.key + '" placeholder="' + escapeHtml(f.placeholder || '') + '" rows="2">' + val + '</textarea>';
+        inputEl = '<textarea class="field-input" data-field="' + f.key + '" placeholder="' + escapeHtml(fieldPlaceholder(f)) + '" rows="2">' + val + '</textarea>';
       } else if (f.type === 'select') {
         var opts = f.options.map(function (o) {
-          return '<option value="' + o.value + '"' + ((S.formDraft && S.formDraft[f.key]) === o.value ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
+          return '<option value="' + o.value + '"' + ((S.formDraft && S.formDraft[f.key]) === o.value ? ' selected' : '') + '>' + escapeHtml(optionLabel(o)) + '</option>';
         }).join('');
-        inputEl = '<select class="field-input" data-field="' + f.key + '"><option value="">Pilih...</option>' + opts + '</select>';
+        inputEl = '<select class="field-input" data-field="' + f.key + '"><option value="">' + escapeHtml(tt('pilihOpsi')) + '</option>' + opts + '</select>';
       } else if (f.type === 'date') {
         inputEl = '<input class="field-input" data-field="' + f.key + '" type="date" value="' + val + '">';
       } else {
-        inputEl = '<input class="field-input" data-field="' + f.key + '" type="text" placeholder="' + escapeHtml(f.placeholder || '') + '" value="' + val + '">';
+        inputEl = '<input class="field-input" data-field="' + f.key + '" type="text" placeholder="' + escapeHtml(fieldPlaceholder(f)) + '" value="' + val + '">';
       }
       return '<label class="field">' +
-        '<span class="field-label">' + escapeHtml(f.label) + (f.required ? ' <span class="req">*</span>' : '') + '</span>' +
+        '<span class="field-label">' + escapeHtml(fieldLabel(f)) + (f.required ? ' <span class="req">*</span>' : '') + '</span>' +
         inputEl + err +
       '</label>';
     }).join('');
-    return backBar('pilihJenis', 'Jenis Surat') +
-      '<h2>' + escapeHtml(t.label) + '</h2>' +
-      '<p class="hint">Isi data sesuai dokumen resmi. Field bertanda * wajib diisi.</p>' +
-      '<form id="dataForm" class="stack">' + fieldsHtml + '<button type="submit" class="btn-primary">Lanjut ke Pembayaran</button></form>';
+    return backBar('pilihJenis', tt('jenisSurat')) +
+      '<h2>' + escapeHtml(typeLabel(t)) + '</h2>' +
+      '<p class="hint">' + escapeHtml(tt('formHint')) + '</p>' +
+      '<form id="dataForm" class="stack">' + fieldsHtml + '<button type="submit" class="btn-primary">' + escapeHtml(tt('lanjutPembayaran')) + '</button></form>';
   }
 
   function renderPembayaran() {
     var t = LETTER_TYPES[S.selectedType];
     var total = FEE + S.pendingCode;
-    return backBar('form', 'Data Surat') +
-      '<h2>Pembayaran</h2>' +
+    return backBar('form', tt('dataSurat')) +
+      '<h2>' + escapeHtml(tt('pembayaranTitle')) + '</h2>' +
       '<div class="card summary-card">' +
-        '<div class="summary-row"><span>Jenis Surat</span><strong>' + escapeHtml(t.shortLabel) + '</strong></div>' +
-        '<div class="summary-row"><span>Nama</span><strong>' + escapeHtml(S.formDraft.namaLengkap || '-') + '</strong></div>' +
-        '<div class="summary-row"><span>Kode Permintaan</span><strong class="mono">' + escapeHtml(S.pendingId) + '</strong></div>' +
+        '<div class="summary-row"><span>' + escapeHtml(tt('jenisSurat')) + '</span><strong>' + escapeHtml(typeShortLabel(t)) + '</strong></div>' +
+        '<div class="summary-row"><span>' + escapeHtml(tt('nama')) + '</span><strong>' + escapeHtml(S.formDraft.namaLengkap || '-') + '</strong></div>' +
+        '<div class="summary-row"><span>' + escapeHtml(tt('kodePermintaan')) + '</span><strong class="mono">' + escapeHtml(S.pendingId) + '</strong></div>' +
       '</div>' +
       '<div class="card center">' +
-        '<p class="field-label">Transfer Tepat Sejumlah</p>' +
+        '<p class="field-label">' + escapeHtml(tt('transferTepat')) + '</p>' +
         '<p class="amount-big">' + formatRupiah(total) + '</p>' +
-        '<p class="hint">3 digit terakhir (' + S.pendingCode + ') adalah kode unik kamu — jangan dibulatkan, biar cepat dicek admin.</p>' +
+        '<p class="hint">' + escapeHtml(tt('kodeUnikHint')(S.pendingCode)) + '</p>' +
       '</div>' +
       '<div class="card">' +
-        '<p class="field-label">Ke Rekening</p>' +
+        '<p class="field-label">' + escapeHtml(tt('keRekening')) + '</p>' +
         '<p>' + escapeHtml((S.settings && S.settings.paymentInfo) || DEFAULT_PAYMENT_INFO) + '</p>' +
       '</div>' +
       '<label class="field checkbox-field">' +
         '<input type="checkbox" id="paymentChecked" ' + (S.paymentChecked ? 'checked' : '') + '>' +
-        '<span>Saya sudah transfer ' + formatRupiah(total) + '</span>' +
+        '<span>' + escapeHtml(tt('sudahTransfer')(formatRupiah(total))) + '</span>' +
       '</label>' +
       '<label class="field">' +
-        '<span class="field-label">Nama Pengirim Transfer (opsional)</span>' +
-        '<input class="field-input" id="paymentNote" type="text" value="' + escapeHtml(S.paymentNote) + '" placeholder="Nama di rekening pengirim">' +
+        '<span class="field-label">' + escapeHtml(tt('namaPengirim')) + '</span>' +
+        '<input class="field-input" id="paymentNote" type="text" value="' + escapeHtml(S.paymentNote) + '" placeholder="' + escapeHtml(tt('namaPengirimPlaceholder')) + '">' +
       '</label>' +
       (S.formErrors._payment ? '<span class="field-error">' + escapeHtml(S.formErrors._payment) + '</span>' : '') +
-      '<button class="btn-primary" id="submitRequestBtn" style="margin-top:12px">Kirim Permintaan</button>';
+      '<button class="btn-primary" id="submitRequestBtn" style="margin-top:12px">' + escapeHtml(tt('kirimPermintaan')) + '</button>';
   }
 
   function renderKonfirmasi() {
@@ -623,19 +745,19 @@
     return '' +
       '<div class="hero small">' +
         '<div class="seal">&#10003;</div>' +
-        '<h1>Permintaan Diterima</h1>' +
-        '<p class="sub">Simpan kode ini untuk cek status kapan saja.</p>' +
+        '<h1>' + escapeHtml(tt('permintaanDiterima')) + '</h1>' +
+        '<p class="sub">' + escapeHtml(tt('simpanKode')) + '</p>' +
       '</div>' +
       '<div class="card center">' +
-        '<p class="field-label">Kode Permintaan</p>' +
+        '<p class="field-label">' + escapeHtml(tt('kodePermintaan')) + '</p>' +
         '<p class="req-id">' + escapeHtml(req.id) + '</p>' +
-        '<p class="hint">Jumlah transfer: ' + formatRupiah(req.amount) + '</p>' +
-        '<div class="stamp ' + req.status + '">' + escapeHtml(STATUS_LABEL[req.status]) + '</div>' +
+        '<p class="hint">' + escapeHtml(tt('jumlahTransfer')) + ' ' + formatRupiah(req.amount) + '</p>' +
+        '<div class="stamp ' + req.status + '">' + escapeHtml(studentStatusLabel(req.status)) + '</div>' +
       '</div>' +
-      '<p class="hint center">Surat biasanya selesai 2-3 hari kerja setelah pembayaran diverifikasi admin.</p>' +
+      '<p class="hint center">' + escapeHtml(tt('prosesHint')) + '</p>' +
       '<div class="stack">' +
-        '<button class="btn-outline" data-go="pilihJenis">Ajukan Surat Lain</button>' +
-        '<button class="btn-text" data-go="home">Kembali ke Beranda</button>' +
+        '<button class="btn-outline" data-go="pilihJenis">' + escapeHtml(tt('ajukanLain')) + '</button>' +
+        '<button class="btn-text" data-go="home">' + escapeHtml(tt('kembaliBeranda')) + '</button>' +
       '</div>';
   }
 
@@ -644,26 +766,26 @@
     var resultsHtml = '';
     if (results) {
       if (results.length === 0) {
-        resultsHtml = '<p class="hint">Tidak ditemukan. Coba cek kode atau nama lagi.</p>';
+        resultsHtml = '<p class="hint">' + escapeHtml(tt('tidakDitemukan')) + '</p>';
       } else {
         resultsHtml = results.map(function (r) {
           return '<div class="card list-item">' +
             '<div class="list-item-top">' +
               '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
-              '<span class="stamp ' + r.status + '">' + escapeHtml(STATUS_LABEL[r.status]) + '</span>' +
+              '<span class="stamp ' + r.status + '">' + escapeHtml(studentStatusLabel(r.status)) + '</span>' +
             '</div>' +
             '<div class="list-item-bottom">' +
-              '<span>' + escapeHtml(LETTER_TYPES[r.type] ? LETTER_TYPES[r.type].shortLabel : r.type) + '</span>' +
+              '<span>' + escapeHtml(LETTER_TYPES[r.type] ? typeShortLabel(LETTER_TYPES[r.type]) : r.type) + '</span>' +
               '<span>' + escapeHtml(formatDateShort(r.submittedAt)) + '</span>' +
             '</div>' +
           '</div>';
         }).join('');
       }
     }
-    return backBar('home', 'Beranda') +
-      '<h2>Cek Status Permintaan</h2>' +
-      '<div class="field"><input class="field-input" id="statusQuery" type="text" placeholder="Kode permintaan atau nama" value="' + escapeHtml(S.statusQuery) + '"></div>' +
-      '<button class="btn-primary" id="searchStatusBtn" style="margin-top:12px">Cari</button>' +
+    return backBar('home', tt('beranda')) +
+      '<h2>' + escapeHtml(tt('cekStatusTitle')) + '</h2>' +
+      '<div class="field"><input class="field-input" id="statusQuery" type="text" placeholder="' + escapeHtml(tt('statusPlaceholder')) + '" value="' + escapeHtml(S.statusQuery) + '"></div>' +
+      '<button class="btn-primary" id="searchStatusBtn" style="margin-top:12px">' + escapeHtml(tt('cari')) + '</button>' +
       '<div class="stack" style="margin-top:16px">' + resultsHtml + '</div>';
   }
 
@@ -796,6 +918,9 @@
         go(target);
       });
     });
+    var langBtn = document.getElementById('langToggle');
+    if (langBtn) langBtn.addEventListener('click', function (e) { e.preventDefault(); toggleLang(); });
+
     var adminLink = document.getElementById('adminLink');
     if (adminLink) adminLink.addEventListener('click', async function (e) {
       e.preventDefault();
@@ -839,7 +964,7 @@
       var t = LETTER_TYPES[S.selectedType];
       var errors = {};
       t.fields.forEach(function (f) {
-        if (f.required && !(S.formDraft[f.key] && String(S.formDraft[f.key]).trim())) errors[f.key] = 'Wajib diisi';
+        if (f.required && !(S.formDraft[f.key] && String(S.formDraft[f.key]).trim())) errors[f.key] = tt('fieldWajib');
       });
       S.formErrors = errors;
       if (Object.keys(errors).length > 0) { render(); return; }
@@ -856,7 +981,7 @@
     var noteInp = document.getElementById('paymentNote');
     noteInp.addEventListener('input', function () { S.paymentNote = noteInp.value; });
     document.getElementById('submitRequestBtn').addEventListener('click', async function () {
-      if (!S.paymentChecked) { S.formErrors._payment = 'Centang konfirmasi pembayaran dulu, ya.'; render(); return; }
+      if (!S.paymentChecked) { S.formErrors._payment = tt('checkPaymentFirst'); render(); return; }
       S.formErrors = {};
       var newReq = {
         id: S.pendingId, type: S.selectedType, submittedAt: new Date().toISOString(), status: 'baru',
@@ -865,11 +990,11 @@
         data: Object.assign({}, S.formDraft)
       };
       var btn = document.getElementById('submitRequestBtn');
-      btn.disabled = true; btn.textContent = 'Mengirim...';
+      btn.disabled = true; btn.textContent = tt('mengirim');
       var result = await insertRequest(newReq);
       if (!result.ok) {
-        alert('Gagal mengirim.\n\nDetail: ' + result.error + '\n\nCoba lagi, atau screenshot pesan ini kalau masih gagal.');
-        btn.disabled = false; btn.textContent = 'Kirim Permintaan';
+        alert(tt('gagalKirim')(result.error));
+        btn.disabled = false; btn.textContent = tt('kirimPermintaan');
         return;
       }
       S.lastRequest = newReq;
@@ -885,9 +1010,9 @@
       var q = S.statusQuery.trim().toLowerCase();
       if (!q) { S.statusResults = []; render(); return; }
       var btn = document.getElementById('searchStatusBtn');
-      btn.disabled = true; btn.textContent = 'Mencari...';
+      btn.disabled = true; btn.textContent = tt('mencari');
       var all = await getRequestsPublic();
-      btn.disabled = false; btn.textContent = 'Cari';
+      btn.disabled = false; btn.textContent = tt('cari');
       S.statusResults = all.filter(function (r) {
         return r.id.toLowerCase().indexOf(q) !== -1 || (r.data.namaLengkap || '').toLowerCase().indexOf(q) !== -1;
       });
