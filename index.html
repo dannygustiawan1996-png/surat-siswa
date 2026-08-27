@@ -216,7 +216,8 @@
         { key: 'studentId', label: 'Student ID / NISN', labelEn: 'Student ID / NISN', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 12A', placeholderEn: 'e.g. 12A', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true }
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
         return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
@@ -252,7 +253,8 @@
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'expectedLulus', label: 'Perkiraan Bulan & Tahun Lulus', labelEn: 'Expected Graduation Month & Year', placeholder: 'Contoh: June 2027', placeholderEn: 'e.g. June 2027', type: 'text', required: true },
         { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', labelEn: 'Destination University Name', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true }
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
         var p = pronoun(d.jenisKelamin);
@@ -285,7 +287,8 @@
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2025/2026', placeholderEn: 'e.g. 2025/2026', type: 'text', required: true },
         { key: 'tanggalLulus', label: 'Tanggal Lulus', labelEn: 'Graduation Date', type: 'date', required: true },
         { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', labelEn: 'Destination University Name', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true }
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
         var p = pronoun(d.jenisKelamin);
@@ -320,7 +323,8 @@
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 10A', placeholderEn: 'e.g. 10A', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'namaPerusahaan', label: 'Nama Tempat Kerja Orang Tua', labelEn: "Parent's Workplace Name", type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true }
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
         return 'Tangerang, ' + formatDateID(tgl) + '\n\n' +
@@ -356,7 +360,8 @@
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
         { key: 'semesterDiminta', label: 'Rentang Semester yang Diminta', labelEn: 'Requested Semester Range', placeholder: 'Contoh: 1-4, 1-5, atau 1-6', placeholderEn: 'e.g. 1-4, 1-5, or 1-6', type: 'text', required: true },
         { key: 'keperluan', label: 'Keperluan Transkrip', labelEn: 'Purpose of Transcript', placeholder: 'Contoh: Pengajuan beasiswa, aplikasi universitas, dll', placeholderEn: 'e.g. Scholarship application, university application, etc.', type: 'textarea', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true }
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
         return 'Tangerang, ' + formatDateID(tgl) + '\n\n' +
@@ -386,7 +391,8 @@
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 11A', placeholderEn: 'e.g. 11A', type: 'text', required: true },
         { key: 'tujuan', label: 'Tujuan Permintaan KKM', labelEn: 'Purpose of KKM Request', placeholder: 'Contoh: Pengajuan universitas luar negeri', placeholderEn: 'e.g. Overseas university application', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true }
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
         return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
@@ -416,7 +422,8 @@
         { key: 'studentId', label: 'Student ID / NISN', labelEn: 'Student ID / NISN', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 10A', placeholderEn: 'e.g. 10A', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true }
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
         return 'Tangerang, ' + formatDateID(tgl) + '\n\n' +
@@ -447,7 +454,8 @@
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 9B', placeholderEn: 'e.g. 9B', type: 'text', required: true },
         { key: 'negaraTujuan', label: 'Negara Tujuan', labelEn: 'Destination Country', placeholder: 'Contoh: Italy, Australia, Japan', placeholderEn: 'e.g. Italy, Australia, Japan', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true }
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
         var p = pronoun(d.jenisKelamin);
