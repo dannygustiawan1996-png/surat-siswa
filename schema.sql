@@ -8,6 +8,7 @@ create table if not exists requests (
   status text not null default 'baru',
   payment_checked boolean not null default false,
   payment_note text default '',
+  payment_date date,
   payment_code integer,
   amount integer,
   admin_note text default '',
@@ -16,6 +17,9 @@ create table if not exists requests (
   generated_text text default '',
   data jsonb not null default '{}'::jsonb
 );
+
+-- Untuk project yang tabelnya sudah ada sebelum kolom ini ditambahkan.
+alter table requests add column if not exists payment_date date;
 
 create table if not exists settings (
   id integer primary key default 1,

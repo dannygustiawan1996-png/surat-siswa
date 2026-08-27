@@ -500,8 +500,9 @@
       beritaTransferInfo: 'Saat transfer, isi kolom Berita Transfer/Catatan Pembayaran dengan Nama Siswa (bukan nama pengirim) — supaya cepat diverifikasi oleh Finance.',
       keRekening: 'Ke Rekening',
       sudahTransfer: function (total) { return 'Saya sudah transfer ' + total; },
-      namaPengirim: 'Nama Pengirim Transfer (opsional)',
-      namaPengirimPlaceholder: 'Nama di rekening pengirim',
+      namaPengirim: 'Nama Pengirim Transfer',
+      namaPengirimPlaceholder: 'Nama sesuai rekening pengirim (mis. nama orang tua jika transfer dari rekening orang tua)',
+      tanggalTransfer: 'Tanggal Transfer',
       kirimPermintaan: 'Kirim Permintaan',
       mengirim: 'Mengirim...',
       checkPaymentFirst: 'Centang konfirmasi pembayaran dulu, ya.',
@@ -539,8 +540,9 @@
       beritaTransferInfo: 'When transferring, fill in the Transfer Note/Payment Reference field with the Student\'s Name (not the sender\'s name) — so Finance can verify it quickly.',
       keRekening: 'To Account',
       sudahTransfer: function (total) { return 'I have transferred ' + total; },
-      namaPengirim: "Sender's Name (optional)",
-      namaPengirimPlaceholder: "Sender's name on the transfer",
+      namaPengirim: "Sender's Name",
+      namaPengirimPlaceholder: "Name on the sending bank account (e.g. a parent's name if transferred from their account)",
+      tanggalTransfer: 'Transfer Date',
       kirimPermintaan: 'Submit Request',
       mengirim: 'Sending...',
       checkPaymentFirst: 'Please check the payment confirmation box first.',
@@ -598,6 +600,7 @@
     pendingId: null,
     paymentChecked: false,
     paymentNote: '',
+    paymentDate: '',
     lastRequest: null,
     adminAuthed: false,
     adminFilterType: 'all',
@@ -643,7 +646,7 @@
   function mapFullRow(row) {
     return {
       id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status,
-      paymentChecked: row.payment_checked, paymentNote: row.payment_note, paymentCode: row.payment_code, amount: row.amount,
+      paymentChecked: row.payment_checked, paymentNote: row.payment_note, paymentDate: row.payment_date, paymentCode: row.payment_code, amount: row.amount,
       adminNote: row.admin_note, nomorSurat: row.nomor_surat, tanggalSurat: row.tanggal_surat, generatedText: row.generated_text,
       data: row.data
     };
@@ -651,7 +654,7 @@
   function toDbRow(req) {
     return {
       id: req.id, type: req.type, submitted_at: req.submittedAt, status: req.status,
-      payment_checked: req.paymentChecked, payment_note: req.paymentNote, payment_code: req.paymentCode, amount: req.amount,
+      payment_checked: req.paymentChecked, payment_note: req.paymentNote, payment_date: req.paymentDate || null, payment_code: req.paymentCode, amount: req.amount,
       admin_note: req.adminNote, nomor_surat: req.nomorSurat || null, tanggal_surat: req.tanggalSurat || null, generated_text: req.generatedText,
       data: req.data
     };
@@ -838,8 +841,14 @@
         '<span>' + escapeHtml(tt('sudahTransfer')(formatRupiah(total))) + '</span>' +
       '</label>' +
       '<label class="field">' +
-        '<span class="field-label">' + escapeHtml(tt('namaPengirim')) + '</span>' +
+        '<span class="field-label">' + escapeHtml(tt('namaPengirim')) + ' <span class="req">*</span></span>' +
         '<input class="field-input" id="paymentNote" type="text" value="' + escapeHtml(S.paymentNote) + '" placeholder="' + escapeHtml(tt('namaPengirimPlaceholder')) + '">' +
+        (S.formErrors.paymentNote ? '<span class="field-error">' + escapeHtml(S.formErrors.paymentNote) + '</span>' : '') +
+      '</label>' +
+      '<label class="field">' +
+        '<span class="field-label">' + escapeHtml(tt('tanggalTransfer')) + ' <span class="req">*</span></span>' +
+        '<input class="field-input" id="paymentDate" type="date" value="' + escapeHtml(S.paymentDate) + '">' +
+        (S.formErrors.paymentDate ? '<span class="field-error">' + escapeHtml(S.formErrors.paymentDate) + '</span>' : '') +
       '</label>' +
       (S.formErrors._payment ? '<span class="field-error">' + escapeHtml(S.formErrors._payment) + '</span>' : '') +
       '<button class="btn-primary" id="submitRequestBtn" style="margin-top:12px">' + escapeHtml(tt('kirimPermintaan')) + '</button>';
@@ -995,6 +1004,7 @@
         '<div class="detail-row"><span class="detail-label">Jumlah Harus Masuk</span><span class="detail-value">' + formatRupiah(req.amount || FEE) + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Klaim Sudah Bayar</span><span class="detail-value">' + (req.paymentChecked ? 'Ya' : 'Belum') + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Nama Pengirim</span><span class="detail-value">' + escapeHtml(req.paymentNote || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Tanggal Transfer</span><span class="detail-value">' + (req.paymentDate ? formatDateShort(req.paymentDate) : '-') + '</span></div>' +
       '</div>' +
       '<label class="field"><span class="field-label">Ubah Status</span>' +
         '<select id="statusSelect" class="field-input">' +
@@ -1026,7 +1036,7 @@
         var target = btn.getAttribute('data-go');
         if (target === 'home') {
           S.selectedType = null; S.formDraft = {}; S.formErrors = {};
-          S.paymentChecked = false; S.paymentNote = ''; S.pendingId = null;
+          S.paymentChecked = false; S.paymentNote = ''; S.paymentDate = ''; S.pendingId = null;
           S.statusResults = null; S.statusQuery = '';
         }
         go(target);
@@ -1093,13 +1103,19 @@
     chk.addEventListener('change', function () { S.paymentChecked = chk.checked; });
     var noteInp = document.getElementById('paymentNote');
     noteInp.addEventListener('input', function () { S.paymentNote = noteInp.value; });
+    var dateInp = document.getElementById('paymentDate');
+    dateInp.addEventListener('input', function () { S.paymentDate = dateInp.value; });
     document.getElementById('submitRequestBtn').addEventListener('click', async function () {
       if (!S.paymentChecked) { S.formErrors._payment = tt('checkPaymentFirst'); render(); return; }
-      S.formErrors = {};
+      var errors = {};
+      if (!S.paymentNote || !S.paymentNote.trim()) errors.paymentNote = tt('fieldWajib');
+      if (!S.paymentDate) errors.paymentDate = tt('fieldWajib');
+      S.formErrors = errors;
+      if (Object.keys(errors).length > 0) { render(); return; }
       var feeForType = (LETTER_TYPES[S.selectedType].fee || FEE);
       var newReq = {
         id: S.pendingId, type: S.selectedType, submittedAt: new Date().toISOString(), status: 'baru',
-        paymentChecked: S.paymentChecked, paymentNote: S.paymentNote, paymentCode: null, amount: feeForType,
+        paymentChecked: S.paymentChecked, paymentNote: S.paymentNote, paymentDate: S.paymentDate, paymentCode: null, amount: feeForType,
         adminNote: '', nomorSurat: '', tanggalSurat: '', generatedText: '',
         data: Object.assign({}, S.formDraft)
       };
@@ -1112,7 +1128,7 @@
         return;
       }
       S.lastRequest = newReq;
-      S.paymentChecked = false; S.paymentNote = ''; S.pendingId = null;
+      S.paymentChecked = false; S.paymentNote = ''; S.paymentDate = ''; S.pendingId = null;
       go('konfirmasi');
     });
   }
