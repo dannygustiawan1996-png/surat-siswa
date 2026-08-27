@@ -67,6 +67,7 @@
   .card.center { text-align: center; }
 
   .notice-card { background: #FBEDEA; border-left: 3px solid var(--color-red); border-radius: 4px; padding: 14px 16px; margin: 14px 0; font-size: 13.5px; line-height: 1.55; color: var(--color-ink); }
+  .pickup-card { background: #EAF3EC; border-left: 3px solid var(--color-green); border-radius: 4px; padding: 10px 14px; margin-top: 8px; font-size: 12.5px; line-height: 1.5; color: var(--color-ink); }
 
   .type-card {
     display: flex; flex-direction: column; gap: 6px; text-align: left;
@@ -481,6 +482,7 @@
       tidakDitemukan: 'Tidak ditemukan. Coba cek kode atau nama lagi.',
       fieldWajib: 'Wajib diisi',
       pilihOpsi: 'Pilih...',
+      pengambilanInfo: '📍 Dokumen sudah selesai dan siap diambil di Teacher Lounge (TL), temui Pak Danny.',
       gagalKirim: function (err) { return 'Gagal mengirim.\n\nDetail: ' + err + '\n\nCoba lagi, atau screenshot pesan ini kalau masih gagal.'; }
     },
     en: {
@@ -519,6 +521,7 @@
       tidakDitemukan: 'Not found. Try checking the code or name again.',
       fieldWajib: 'Required',
       pilihOpsi: 'Select...',
+      pengambilanInfo: '📍 Your document is ready — pick it up at the Teacher Lounge (TL), see Mr. Danny.',
       gagalKirim: function (err) { return 'Failed to send.\n\nDetail: ' + err + '\n\nPlease try again, or screenshot this message if it keeps failing.'; }
     }
   };
@@ -844,6 +847,7 @@
         resultsHtml = '<p class="hint">' + escapeHtml(tt('tidakDitemukan')) + '</p>';
       } else {
         resultsHtml = results.map(function (r) {
+          var pickupHtml = r.status === 'selesai' ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
           return '<div class="card list-item">' +
             '<div class="list-item-top">' +
               '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
@@ -853,6 +857,7 @@
               '<span>' + escapeHtml(LETTER_TYPES[r.type] ? typeShortLabel(LETTER_TYPES[r.type]) : r.type) + '</span>' +
               '<span>' + escapeHtml(formatDateShort(r.submittedAt)) + '</span>' +
             '</div>' +
+            pickupHtml +
           '</div>';
         }).join('');
       }
@@ -948,9 +953,11 @@
     var defaultTgl = req.tanggalSurat || todayISO();
     var defaultNomor = req.nomorSurat || suggestedNomor(S.settings, defaultTgl);
     var adminNoticeHtml = t.notice ? '<div class="notice-card"><strong>Ingat admin:</strong> ' + escapeHtml(t.notice) + '</div>' : '';
+    var pickupNoticeHtml = req.status === 'selesai' ? '<div class="pickup-card">' + escapeHtml(UI_TEXT.id.pengambilanInfo) + '</div>' : '';
     return backBar('adminDashboard', 'Dashboard') +
       '<h2>' + escapeHtml(req.id) + '</h2>' +
       '<div class="stamp ' + req.status + '">' + escapeHtml(STATUS_LABEL[req.status]) + '</div>' +
+      pickupNoticeHtml +
       adminNoticeHtml +
       '<div class="card">' + fieldsHtml + '</div>' +
       '<div class="card">' +
