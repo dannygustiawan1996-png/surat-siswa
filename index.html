@@ -354,7 +354,7 @@
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
-        { key: 'semesterDiminta', label: 'Semester yang Diminta', labelEn: 'Requested Semester(s)', placeholder: 'Contoh: Semester 1, 2, 3, 4', placeholderEn: 'e.g. Semester 1, 2, 3, 4', type: 'text', required: true },
+        { key: 'semesterDiminta', label: 'Rentang Semester yang Diminta', labelEn: 'Requested Semester Range', placeholder: 'Contoh: 1-4, 1-5, atau 1-6', placeholderEn: 'e.g. 1-4, 1-5, or 1-6', type: 'text', required: true },
         { key: 'keperluan', label: 'Keperluan Transkrip', labelEn: 'Purpose of Transcript', placeholder: 'Contoh: Pengajuan beasiswa, aplikasi universitas, dll', placeholderEn: 'e.g. Scholarship application, university application, etc.', type: 'textarea', required: true },
         { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', labelEn: 'Active Contact (WhatsApp/Email)', type: 'text', required: true }
       ],
@@ -365,7 +365,7 @@
           'Yang bertandatangan di bawah ini menerangkan bahwa :\n\n' +
           'Nama                     : ' + d.namaLengkap + '\n' +
           'Kelas                    : ' + d.kelas + '\n' +
-          'Semester yang Diminta    : ' + d.semesterDiminta + '\n' +
+          'Rentang Semester Diminta : ' + d.semesterDiminta + '\n' +
           'Keperluan                : ' + d.keperluan + '\n\n' +
           'telah mengajukan permohonan One Page Transcript nilai dan telah melakukan pembayaran biaya pengajuan.\n\n' +
           'Demikian tanda terima ini dibuat.\n\n' +
