@@ -66,6 +66,8 @@
   }
   .card.center { text-align: center; }
 
+  .notice-card { background: #FBEDEA; border-left: 3px solid var(--color-red); border-radius: 4px; padding: 14px 16px; margin: 14px 0; font-size: 13.5px; line-height: 1.55; color: var(--color-ink); }
+
   .type-card {
     display: flex; flex-direction: column; gap: 6px; text-align: left;
     background: var(--color-card); border: none; border-left: 3px solid var(--color-navy);
@@ -335,6 +337,40 @@
           'Alamat                   : ' + d.alamat + '\n\n' +
           'adalah benar siswa kelas ' + d.kelas + ' pada TA ' + d.tahunAjaran + ' di UPH College.\n\n' +
           'Demikian surat keterangan ini diberikan untuk mengurus administrasi pengajuan bantuan pendidikan anak karyawan ' + d.namaPerusahaan + '.\n\n' +
+          'Hormat Kami,\n\n\n' +
+          'Hans Deny\n' +
+          'Kepala Sekolah';
+      }
+    },
+    CETAK_KARTU: {
+      shortLabel: 'Cetak Kartu',
+      shortLabelEn: 'Reprint Card',
+      label: 'Cetak Ulang Kartu Pelajar (Hilang)',
+      labelEn: 'Student ID Card Reprint (Lost)',
+      desc: 'Untuk kartu pelajar yang hilang. Bisa diajukan & dibayar dulu, tapi kartu baru hanya diserahkan setelah membawa Surat Kehilangan dari Kepolisian.',
+      descEn: 'For a lost student ID card. You can submit and pay first, but the reprinted card is only handed over once you bring a Police Loss Report.',
+      fee: 250000,
+      notice: '⚠️ Penting: Kamu boleh mengajukan & membayar dulu — urus surat kehilangan ke kantor polisi bisa menyusul setelahnya. Tapi saat pengambilan kartu di sekolah, kamu WAJIB membawa Surat Kehilangan asli dari Kepolisian. Tanpa surat ini, kartu tidak bisa diserahkan.',
+      noticeEn: '⚠️ Important: You may submit and pay first — arranging the police report can come after. But when picking up the card at school, you MUST bring the original Police Loss Report. Without it, the card cannot be handed over.',
+      fields: [
+        { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'studentId', label: 'Student ID / NISN', labelEn: 'Student ID / NISN', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 10A', placeholderEn: 'e.g. 10A', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
+        { key: 'kontak', label: 'Kontak Aktif (WhatsApp/Email)', labelEn: 'Active Contact (WhatsApp/Email)', type: 'text', required: true }
+      ],
+      generator: function (d, nomor, tgl) {
+        return 'Tangerang, ' + formatDateID(tgl) + '\n\n' +
+          'TANDA TERIMA PERMOHONAN CETAK ULANG KARTU PELAJAR\n' +
+          'No. : ' + nomor + '\n\n' +
+          'Yang bertandatangan di bawah ini menerangkan bahwa :\n\n' +
+          'Nama                     : ' + d.namaLengkap + '\n' +
+          'Student ID / NISN        : ' + d.studentId + '\n' +
+          'Kelas                    : ' + d.kelas + '\n' +
+          'Tahun Ajaran             : ' + d.tahunAjaran + '\n\n' +
+          'telah mengajukan permohonan cetak ulang kartu pelajar (hilang) dan telah melakukan pembayaran biaya cetak ulang.\n\n' +
+          'PENTING: Kartu baru hanya akan diserahkan setelah siswa/orang tua/wali menyerahkan Surat Kehilangan dari Kepolisian kepada pihak sekolah.\n\n' +
+          'Demikian tanda terima ini dibuat.\n\n' +
           'Hormat Kami,\n\n\n' +
           'Hans Deny\n' +
           'Kepala Sekolah';
@@ -672,7 +708,7 @@
       return '<button class="type-card" data-type="' + key + '">' +
         '<span class="type-card-label">' + escapeHtml(typeLabel(t)) + '</span>' +
         '<span class="type-card-desc">' + escapeHtml(typeDesc(t)) + '</span>' +
-        '<span class="type-card-fee">' + formatRupiah(FEE) + '</span>' +
+        '<span class="type-card-fee">' + formatRupiah(t.fee || FEE) + '</span>' +
       '</button>';
     }).join('');
     return backBar('home', tt('beranda')) + '<h2>' + escapeHtml(tt('pilihJenisTitle')) + '</h2><div class="stack">' + cards + '</div>';
@@ -702,15 +738,19 @@
         inputEl + err +
       '</label>';
     }).join('');
+    var noticeHtml = t.notice ? '<div class="notice-card">' + escapeHtml(S.lang === 'en' ? (t.noticeEn || t.notice) : t.notice) + '</div>' : '';
     return backBar('pilihJenis', tt('jenisSurat')) +
       '<h2>' + escapeHtml(typeLabel(t)) + '</h2>' +
       '<p class="hint">' + escapeHtml(tt('formHint')) + '</p>' +
+      noticeHtml +
       '<form id="dataForm" class="stack">' + fieldsHtml + '<button type="submit" class="btn-primary">' + escapeHtml(tt('lanjutPembayaran')) + '</button></form>';
   }
 
   function renderPembayaran() {
     var t = LETTER_TYPES[S.selectedType];
-    var total = FEE + S.pendingCode;
+    var fee = t.fee || FEE;
+    var total = fee + S.pendingCode;
+    var noticeHtml = t.notice ? '<div class="notice-card">' + escapeHtml(S.lang === 'en' ? (t.noticeEn || t.notice) : t.notice) + '</div>' : '';
     return backBar('form', tt('dataSurat')) +
       '<h2>' + escapeHtml(tt('pembayaranTitle')) + '</h2>' +
       '<div class="card summary-card">' +
@@ -727,6 +767,7 @@
         '<p class="field-label">' + escapeHtml(tt('keRekening')) + '</p>' +
         '<p>' + escapeHtml((S.settings && S.settings.paymentInfo) || DEFAULT_PAYMENT_INFO) + '</p>' +
       '</div>' +
+      noticeHtml +
       '<label class="field checkbox-field">' +
         '<input type="checkbox" id="paymentChecked" ' + (S.paymentChecked ? 'checked' : '') + '>' +
         '<span>' + escapeHtml(tt('sudahTransfer')(formatRupiah(total))) + '</span>' +
@@ -742,6 +783,8 @@
   function renderKonfirmasi() {
     var req = S.lastRequest;
     if (!req) return renderHome();
+    var reqType = LETTER_TYPES[req.type];
+    var noticeHtml = (reqType && reqType.notice) ? '<div class="notice-card">' + escapeHtml(S.lang === 'en' ? (reqType.noticeEn || reqType.notice) : reqType.notice) + '</div>' : '';
     return '' +
       '<div class="hero small">' +
         '<div class="seal">&#10003;</div>' +
@@ -754,6 +797,7 @@
         '<p class="hint">' + escapeHtml(tt('jumlahTransfer')) + ' ' + formatRupiah(req.amount) + '</p>' +
         '<div class="stamp ' + req.status + '">' + escapeHtml(studentStatusLabel(req.status)) + '</div>' +
       '</div>' +
+      noticeHtml +
       '<p class="hint center">' + escapeHtml(tt('prosesHint')) + '</p>' +
       '<div class="stack">' +
         '<button class="btn-outline" data-go="pilihJenis">' + escapeHtml(tt('ajukanLain')) + '</button>' +
@@ -872,9 +916,11 @@
     }).join('');
     var defaultTgl = req.tanggalSurat || todayISO();
     var defaultNomor = req.nomorSurat || suggestedNomor(S.settings, defaultTgl);
+    var adminNoticeHtml = t.notice ? '<div class="notice-card"><strong>Ingat admin:</strong> ' + escapeHtml(t.notice) + '</div>' : '';
     return backBar('adminDashboard', 'Dashboard') +
       '<h2>' + escapeHtml(req.id) + '</h2>' +
       '<div class="stamp ' + req.status + '">' + escapeHtml(STATUS_LABEL[req.status]) + '</div>' +
+      adminNoticeHtml +
       '<div class="card">' + fieldsHtml + '</div>' +
       '<div class="card">' +
         '<div class="detail-row"><span class="detail-label">Jumlah Harus Masuk</span><span class="detail-value">' + formatRupiah(req.amount || FEE) + '</span></div>' +
@@ -983,9 +1029,10 @@
     document.getElementById('submitRequestBtn').addEventListener('click', async function () {
       if (!S.paymentChecked) { S.formErrors._payment = tt('checkPaymentFirst'); render(); return; }
       S.formErrors = {};
+      var feeForType = (LETTER_TYPES[S.selectedType].fee || FEE);
       var newReq = {
         id: S.pendingId, type: S.selectedType, submittedAt: new Date().toISOString(), status: 'baru',
-        paymentChecked: S.paymentChecked, paymentNote: S.paymentNote, paymentCode: S.pendingCode, amount: FEE + S.pendingCode,
+        paymentChecked: S.paymentChecked, paymentNote: S.paymentNote, paymentCode: S.pendingCode, amount: feeForType + S.pendingCode,
         adminNote: '', nomorSurat: '', tanggalSurat: '', generatedText: '',
         data: Object.assign({}, S.formDraft)
       };
