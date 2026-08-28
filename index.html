@@ -166,7 +166,7 @@
   var SUPABASE_ANON_KEY = 'sb_publishable_mRKDBw_XWZwHPAZQFEKYDg_n6au_AkQ';
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  var FEE = 20000;
+  var FEE = 25000;
   var DEFAULT_PAYMENT_INFO = 'Transfer ke CIMB Niaga 800.10.907.7600 a.n. Yayasan Pendidikan Pelita Harapan, lalu centang konfirmasi di bawah.';
   var MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   var MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -355,7 +355,7 @@
       labelEn: 'One Page Transcript Request',
       desc: 'Transkrip nilai ringkas satu halaman untuk semester tertentu, sesuai keperluan (beasiswa, universitas, dll).',
       descEn: 'A concise one-page grade transcript for specific semesters, based on your purpose (scholarship, university, etc).',
-      fee: 20000,
+      fee: 25000,
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
@@ -387,7 +387,7 @@
       labelEn: 'KKM Statement Letter (Minimum Passing Grade)',
       desc: 'Surat pernyataan Kriteria Ketuntasan Minimal (KKM) / minimum passing grade sekolah, untuk keperluan tertentu.',
       descEn: 'A statement letter confirming the school\'s Minimum Passing Grade (KKM), for a specific purpose.',
-      fee: 20000,
+      fee: 25000,
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 11A', placeholderEn: 'e.g. 11A', type: 'text', required: true },
@@ -415,7 +415,7 @@
       labelEn: 'Student ID Card Reprint (Lost)',
       desc: 'Untuk kartu pelajar yang hilang. Bisa diajukan & dibayar dulu, tapi kartu baru hanya diserahkan setelah membawa Surat Kehilangan dari Kepolisian.',
       descEn: 'For a lost student ID card. You can submit and pay first, but the reprinted card is only handed over once you bring a Police Loss Report.',
-      fee: 250000,
+      fee: 350000,
       notice: '⚠️ Penting: Kamu boleh mengajukan & membayar dulu — urus surat kehilangan ke kantor polisi bisa menyusul setelahnya. Tapi saat pengambilan kartu di sekolah, kamu WAJIB membawa Surat Kehilangan asli dari Kepolisian. Tanpa surat ini, kartu tidak bisa diserahkan.',
       noticeEn: '⚠️ Important: You may submit and pay first — arranging the police report can come after. But when picking up the card at school, you MUST bring the original Police Loss Report. Without it, the card cannot be handed over.',
       fields: [
