@@ -624,6 +624,30 @@
     try { var d = new Date(iso); return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }); }
     catch (e) { return iso; }
   }
+  function timePeriodLabel(iso) {
+    try {
+      var h = new Date(iso).getHours();
+      if (h >= 5 && h < 11) return 'Pagi';
+      if (h >= 11 && h < 15) return 'Siang';
+      if (h >= 15 && h < 18) return 'Sore';
+      return 'Malam';
+    } catch (e) { return '-'; }
+  }
+  function formatDateShortAdmin(iso) {
+    try {
+      var d = new Date(iso);
+      var tgl = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      return tgl + ' · ' + timePeriodLabel(iso);
+    } catch (e) { return iso; }
+  }
+  function formatDateTimeFull(iso) {
+    try {
+      var d = new Date(iso);
+      var tgl = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      var jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      return tgl + ', ' + jam + ' (' + timePeriodLabel(iso) + ')';
+    } catch (e) { return iso; }
+  }
   function formatRupiah(n) { return 'Rp' + n.toLocaleString('id-ID'); }
   function generateId(type) {
     var d = new Date();
@@ -944,7 +968,7 @@
         '</div>' +
         '<div class="list-item-bottom">' +
           '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' · ' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span>' +
-          '<span>' + escapeHtml(formatDateShort(r.submittedAt)) + '</span>' +
+          '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
         '</div>' +
       '</button>';
     }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
@@ -1001,6 +1025,7 @@
       adminNoticeHtml +
       '<div class="card">' + fieldsHtml + '</div>' +
       '<div class="card">' +
+        '<div class="detail-row"><span class="detail-label">Waktu Pengajuan</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Jumlah Harus Masuk</span><span class="detail-value">' + formatRupiah(req.amount || FEE) + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Klaim Sudah Bayar</span><span class="detail-value">' + (req.paymentChecked ? 'Ya' : 'Belum') + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Nama Pengirim</span><span class="detail-value">' + escapeHtml(req.paymentNote || '-') + '</span></div>' +
