@@ -178,6 +178,13 @@
     return { subject: 'he', possessive: 'his', object: 'him' };
   }
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function gradeFromKelas(kelas) {
+    var letter = String(kelas || '').trim().charAt(0).toUpperCase();
+    if (letter === 'L') return 12;
+    if (letter === 'S') return 11;
+    if (letter === 'F') return 10;
+    return '';
+  }
   function parseDateParts(dateStr) {
     var parts = (dateStr || '').split('-');
     return { y: parseInt(parts[0], 10) || 0, m: (parseInt(parts[1], 10) || 1) - 1, d: parseInt(parts[2], 10) || 0 };
@@ -215,7 +222,7 @@
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'ttl', label: 'Tempat, Tanggal Lahir', labelEn: 'Place, Date of Birth', placeholder: 'Contoh: Tangerang, 12 Mei 2008', placeholderEn: 'e.g. Tangerang, May 12, 2008', type: 'text', required: true },
         { key: 'studentId', label: 'Student ID / NISN', labelEn: 'Student ID / NISN', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 12A', placeholderEn: 'e.g. 12A', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
@@ -232,8 +239,8 @@
           'Name                  : ' + d.namaLengkap + '\n' +
           'Place, Date of Birth  : ' + d.ttl + '\n' +
           'Student ID            : ' + d.studentId + '\n\n' +
-          'is a grade ' + d.kelas + ' student of UPH College in the Academic Year ' + d.tahunAjaran + '.\n\n' +
-          'This letter of statement is issued to be used as required.\n\n' +
+          'is a Grade ' + gradeFromKelas(d.kelas) + ' (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year.\n\n' +
+          'This letter is issued to be used as required.\n\n' +
           'Sincerely,\n\n\n' +
           'Hans Deny\n' +
           'Academic Principal';
