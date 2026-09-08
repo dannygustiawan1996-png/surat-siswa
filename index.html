@@ -172,6 +172,10 @@
   var MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   var ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
   var GENDER_OPTIONS = [{ value: 'L', label: 'Laki-laki', labelEn: 'Male' }, { value: 'P', label: 'Perempuan', labelEn: 'Female' }];
+  var MAJOR_OPTIONS = [
+    { value: 'IPS', label: 'Ilmu Pengetahuan Sosial (IPS)', labelEn: 'Social Sciences' },
+    { value: 'IPA', label: 'Ilmu Pengetahuan Alam (IPA)', labelEn: 'Mathematics and Natural Sciences' }
+  ];
 
   function pronoun(g) {
     if (g === 'P') return { subject: 'she', possessive: 'her', object: 'her' };
@@ -184,6 +188,10 @@
     if (letter === 'S') return 11;
     if (letter === 'F') return 10;
     return '';
+  }
+  function majorLabelEn(code) {
+    var found = MAJOR_OPTIONS.filter(function (o) { return o.value === code; })[0];
+    return found ? found.labelEn : (code || '-');
   }
   function parseDateParts(dateStr) {
     var parts = (dateStr || '').split('-');
@@ -256,7 +264,7 @@
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
-        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', labelEn: 'Major / Study Program (if any)', type: 'text', required: false },
+        { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'expectedLulus', label: 'Perkiraan Bulan & Tahun Lulus', labelEn: 'Expected Graduation Month & Year', placeholder: 'Contoh: June 2027', placeholderEn: 'e.g. June 2027', type: 'text', required: true },
@@ -270,7 +278,7 @@
           'No. : ' + nomor + '\n\n' +
           'This letter serves to certify that,\n\n' +
           'Name             : ' + d.namaLengkap + '\n' +
-          'Major            : ' + (d.major || '-') + '\n' +
+          'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
           'is a grade 12 student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in ' + d.expectedLulus + '.\n\n' +
           'This letter is issued to support ' + p.possessive + ' university admission process.\n\n' +
@@ -289,7 +297,7 @@
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
-        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', labelEn: 'Major / Study Program (if any)', type: 'text', required: false },
+        { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'expectedLulus', label: 'Perkiraan Bulan & Tahun Lulus', labelEn: 'Expected Graduation Month & Year', placeholder: 'Contoh: June 2027', placeholderEn: 'e.g. June 2027', type: 'text', required: true },
@@ -304,7 +312,7 @@
           'No. : ' + nomor + '\n\n' +
           'This letter serves to certify that,\n\n' +
           'Name             : ' + d.namaLengkap + '\n' +
-          'Major            : ' + (d.major || '-') + '\n' +
+          'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
           'is a grade 12 student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in ' + d.expectedLulus + '.\n\n' +
           'This letter of statement is intended for admission purposes to ' + d.namaUniversitas + '.\n\n' +
@@ -323,7 +331,7 @@
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
-        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', labelEn: 'Major / Study Program (if any)', type: 'text', required: false },
+        { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2025/2026', placeholderEn: 'e.g. 2025/2026', type: 'text', required: true },
         { key: 'tanggalLulus', label: 'Tanggal Lulus', labelEn: 'Graduation Date', type: 'date', required: true },
@@ -338,7 +346,7 @@
           'No. : ' + nomor + '\n\n' +
           'This letter serves to certify that,\n\n' +
           'Name             : ' + d.namaLengkap + '\n' +
-          'Major            : ' + (d.major || '-') + '\n' +
+          'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
           'is a grade 12 student of UPH College in the Academic Year ' + d.tahunAjaran + ' and has completed ' + p.possessive + ' course of study and graduated on ' + formatDateEN(d.tanggalLulus) + '.\n\n' +
           'This is also to confirm that in UPH College report cards are printed in English and the expected learning outcome (minimum passing grade) for students is 65.\n\n' +
