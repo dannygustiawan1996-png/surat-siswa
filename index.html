@@ -263,6 +263,7 @@
       descEn: "For students who haven't graduated yet, without naming a specific university — for general purposes (expected graduation).",
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
@@ -279,7 +280,7 @@
           'Name             : ' + d.namaLengkap + '\n' +
           'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
-          'is a grade 12 student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
+          'is a grade 12 (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
           'This letter is issued to support ' + p.possessive + ' university admission process.\n\n' +
           'Faithfully Yours,\n\n\n' +
           'Hans Deny\n' +
@@ -295,6 +296,7 @@
       descEn: "For students who haven't graduated yet, naming a specific destination university (expected graduation).",
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
@@ -312,7 +314,7 @@
           'Name             : ' + d.namaLengkap + '\n' +
           'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
-          'is a grade 12 student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
+          'is a grade 12 (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
           'This letter of statement is intended for admission purposes to ' + d.namaUniversitas + '.\n\n' +
           'Faithfully Yours,\n\n\n' +
           'Hans Deny\n' +
@@ -328,6 +330,7 @@
       descEn: 'For graduated students, used for overseas university applications (graduation).',
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
@@ -346,7 +349,7 @@
           'Name             : ' + d.namaLengkap + '\n' +
           'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
-          'is a grade 12 student of UPH College in the Academic Year ' + d.tahunAjaran + ' and has completed ' + p.possessive + ' course of study and graduated on ' + formatDateEN(d.tanggalLulus) + '.\n\n' +
+          'is a grade 12 (Class ' + d.kelas + ') student of UPH College in the Academic Year ' + d.tahunAjaran + ' and has completed ' + p.possessive + ' course of study and graduated on ' + formatDateEN(d.tanggalLulus) + '.\n\n' +
           'This is also to confirm that in UPH College report cards are printed in English and the expected learning outcome (minimum passing grade) for students is 65.\n\n' +
           'This letter of statement is intended for admission purposes to ' + d.namaUniversitas + '.\n\n' +
           'Faithfully Yours,\n\n\n' +
