@@ -267,7 +267,6 @@
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
-        { key: 'expectedLulus', label: 'Perkiraan Bulan & Tahun Lulus', labelEn: 'Expected Graduation Month & Year', placeholder: 'Contoh: June 2027', placeholderEn: 'e.g. June 2027', type: 'text', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
@@ -280,7 +279,7 @@
           'Name             : ' + d.namaLengkap + '\n' +
           'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
-          'is a grade 12 student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in ' + d.expectedLulus + '.\n\n' +
+          'is a grade 12 student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
           'This letter is issued to support ' + p.possessive + ' university admission process.\n\n' +
           'Faithfully Yours,\n\n\n' +
           'Hans Deny\n' +
@@ -300,7 +299,6 @@
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
-        { key: 'expectedLulus', label: 'Perkiraan Bulan & Tahun Lulus', labelEn: 'Expected Graduation Month & Year', placeholder: 'Contoh: June 2027', placeholderEn: 'e.g. June 2027', type: 'text', required: true },
         { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', labelEn: 'Destination University Name', type: 'text', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
@@ -314,7 +312,7 @@
           'Name             : ' + d.namaLengkap + '\n' +
           'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
-          'is a grade 12 student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in ' + d.expectedLulus + '.\n\n' +
+          'is a grade 12 student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
           'This letter of statement is intended for admission purposes to ' + d.namaUniversitas + '.\n\n' +
           'Faithfully Yours,\n\n\n' +
           'Hans Deny\n' +
