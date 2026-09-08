@@ -247,12 +247,45 @@
       }
     },
     SKL_EXPECTED: {
-      shortLabel: 'SKL (Belum Lulus)',
-      shortLabelEn: 'SKL (Not Graduated)',
-      label: 'SKL Luar Negeri — Belum Lulus',
-      labelEn: 'Overseas SKL — Not Yet Graduated',
-      desc: 'Untuk siswa yang belum lulus, dipakai buat daftar universitas luar negeri (expected graduation).',
-      descEn: "For students who haven't graduated yet, used for overseas university applications (expected graduation).",
+      shortLabel: 'SKL Belum Lulus (Umum)',
+      shortLabelEn: 'SKL Not Graduated (General)',
+      label: 'SKL Luar Negeri — Belum Lulus (Umum)',
+      labelEn: 'Overseas SKL — Not Yet Graduated (General)',
+      desc: 'Untuk siswa yang belum lulus, tanpa menyebut nama universitas tertentu — untuk keperluan umum (expected graduation).',
+      descEn: "For students who haven't graduated yet, without naming a specific university — for general purposes (expected graduation).",
+      fields: [
+        { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
+        { key: 'major', label: 'Jurusan / Program Studi (jika ada)', labelEn: 'Major / Study Program (if any)', type: 'text', required: false },
+        { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
+        { key: 'expectedLulus', label: 'Perkiraan Bulan & Tahun Lulus', labelEn: 'Expected Graduation Month & Year', placeholder: 'Contoh: June 2027', placeholderEn: 'e.g. June 2027', type: 'text', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
+      ],
+      generator: function (d, nomor, tgl) {
+        var p = pronoun(d.jenisKelamin);
+        return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
+          'LETTER OF STATEMENT\n' +
+          'No. : ' + nomor + '\n\n' +
+          'This letter serves to certify that,\n\n' +
+          'Name             : ' + d.namaLengkap + '\n' +
+          'Major            : ' + (d.major || '-') + '\n' +
+          'Student Number   : ' + d.studentNumber + '\n\n' +
+          'is a grade 12 student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in ' + d.expectedLulus + '.\n\n' +
+          'This letter is issued to support ' + p.possessive + ' university admission process.\n\n' +
+          'Faithfully Yours,\n\n\n' +
+          'Hans Deny\n' +
+          'Academic Principal';
+      }
+    },
+    SKL_EXPECTED_UNIV: {
+      shortLabel: 'SKL Belum Lulus (Univ)',
+      shortLabelEn: 'SKL Not Graduated (Univ)',
+      label: 'SKL Luar Negeri — Belum Lulus (dengan Nama Universitas)',
+      labelEn: 'Overseas SKL — Not Yet Graduated (With University Name)',
+      desc: 'Untuk siswa yang belum lulus, mencantumkan nama universitas tujuan tertentu (expected graduation).',
+      descEn: "For students who haven't graduated yet, naming a specific destination university (expected graduation).",
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
