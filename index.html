@@ -439,20 +439,27 @@
       fee: 25000,
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 11A', placeholderEn: 'e.g. 11A', type: 'text', required: true },
-        { key: 'tujuan', label: 'Tujuan Permintaan KKM', labelEn: 'Purpose of KKM Request', placeholder: 'Contoh: Pengajuan universitas luar negeri', placeholderEn: 'e.g. Overseas university application', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
+        { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
+        { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
+        { key: 'studentNumber', label: 'NIS (Nomor Induk Siswa)', labelEn: 'Student Number (NIS)', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
+        var p = pronoun(d.jenisKelamin);
         return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
           'LETTER OF STATEMENT\n' +
           'No. : ' + nomor + '\n\n' +
-          'This is to certify that the Minimum Passing Grade (Kriteria Ketuntasan Minimal / KKM) applied at UPH College is 65, for the student below :\n\n' +
+          'This letter serves to certify that,\n\n' +
           'Name             : ' + d.namaLengkap + '\n' +
-          'Grade/Class      : ' + d.kelas + '\n\n' +
-          'This statement is issued for the purpose of ' + d.tujuan + '.\n\n' +
-          'Sincerely,\n\n\n' +
+          'Major            : ' + majorLabelEn(d.major) + '\n' +
+          'Student Number   : ' + d.studentNumber + '\n\n' +
+          'is a grade ' + gradeFromKelas(d.kelas) + ' (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
+          'This is also to confirm that in UPH College report cards are printed in English and the expected learning outcome (minimum passing grade) for students is 65.\n\n' +
+          'This letter is issued to support ' + p.possessive + ' university admission process.\n\n' +
+          'Faithfully Yours,\n\n\n' +
           'Hans Deny\n' +
           'Academic Principal';
       }
