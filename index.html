@@ -514,6 +514,8 @@
         { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: 9B', placeholderEn: 'e.g. 9B', type: 'text', required: true },
         { key: 'alamat', label: 'Alamat Lengkap', labelEn: 'Full Address', type: 'textarea', required: true },
         { key: 'negaraTujuan', label: 'Negara Tujuan', labelEn: 'Destination Country', placeholder: 'Contoh: Italy, Australia, Japan', placeholderEn: 'e.g. Italy, Australia, Japan', type: 'text', required: true },
+        { key: 'tanggalBerangkat', label: 'Tanggal Berangkat', labelEn: 'Departure Date', type: 'date', required: true },
+        { key: 'tanggalKembali', label: 'Tanggal Kembali', labelEn: 'Return Date', type: 'date', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
@@ -532,7 +534,8 @@
           'Place, Date of Birth  : ' + d.ttl + '\n' +
           'Student ID            : ' + d.studentId + '\n' +
           'Grade/Class           : ' + d.kelas + '\n' +
-          'Address               : ' + d.alamat + '\n\n' +
+          'Address               : ' + d.alamat + '\n' +
+          'Travel Period         : ' + formatDateEN(d.tanggalBerangkat) + ' to ' + formatDateEN(d.tanggalKembali) + '\n\n' +
           cap(p.subject) + ' will return to Indonesia to finish ' + p.possessive + ' studies after the trip.\n\n' +
           'Yours Sincerely,\n\n\n' +
           'Hans Deny\n' +
