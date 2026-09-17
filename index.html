@@ -788,32 +788,6 @@
     if (hours < 24) return Math.max(1, Math.round(hours)) + ' jam';
     return (Math.round((hours / 24) * 10) / 10) + ' hari';
   }
-  function avgDurationByGuru(items) {
-    var byGuru = {};
-    items.forEach(function (r) {
-      if (r.status !== 'selesai' || !r.data.completedAt) return;
-      var dur = new Date(r.data.completedAt).getTime() - new Date(r.submittedAt).getTime();
-      if (!(dur >= 0)) return;
-      var guru = (r.data.namaGuru || '').trim() || '(kosong)';
-      if (!byGuru[guru]) byGuru[guru] = [];
-      byGuru[guru].push(dur);
-    });
-    return Object.keys(byGuru).map(function (guru) {
-      var arr = byGuru[guru];
-      var avg = arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
-      return { label: guru, avgMs: avg };
-    }).sort(function (a, b) { return a.avgMs - b.avgMs; });
-  }
-  function renderDurationList(items) {
-    if (items.length === 0) return '<p class="hint">Belum ada data (belum ada surat Selesai yang tercatat waktunya).</p>';
-    return '<div class="recap-list">' + items.map(function (item, idx) {
-      return '<div class="recap-row">' +
-        '<span class="recap-dot" style="background:' + CHART_COLORS[idx % CHART_COLORS.length] + '"></span>' +
-        '<span class="recap-label" title="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</span>' +
-        '<span class="recap-count">' + formatDuration(item.avgMs) + '</span>' +
-      '</div>';
-    }).join('') + '</div>';
-  }
   function generateId(type) {
     var d = new Date();
     var yy = String(d.getFullYear()).slice(-2);
@@ -1242,9 +1216,14 @@
     var byGuru = tallyBy(rekomRequests, function (r) { return r.data.namaGuru; });
     var bySiswa = tallyBy(rekomRequests, function (r) { return r.data.namaLengkap; });
     var byUniv = tallyBy(rekomRequests, function (r) { return r.data.keperluan; });
-    var durasiByGuru = avgDurationByGuru(rekomRequests);
 
     var rows = filtered.map(function (r) {
+      var completedLine = '';
+      if (r.status === 'selesai' && r.data.completedAt) {
+        var deltaMs = new Date(r.data.completedAt).getTime() - new Date(r.submittedAt).getTime();
+        var deltaLabel = deltaMs >= 0 ? ' (' + formatDuration(deltaMs) + ')' : '';
+        completedLine = '<div class="hint" style="margin-top:4px;">Diajukan ' + escapeHtml(formatDateShort(r.submittedAt)) + ' &rarr; Selesai ' + escapeHtml(formatDateShort(r.data.completedAt)) + deltaLabel + '</div>';
+      }
       return '<button class="card list-item" data-detail="' + r.id + '">' +
         '<div class="list-item-top">' +
           '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
@@ -1254,6 +1233,7 @@
           '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' &rarr; ' + escapeHtml(r.data.namaGuru || '-') + '</span>' +
           '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
         '</div>' +
+        completedLine +
       '</button>';
     }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
 
@@ -1267,7 +1247,6 @@
         '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
       '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' + renderRecapList(byGuru.slice(0, 6)) + '</div>' +
-      '<div class="stat-block"><p class="stat-block-title">Rata-rata Waktu Proses per Guru</p>' + renderDurationList(durasiByGuru.slice(0, 6)) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswa.slice(0, 6)) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Univ</p>' + renderRecapList(byUniv.slice(0, 6)) + '</div>' +
       '<div class="filter-row">' +
@@ -1358,6 +1337,7 @@
       '<div class="card">' + fieldsHtml + '</div>' +
       '<div class="card">' +
         '<div class="detail-row"><span class="detail-label">Waktu Pengajuan</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
+        (req.data.completedAt ? '<div class="detail-row"><span class="detail-label">Waktu Selesai</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.data.completedAt)) + '</span></div>' : '') +
       '</div>' +
       paymentCardHtml +
       '<label class="field"><span class="field-label">Ubah Status</span>' +
