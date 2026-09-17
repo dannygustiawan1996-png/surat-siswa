@@ -123,6 +123,8 @@
   .stamp.baru { color: var(--color-red); }
   .stamp.lunas { color: var(--color-brass); }
   .stamp.selesai { color: var(--color-green); }
+  .stamp.diproses { color: var(--color-brass); }
+  .stamp.ditolak { color: var(--color-red); }
 
   .req-id { font-family: var(--font-mono); font-size: 19px; color: var(--color-navy); font-weight: 600; margin: 6px 0; }
   .req-id-small { font-family: var(--font-mono); font-size: 12.5px; color: var(--color-navy); }
@@ -544,11 +546,43 @@
           'Hans Deny\n' +
           'Academic Principal';
       }
+    },
+    REKOMENDASI: {
+      shortLabel: 'Rekomendasi',
+      shortLabelEn: 'Recommendation',
+      label: 'Surat Rekomendasi',
+      labelEn: 'Recommendation Letter',
+      desc: 'Pengajuan surat rekomendasi dari guru untuk keperluan aplikasi universitas.',
+      descEn: 'Request a recommendation letter from a teacher for university application purposes.',
+      hideFromMenu: true,
+      noPayment: true,
+      downloadFile: 'Form-Permohonan-Rekomendasi.docx',
+      downloadLabel: 'Download Form Permohonan Rekomendasi',
+      downloadLabelEn: 'Download Recommendation Request Form',
+      fields: [
+        { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
+        { key: 'namaGuru', label: 'Nama Guru yang Diminta', labelEn: "Requested Teacher's Name", type: 'text', required: true },
+        { key: 'linkForm', label: 'Link Form Rekomendasi (yang sudah diisi)', labelEn: 'Recommendation Form Link (filled)', placeholder: 'Link OneDrive/Google Drive', placeholderEn: 'OneDrive/Google Drive link', type: 'text', required: true, isLink: true },
+        { key: 'keperluan', label: 'Keperluan / Universitas Tujuan', labelEn: 'Purpose / Destination University', type: 'textarea', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon dikerjakan sebelum tanggal tertentu', placeholderEn: 'e.g. Please complete before a certain date', type: 'textarea', required: false }
+      ]
     }
   };
 
-  var STATUS_LABEL = { baru: 'Menunggu Verifikasi', lunas: 'Lunas - Diproses', selesai: 'Selesai' };
-  var STATUS_LABEL_EN = { baru: 'Pending Verification', lunas: 'Paid - Processing', selesai: 'Completed' };
+  var STATUS_LABEL = { baru: 'Menunggu Verifikasi', lunas: 'Lunas - Diproses', selesai: 'Selesai', diproses: 'Diproses', ditolak: 'Ditolak' };
+  var STATUS_LABEL_EN = { baru: 'Pending Verification', lunas: 'Paid - Processing', selesai: 'Completed', diproses: 'In Progress', ditolak: 'Rejected' };
+  var STATUS_LABEL_REKOMENDASI = { baru: 'Menunggu Diproses', diproses: 'Diproses', selesai: 'Selesai', ditolak: 'Ditolak' };
+  var STATUS_LABEL_REKOMENDASI_EN = { baru: 'Awaiting Review', diproses: 'In Progress', selesai: 'Completed', ditolak: 'Rejected' };
+  function statusLabelFor(type, status) {
+    var map = (type === 'REKOMENDASI') ? STATUS_LABEL_REKOMENDASI : STATUS_LABEL;
+    return map[status] || status;
+  }
+  function statusLabelForEn(type, status) {
+    var map = (type === 'REKOMENDASI') ? STATUS_LABEL_REKOMENDASI_EN : STATUS_LABEL_EN;
+    return map[status] || status;
+  }
 
   // Teks UI untuk halaman siswa saja (Dashboard Admin tetap Bahasa Indonesia).
   var UI_TEXT = {
@@ -580,6 +614,8 @@
       simpanKode: 'Simpan kode ini untuk cek status kapan saja.',
       jumlahTransfer: 'Jumlah transfer:',
       prosesHint: 'Surat biasanya selesai 2-3 hari kerja setelah pembayaran diverifikasi admin.',
+      prosesHintRekomendasi: 'Guru akan meninjau permintaan ini dan mengirimkan surat rekomendasi langsung ke email kamu setelah selesai diproses.',
+      rekomendasiBtn: 'Surat Rekomendasi',
       ajukanLain: 'Ajukan Surat Lain',
       kembaliBeranda: 'Kembali ke Beranda',
       cekStatusTitle: 'Cek Status Permintaan',
@@ -620,6 +656,8 @@
       simpanKode: 'Save this code to check your status anytime.',
       jumlahTransfer: 'Transfer amount:',
       prosesHint: 'Letters are usually ready 2-3 business days after payment is verified by the admin.',
+      prosesHintRekomendasi: 'The teacher will review this request and send the recommendation letter directly to your email once it is ready.',
+      rekomendasiBtn: 'Recommendation Letter',
       ajukanLain: 'Submit Another Letter',
       kembaliBeranda: 'Back to Home',
       cekStatusTitle: 'Check Request Status',
@@ -642,7 +680,7 @@
   function fieldLabel(f) { return S.lang === 'en' ? (f.labelEn || f.label) : f.label; }
   function fieldPlaceholder(f) { return S.lang === 'en' ? (f.placeholderEn || f.placeholder || '') : (f.placeholder || ''); }
   function optionLabel(o) { return S.lang === 'en' ? (o.labelEn || o.label) : o.label; }
-  function studentStatusLabel(status) { return S.lang === 'en' ? STATUS_LABEL_EN[status] : STATUS_LABEL[status]; }
+  function studentStatusLabel(type, status) { return S.lang === 'en' ? statusLabelForEn(type, status) : statusLabelFor(type, status); }
   function getLang() {
     try { return localStorage.getItem('surat-lang') || 'id'; } catch (e) { return 'id'; }
   }
@@ -865,13 +903,14 @@
       '</div>' +
       '<div class="stack">' +
         '<button class="btn-primary" data-go="pilihJenis">' + escapeHtml(tt('ajukanSurat')) + '</button>' +
+        '<button class="btn-outline" id="rekomendasiBtn">' + escapeHtml(tt('rekomendasiBtn')) + '</button>' +
         '<button class="btn-outline" data-go="cekStatus">' + escapeHtml(tt('cekStatusBtn')) + '</button>' +
       '</div>' +
       '<div class="footer-link"><a href="#" id="adminLink">Admin</a></div>';
   }
 
   function renderPilihJenis() {
-    var cards = Object.keys(LETTER_TYPES).map(function (key) {
+    var cards = Object.keys(LETTER_TYPES).filter(function (key) { return !LETTER_TYPES[key].hideFromMenu; }).map(function (key) {
       var t = LETTER_TYPES[key];
       return '<button class="type-card" data-type="' + key + '">' +
         '<span class="type-card-label">' + escapeHtml(typeLabel(t)) + '</span>' +
@@ -909,11 +948,14 @@
       '</label>';
     }).join('');
     var noticeHtml = t.notice ? '<div class="notice-card">' + escapeHtml(S.lang === 'en' ? (t.noticeEn || t.notice) : t.notice) + '</div>' : '';
-    return backBar('pilihJenis', tt('jenisSurat')) +
+    var downloadHtml = t.downloadFile ? '<div class="info-card"><a href="' + t.downloadFile + '" target="_blank" style="color:var(--color-navy);font-weight:600;text-decoration:none;">↓ ' + escapeHtml(S.lang === 'en' ? t.downloadLabelEn : t.downloadLabel) + '</a></div>' : '';
+    var submitLabel = t.noPayment ? tt('kirimPermintaan') : tt('lanjutPembayaran');
+    return backBar(t.hideFromMenu ? 'home' : 'pilihJenis', t.hideFromMenu ? tt('beranda') : tt('jenisSurat')) +
       '<h2>' + escapeHtml(typeLabel(t)) + '</h2>' +
       '<p class="hint">' + escapeHtml(tt('formHint')) + '</p>' +
+      downloadHtml +
       noticeHtml +
-      '<form id="dataForm" class="stack">' + fieldsHtml + '<button type="submit" class="btn-primary">' + escapeHtml(tt('lanjutPembayaran')) + '</button></form>';
+      '<form id="dataForm" class="stack">' + fieldsHtml + '<button type="submit" class="btn-primary">' + escapeHtml(submitLabel) + '</button></form>';
   }
 
   function renderPembayaran() {
@@ -961,6 +1003,8 @@
     if (!req) return renderHome();
     var reqType = LETTER_TYPES[req.type];
     var noticeHtml = (reqType && reqType.notice) ? '<div class="notice-card">' + escapeHtml(S.lang === 'en' ? (reqType.noticeEn || reqType.notice) : reqType.notice) + '</div>' : '';
+    var jumlahHtml = (reqType && reqType.noPayment) ? '' : '<p class="hint">' + escapeHtml(tt('jumlahTransfer')) + ' ' + formatRupiah(req.amount) + '</p>';
+    var hintText = (reqType && reqType.noPayment) ? tt('prosesHintRekomendasi') : tt('prosesHint');
     return '' +
       '<div class="hero small">' +
         '<div class="seal">&#10003;</div>' +
@@ -970,11 +1014,11 @@
       '<div class="card center">' +
         '<p class="field-label">' + escapeHtml(tt('kodePermintaan')) + '</p>' +
         '<p class="req-id">' + escapeHtml(req.id) + '</p>' +
-        '<p class="hint">' + escapeHtml(tt('jumlahTransfer')) + ' ' + formatRupiah(req.amount) + '</p>' +
-        '<div class="stamp ' + req.status + '">' + escapeHtml(studentStatusLabel(req.status)) + '</div>' +
+        jumlahHtml +
+        '<div class="stamp ' + req.status + '">' + escapeHtml(studentStatusLabel(req.type, req.status)) + '</div>' +
       '</div>' +
       noticeHtml +
-      '<p class="hint center">' + escapeHtml(tt('prosesHint')) + '</p>' +
+      '<p class="hint center">' + escapeHtml(hintText) + '</p>' +
       '<div class="stack">' +
         '<button class="btn-outline" data-go="pilihJenis">' + escapeHtml(tt('ajukanLain')) + '</button>' +
         '<button class="btn-text" data-go="home">' + escapeHtml(tt('kembaliBeranda')) + '</button>' +
@@ -989,11 +1033,11 @@
         resultsHtml = '<p class="hint">' + escapeHtml(tt('tidakDitemukan')) + '</p>';
       } else {
         resultsHtml = results.map(function (r) {
-          var pickupHtml = r.status === 'selesai' ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
+          var pickupHtml = (r.status === 'selesai' && r.type !== 'REKOMENDASI') ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
           return '<div class="card list-item">' +
             '<div class="list-item-top">' +
               '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
-              '<span class="stamp ' + r.status + '">' + escapeHtml(studentStatusLabel(r.status)) + '</span>' +
+              '<span class="stamp ' + r.status + '">' + escapeHtml(studentStatusLabel(r.type, r.status)) + '</span>' +
             '</div>' +
             '<div class="list-item-bottom">' +
               '<span>' + escapeHtml(LETTER_TYPES[r.type] ? typeShortLabel(LETTER_TYPES[r.type]) : r.type) + '</span>' +
@@ -1045,8 +1089,8 @@
     var menunggu = S.requests.filter(function (r) { return r.status === 'baru'; }).length;
     var lunas = S.requests.filter(function (r) { return r.status === 'lunas'; }).length;
     var selesai = S.requests.filter(function (r) { return r.status === 'selesai'; }).length;
-    var pendapatan = S.requests.filter(function (r) { return r.status !== 'baru'; })
-      .reduce(function (sum, r) { return sum + (r.amount || FEE); }, 0);
+    var pendapatan = S.requests.filter(function (r) { return r.status !== 'baru' && r.type !== 'REKOMENDASI'; })
+      .reduce(function (sum, r) { return sum + (r.amount != null ? r.amount : FEE); }, 0);
 
     var typeOptions = Object.keys(LETTER_TYPES).map(function (key) {
       return '<option value="' + key + '"' + (S.adminFilterType === key ? ' selected' : '') + '>' + escapeHtml(LETTER_TYPES[key].shortLabel) + '</option>';
@@ -1056,7 +1100,7 @@
       return '<button class="card list-item" data-detail="' + r.id + '">' +
         '<div class="list-item-top">' +
           '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
-          '<span class="stamp ' + r.status + '">' + escapeHtml(STATUS_LABEL[r.status]) + '</span>' +
+          '<span class="stamp ' + r.status + '">' + escapeHtml(statusLabelFor(r.type, r.status)) + '</span>' +
         '</div>' +
         '<div class="list-item-bottom">' +
           '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' · ' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span>' +
@@ -1081,7 +1125,9 @@
           '<option value="all"' + (S.adminFilterStatus === 'all' ? ' selected' : '') + '>Semua Status</option>' +
           '<option value="baru"' + (S.adminFilterStatus === 'baru' ? ' selected' : '') + '>Menunggu</option>' +
           '<option value="lunas"' + (S.adminFilterStatus === 'lunas' ? ' selected' : '') + '>Lunas</option>' +
+          '<option value="diproses"' + (S.adminFilterStatus === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
           '<option value="selesai"' + (S.adminFilterStatus === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
+          '<option value="ditolak"' + (S.adminFilterStatus === 'ditolak' ? ' selected' : '') + '>Ditolak</option>' +
         '</select>' +
       '</div>' +
       '<div class="stack">' + rows + '</div>' +
@@ -1103,35 +1149,48 @@
     var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
     if (!req) return renderAdminDashboard();
     var t = LETTER_TYPES[req.type];
+    var isRekomendasi = req.type === 'REKOMENDASI';
     var fieldsHtml = t.fields.map(function (f) {
-      return '<div class="detail-row"><span class="detail-label">' + escapeHtml(f.label) + '</span><span class="detail-value">' + escapeHtml(req.data[f.key] || '-') + '</span></div>';
+      var raw = req.data[f.key];
+      var displayVal = (f.isLink && raw) ? ('<a href="' + escapeHtml(raw) + '" target="_blank" rel="noopener">Buka Link ↗</a>') : escapeHtml(raw || '-');
+      return '<div class="detail-row"><span class="detail-label">' + escapeHtml(f.label) + '</span><span class="detail-value">' + displayVal + '</span></div>';
     }).join('');
-    var defaultTgl = req.tanggalSurat || todayISO();
-    var defaultNomor = req.nomorSurat || suggestedNomor(S.settings, defaultTgl);
     var adminNoticeHtml = t.notice ? '<div class="notice-card"><strong>Ingat admin:</strong> ' + escapeHtml(t.notice) + '</div>' : '';
-    var pickupNoticeHtml = req.status === 'selesai' ? '<div class="pickup-card">' + escapeHtml(UI_TEXT.id.pengambilanInfo) + '</div>' : '';
-    return backBar('adminDashboard', 'Dashboard') +
-      '<h2>' + escapeHtml(req.id) + '</h2>' +
-      '<div class="stamp ' + req.status + '">' + escapeHtml(STATUS_LABEL[req.status]) + '</div>' +
-      pickupNoticeHtml +
-      adminNoticeHtml +
-      '<div class="card">' + fieldsHtml + '</div>' +
+    var pickupNoticeHtml = (req.status === 'selesai' && !isRekomendasi) ? '<div class="pickup-card">' + escapeHtml(UI_TEXT.id.pengambilanInfo) + '</div>' : '';
+
+    var paymentCardHtml = isRekomendasi ? '' : (
       '<div class="card">' +
-        '<div class="detail-row"><span class="detail-label">Waktu Pengajuan</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Jumlah Harus Masuk</span><span class="detail-value">' + formatRupiah(req.amount || FEE) + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Klaim Sudah Bayar</span><span class="detail-value">' + (req.paymentChecked ? 'Ya' : 'Belum') + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Nama Pengirim</span><span class="detail-value">' + escapeHtml(req.paymentNote || '-') + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Tanggal Transfer</span><span class="detail-value">' + (req.paymentDate ? formatDateShort(req.paymentDate) : '-') + '</span></div>' +
-      '</div>' +
-      '<label class="field"><span class="field-label">Ubah Status</span>' +
-        '<select id="statusSelect" class="field-input">' +
-          '<option value="baru"' + (req.status === 'baru' ? ' selected' : '') + '>Menunggu Verifikasi</option>' +
-          '<option value="lunas"' + (req.status === 'lunas' ? ' selected' : '') + '>Lunas - Diproses</option>' +
-          '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
-        '</select>' +
-      '</label>' +
-      '<label class="field"><span class="field-label">Catatan Admin</span><textarea class="field-input" id="adminNoteInput" rows="2">' + escapeHtml(req.adminNote || '') + '</textarea></label>' +
-      '<div class="card">' +
+      '</div>'
+    );
+
+    var statusOptionsHtml = isRekomendasi ? (
+      '<option value="baru"' + (req.status === 'baru' ? ' selected' : '') + '>Menunggu Diproses</option>' +
+      '<option value="diproses"' + (req.status === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
+      '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
+      '<option value="ditolak"' + (req.status === 'ditolak' ? ' selected' : '') + '>Ditolak</option>'
+    ) : (
+      '<option value="baru"' + (req.status === 'baru' ? ' selected' : '') + '>Menunggu Verifikasi</option>' +
+      '<option value="lunas"' + (req.status === 'lunas' ? ' selected' : '') + '>Lunas - Diproses</option>' +
+      '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>'
+    );
+
+    var catatanLabel = isRekomendasi ? 'Catatan Guru (isi alasan kalau Ditolak)' : 'Catatan Admin';
+
+    var actionCardHtml;
+    if (isRekomendasi) {
+      actionCardHtml = '<div class="card">' +
+        '<p class="field-label">Link Surat Rekomendasi Jadi (opsional)</p>' +
+        '<label class="field"><span class="field-label">Link (OneDrive/Drive) setelah surat selesai dibuat</span><input class="field-input" id="linkSuratJadiInput" type="text" value="' + escapeHtml(req.data.linkSuratJadi || '') + '" placeholder="Tempel link di sini setelah surat jadi"></label>' +
+        '<p class="hint">Surat tetap dikirim langsung lewat email ke siswa oleh guru — link ini cuma cadangan/arsip.</p>' +
+      '</div>';
+    } else {
+      var defaultTgl = req.tanggalSurat || todayISO();
+      var defaultNomor = req.nomorSurat || suggestedNomor(S.settings, defaultTgl);
+      actionCardHtml = '<div class="card">' +
         '<p class="field-label">Generate Teks Surat</p>' +
         '<label class="field"><span class="field-label">Nomor Surat</span><input class="field-input" id="nomorSuratInput" type="text" value="' + escapeHtml(defaultNomor) + '"></label>' +
         '<label class="field"><span class="field-label">Tanggal Surat</span><input class="field-input" id="tanggalSuratInput" type="date" value="' + escapeHtml(defaultTgl) + '"></label>' +
@@ -1139,7 +1198,24 @@
         '<label class="field" style="margin-top:12px"><span class="field-label">Hasil (bisa diedit sebelum disalin)</span>' +
         '<textarea class="field-input mono-area" id="generatedTextArea" rows="16">' + escapeHtml(req.generatedText || '') + '</textarea></label>' +
         '<button class="btn-primary" id="copyLetterBtn">Salin Teks Surat</button>' +
+      '</div>';
+    }
+
+    return backBar('adminDashboard', 'Dashboard') +
+      '<h2>' + escapeHtml(req.id) + '</h2>' +
+      '<div class="stamp ' + req.status + '">' + escapeHtml(statusLabelFor(req.type, req.status)) + '</div>' +
+      pickupNoticeHtml +
+      adminNoticeHtml +
+      '<div class="card">' + fieldsHtml + '</div>' +
+      '<div class="card">' +
+        '<div class="detail-row"><span class="detail-label">Waktu Pengajuan</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
       '</div>' +
+      paymentCardHtml +
+      '<label class="field"><span class="field-label">Ubah Status</span>' +
+        '<select id="statusSelect" class="field-input">' + statusOptionsHtml + '</select>' +
+      '</label>' +
+      '<label class="field"><span class="field-label">' + catatanLabel + '</span><textarea class="field-input" id="adminNoteInput" rows="2">' + escapeHtml(req.adminNote || '') + '</textarea></label>' +
+      actionCardHtml +
       '<div class="stack">' +
         '<button class="btn-primary" id="saveDetailBtn">Simpan Perubahan</button>' +
         '<button class="btn-text danger" id="deleteReqBtn">Hapus Permintaan</button>' +
@@ -1167,6 +1243,13 @@
       e.preventDefault();
       if (S.adminAuthed) { S.requests = await getRequestsAdmin(); go('adminDashboard'); }
       else go('adminGate');
+    });
+
+    var rekomendasiBtn = document.getElementById('rekomendasiBtn');
+    if (rekomendasiBtn) rekomendasiBtn.addEventListener('click', function () {
+      S.selectedType = 'REKOMENDASI';
+      S.formDraft = {}; S.formErrors = {};
+      go('form');
     });
 
     switch (S.view) {
@@ -1201,7 +1284,7 @@
       inp.addEventListener('input', handler);
       inp.addEventListener('change', handler);
     });
-    formEl.addEventListener('submit', function (e) {
+    formEl.addEventListener('submit', async function (e) {
       e.preventDefault();
       var t = LETTER_TYPES[S.selectedType];
       var errors = {};
@@ -1212,6 +1295,26 @@
       if (Object.keys(errors).length > 0) { render(); return; }
       var id = generateId(S.selectedType);
       S.pendingId = id;
+      if (t.noPayment) {
+        var submitBtn = formEl.querySelector('button[type="submit"]');
+        submitBtn.disabled = true; submitBtn.textContent = tt('mengirim');
+        var newReq = {
+          id: id, type: S.selectedType, submittedAt: new Date().toISOString(), status: 'baru',
+          paymentChecked: false, paymentNote: '', paymentDate: null, paymentCode: null, amount: 0,
+          adminNote: '', nomorSurat: '', tanggalSurat: '', generatedText: '',
+          data: Object.assign({}, S.formDraft)
+        };
+        var result = await insertRequest(newReq);
+        if (!result.ok) {
+          alert(tt('gagalKirim')(result.error));
+          submitBtn.disabled = false; submitBtn.textContent = tt('kirimPermintaan');
+          return;
+        }
+        S.lastRequest = newReq;
+        S.pendingId = null;
+        go('konfirmasi');
+        return;
+      }
       go('pembayaran');
     });
   }
@@ -1366,6 +1469,8 @@
       if (nomorInput) req.nomorSurat = nomorInput.value.trim();
       var tglInput = document.getElementById('tanggalSuratInput');
       if (tglInput) req.tanggalSurat = tglInput.value;
+      var linkSuratJadiInput = document.getElementById('linkSuratJadiInput');
+      if (linkSuratJadiInput) req.data = Object.assign({}, req.data, { linkSuratJadi: linkSuratJadiInput.value.trim() });
       var btn = document.getElementById('saveDetailBtn');
       btn.disabled = true; btn.textContent = 'Menyimpan...';
       var result = await updateRequest(req);
@@ -1373,7 +1478,8 @@
       if (!result.ok) { alert('Gagal menyimpan: ' + result.error); return; }
       go('adminDashboard');
     });
-    document.getElementById('generateLetterBtn').addEventListener('click', async function () {
+    var generateLetterBtn = document.getElementById('generateLetterBtn');
+    if (generateLetterBtn) generateLetterBtn.addEventListener('click', async function () {
       var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
       var nomor = document.getElementById('nomorSuratInput').value.trim();
       var tanggal = document.getElementById('tanggalSuratInput').value;
@@ -1390,7 +1496,8 @@
         await saveSettings(S.settings);
       }
     });
-    document.getElementById('copyLetterBtn').addEventListener('click', async function () {
+    var copyLetterBtn = document.getElementById('copyLetterBtn');
+    if (copyLetterBtn) copyLetterBtn.addEventListener('click', async function () {
       var text = document.getElementById('generatedTextArea').value;
       try { await navigator.clipboard.writeText(text); alert('Teks surat disalin! Tinggal paste ke template & print.'); }
       catch (e) { alert('Gagal menyalin otomatis. Salin manual dari kotak teks di atas.'); }
