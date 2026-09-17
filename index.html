@@ -148,6 +148,15 @@
   .filter-row { display: flex; gap: 8px; margin: 16px 0; }
   .filter-row .field-input { flex: 1; }
 
+  .stat-block { background: var(--color-card); border-radius: 8px; padding: 16px 18px; margin: 14px 0; box-shadow: 0 1px 3px rgba(27,42,74,0.08); }
+  .stat-block-title { font-family: var(--font-display); font-size: 14.5px; font-weight: 600; color: var(--color-navy); margin: 0 0 12px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .bar-row:last-child { margin-bottom: 0; }
+  .bar-row-label { flex: 0 0 34%; font-size: 12px; color: var(--color-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 18px; background: #EEE8DA; border-radius: 9px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--color-navy), var(--color-brass)); border-radius: 9px; }
+  .bar-row-count { flex: 0 0 24px; text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--color-navy); font-weight: 600; }
+
   .detail-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #EEE8DA; font-size: 14px; }
   .detail-row:last-child { border-bottom: none; }
   .detail-label { color: var(--color-ink-soft); flex-shrink: 0; }
@@ -559,9 +568,11 @@
       downloadFile: 'Form-Permohonan-Rekomendasi.docx',
       downloadLabel: 'Download Form Permohonan Rekomendasi',
       downloadLabelEn: 'Download Recommendation Request Form',
+      notice: '⚠️ Pastikan kamu sudah download & isi Form Permohonan Rekomendasi di atas, lalu upload ke OneDrive/Google Drive dan siapkan link share-nya SEBELUM mengisi form di bawah ini. Pengajuan tanpa link form yang sudah diisi tidak akan diproses guru.',
+      noticeEn: '⚠️ Make sure you have downloaded & filled in the Recommendation Request Form above, uploaded it to OneDrive/Google Drive, and have the share link ready BEFORE filling in the form below. Submissions without a filled form link will not be processed by the teacher.',
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas', labelEn: 'Grade/Class', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11)', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11)', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: L316, F101, S201, atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. L316, F101, S201, or write "Alumni 2023" if already graduated', type: 'text', required: true },
         { key: 'namaGuru', label: 'Nama Guru yang Diminta', labelEn: "Requested Teacher's Name", type: 'text', required: true },
         { key: 'linkForm', label: 'Link Form Rekomendasi (yang sudah diisi)', labelEn: 'Recommendation Form Link (filled)', placeholder: 'Link OneDrive/Google Drive', placeholderEn: 'OneDrive/Google Drive link', type: 'text', required: true, isLink: true },
         { key: 'keperluan', label: 'Keperluan / Universitas Tujuan', labelEn: 'Purpose / Destination University', type: 'textarea', required: true },
@@ -711,9 +722,11 @@
     paymentDate: '',
     lastRequest: null,
     adminAuthed: false,
+    userRole: null,
     forgotStatus: null,
     adminFilterType: 'all',
     adminFilterStatus: 'all',
+    guruFilterStatus: 'all',
     adminSelectedId: null,
     adminEditingSettings: false,
     statusQuery: '',
@@ -750,6 +763,26 @@
     } catch (e) { return iso; }
   }
   function formatRupiah(n) { return 'Rp' + n.toLocaleString('id-ID'); }
+  function tallyBy(items, keyFn) {
+    var counts = {};
+    items.forEach(function (item) {
+      var k = (keyFn(item) || '').trim() || '(kosong)';
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    return Object.keys(counts).map(function (k) { return { label: k, count: counts[k] }; })
+      .sort(function (a, b) { return b.count - a.count; });
+  }
+  function renderBarList(items, max) {
+    if (items.length === 0) return '<p class="hint">Belum ada data.</p>';
+    return items.map(function (item) {
+      var pct = max > 0 ? Math.round((item.count / max) * 100) : 0;
+      return '<div class="bar-row">' +
+        '<span class="bar-row-label" title="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</span>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+        '<span class="bar-row-count">' + item.count + '</span>' +
+      '</div>';
+    }).join('');
+  }
   function generateId(type) {
     var d = new Date();
     var yy = String(d.getFullYear()).slice(-2);
@@ -859,6 +892,15 @@
       return !!(res && res.data && res.data.session);
     } catch (e) { return false; }
   }
+  async function getCurrentRole() {
+    try {
+      var res = await sb.auth.getSession();
+      var session = res && res.data && res.data.session;
+      if (!session) return null;
+      return (session.user && session.user.user_metadata && session.user.user_metadata.role) || 'admin';
+    } catch (e) { return 'admin'; }
+  }
+  function dashboardViewFor(role) { return role === 'guru' ? 'guruDashboard' : 'adminDashboard'; }
 
   function go(view, extra) {
     S.view = view;
@@ -884,7 +926,16 @@
       case 'adminGate': html = renderAdminGate(); break;
       case 'adminResetPassword': html = renderAdminResetPassword(); break;
       case 'adminDashboard': html = renderAdminDashboard(); break;
-      case 'adminDetail': html = renderAdminDetail(); break;
+      case 'guruDashboard': html = renderGuruDashboard(); break;
+      case 'adminDetail':
+        var detailReq = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+        if (!detailReq || (S.userRole === 'guru' && detailReq.type !== 'REKOMENDASI')) {
+          S.view = S.userRole === 'guru' ? 'guruDashboard' : 'adminDashboard';
+          html = S.userRole === 'guru' ? renderGuruDashboard() : renderAdminDashboard();
+        } else {
+          html = renderAdminDetail();
+        }
+        break;
       default: html = renderHome();
     }
     if (STUDENT_VIEWS.indexOf(S.view) !== -1) html = renderLangToggle() + html;
@@ -1145,9 +1196,77 @@
       '<button class="btn-primary" id="saveSettingsBtn">Simpan</button></div>';
   }
 
+  function renderGuruDashboard() {
+    var rekomRequests = S.requests.filter(function (r) { return r.type === 'REKOMENDASI'; });
+    var filtered = rekomRequests.filter(function (r) {
+      if (S.guruFilterStatus !== 'all' && r.status !== S.guruFilterStatus) return false;
+      return true;
+    }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
+
+    var total = rekomRequests.length;
+    var menunggu = rekomRequests.filter(function (r) { return r.status === 'baru'; }).length;
+    var diproses = rekomRequests.filter(function (r) { return r.status === 'diproses'; }).length;
+    var selesai = rekomRequests.filter(function (r) { return r.status === 'selesai'; }).length;
+
+    var byGuru = tallyBy(rekomRequests, function (r) { return r.data.namaGuru; });
+    var bySiswa = tallyBy(rekomRequests, function (r) { return r.data.namaLengkap; });
+    var byUniv = tallyBy(rekomRequests, function (r) { return r.data.keperluan; });
+    var maxGuru = byGuru[0] ? byGuru[0].count : 0;
+    var maxSiswa = bySiswa[0] ? bySiswa[0].count : 0;
+    var maxUniv = byUniv[0] ? byUniv[0].count : 0;
+
+    var rows = filtered.map(function (r) {
+      return '<button class="card list-item" data-detail="' + r.id + '">' +
+        '<div class="list-item-top">' +
+          '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
+          '<span class="stamp ' + r.status + '">' + escapeHtml(statusLabelFor(r.type, r.status)) + '</span>' +
+        '</div>' +
+        '<div class="list-item-bottom">' +
+          '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' &rarr; ' + escapeHtml(r.data.namaGuru || '-') + '</span>' +
+          '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
+        '</div>' +
+      '</button>';
+    }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
+
+    return '' +
+      '<div class="top-row">' + backBar('home', 'Beranda') + '<button class="btn-text" id="adminLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
+      '<h2>Dashboard Surat Rekomendasi</h2>' +
+      '<div class="stats-grid">' +
+        '<div class="stat"><span class="stat-num">' + total + '</span><span class="stat-label">Total</span></div>' +
+        '<div class="stat"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Menunggu</span></div>' +
+        '<div class="stat"><span class="stat-num">' + diproses + '</span><span class="stat-label">Diproses</span></div>' +
+        '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
+      '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Guru Paling Sering Diminta</p>' + renderBarList(byGuru.slice(0, 6), maxGuru) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Siswa Paling Sering Mengajukan</p>' + renderBarList(bySiswa.slice(0, 6), maxSiswa) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Universitas / Keperluan Terbanyak</p>' + renderBarList(byUniv.slice(0, 6), maxUniv) + '</div>' +
+      '<div class="filter-row">' +
+        '<select id="guruFilterStatus" class="field-input">' +
+          '<option value="all"' + (S.guruFilterStatus === 'all' ? ' selected' : '') + '>Semua Status</option>' +
+          '<option value="baru"' + (S.guruFilterStatus === 'baru' ? ' selected' : '') + '>Menunggu Diproses</option>' +
+          '<option value="diproses"' + (S.guruFilterStatus === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
+          '<option value="selesai"' + (S.guruFilterStatus === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
+          '<option value="ditolak"' + (S.guruFilterStatus === 'ditolak' ? ' selected' : '') + '>Ditolak</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="stack">' + rows + '</div>';
+  }
+
+  function attachGuruDashboard() {
+    document.getElementById('adminLogoutBtn').addEventListener('click', async function () {
+      await adminLogout();
+      S.adminAuthed = false; S.userRole = null; S.requests = [];
+      go('home');
+    });
+    var filterEl = document.getElementById('guruFilterStatus');
+    if (filterEl) filterEl.addEventListener('change', function (e) { S.guruFilterStatus = e.target.value; render(); });
+    document.querySelectorAll('[data-detail]').forEach(function (btn) {
+      btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
+    });
+  }
+
   function renderAdminDetail() {
     var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
-    if (!req) return renderAdminDashboard();
     var t = LETTER_TYPES[req.type];
     var isRekomendasi = req.type === 'REKOMENDASI';
     var fieldsHtml = t.fields.map(function (f) {
@@ -1155,7 +1274,7 @@
       var displayVal = (f.isLink && raw) ? ('<a href="' + escapeHtml(raw) + '" target="_blank" rel="noopener">Buka Link ↗</a>') : escapeHtml(raw || '-');
       return '<div class="detail-row"><span class="detail-label">' + escapeHtml(f.label) + '</span><span class="detail-value">' + displayVal + '</span></div>';
     }).join('');
-    var adminNoticeHtml = t.notice ? '<div class="notice-card"><strong>Ingat admin:</strong> ' + escapeHtml(t.notice) + '</div>' : '';
+    var adminNoticeHtml = (t.notice && !isRekomendasi) ? '<div class="notice-card"><strong>Ingat admin:</strong> ' + escapeHtml(t.notice) + '</div>' : '';
     var pickupNoticeHtml = (req.status === 'selesai' && !isRekomendasi) ? '<div class="pickup-card">' + escapeHtml(UI_TEXT.id.pengambilanInfo) + '</div>' : '';
 
     var paymentCardHtml = isRekomendasi ? '' : (
@@ -1201,7 +1320,7 @@
       '</div>';
     }
 
-    return backBar('adminDashboard', 'Dashboard') +
+    return backBar(dashboardViewFor(S.userRole), 'Dashboard') +
       '<h2>' + escapeHtml(req.id) + '</h2>' +
       '<div class="stamp ' + req.status + '">' + escapeHtml(statusLabelFor(req.type, req.status)) + '</div>' +
       pickupNoticeHtml +
@@ -1241,7 +1360,7 @@
     var adminLink = document.getElementById('adminLink');
     if (adminLink) adminLink.addEventListener('click', async function (e) {
       e.preventDefault();
-      if (S.adminAuthed) { S.requests = await getRequestsAdmin(); go('adminDashboard'); }
+      if (S.adminAuthed) { S.requests = await getRequestsAdmin(); go(dashboardViewFor(S.userRole)); }
       else go('adminGate');
     });
 
@@ -1260,6 +1379,7 @@
       case 'adminGate': attachAdminGate(); break;
       case 'adminResetPassword': attachAdminResetPassword(); break;
       case 'adminDashboard': attachAdminDashboard(); break;
+      case 'guruDashboard': attachGuruDashboard(); break;
       case 'adminDetail': attachAdminDetail(); break;
     }
   }
@@ -1382,8 +1502,9 @@
       btn.disabled = false; btn.textContent = 'Masuk';
       if (!result.ok) { document.getElementById('adminError').textContent = 'Login gagal: ' + result.error; return; }
       S.adminAuthed = true;
+      S.userRole = await getCurrentRole();
       S.requests = await getRequestsAdmin();
-      go('adminDashboard');
+      go(dashboardViewFor(S.userRole));
     });
     document.getElementById('forgotPasswordBtn').addEventListener('click', async function () {
       var btn = document.getElementById('forgotPasswordBtn');
@@ -1410,8 +1531,9 @@
       btn.disabled = false; btn.textContent = 'Simpan Password Baru';
       if (!result.ok) { errEl.textContent = 'Gagal menyimpan: ' + result.error; return; }
       S.adminAuthed = true;
+      S.userRole = await getCurrentRole();
       S.requests = await getRequestsAdmin();
-      go('adminDashboard');
+      go(dashboardViewFor(S.userRole));
     });
   }
 
@@ -1476,7 +1598,7 @@
       var result = await updateRequest(req);
       btn.disabled = false; btn.textContent = 'Simpan Perubahan';
       if (!result.ok) { alert('Gagal menyimpan: ' + result.error); return; }
-      go('adminDashboard');
+      go(dashboardViewFor(S.userRole));
     });
     var generateLetterBtn = document.getElementById('generateLetterBtn');
     if (generateLetterBtn) generateLetterBtn.addEventListener('click', async function () {
@@ -1507,14 +1629,14 @@
       var ok = await deleteRequestRow(S.adminSelectedId);
       if (!ok) { alert('Gagal menghapus.'); return; }
       S.requests = S.requests.filter(function (r) { return r.id !== S.adminSelectedId; });
-      go('adminDashboard');
+      go(dashboardViewFor(S.userRole));
     });
   }
 
   async function init() {
     S.settings = await getSettings();
     S.adminAuthed = await hasAdminSession();
-    if (S.adminAuthed) S.requests = await getRequestsAdmin();
+    if (S.adminAuthed) { S.userRole = await getCurrentRole(); S.requests = await getRequestsAdmin(); }
     S.loading = false;
     render();
     sb.auth.onAuthStateChange(function (event) {
