@@ -32,9 +32,9 @@ insert into settings (id) values (1) on conflict (id) do nothing;
 
 -- View terbatas untuk publik: dipakai halaman "Cek Status" siswa.
 -- Tidak mengekspos payment_note, generated_text, atau isi data pribadi lain.
--- admin_note (Catatan Guru) HANYA diekspos untuk tipe REKOMENDASI, karena di situ
--- catatan admin memang dipakai untuk komunikasi ke siswa. Untuk tipe surat lain,
--- catatan admin tetap privat seperti semula.
+-- admin_note (Catatan Guru) & completed_at HANYA diekspos untuk tipe REKOMENDASI,
+-- karena di situ catatan admin & waktu selesai memang dipakai untuk komunikasi ke
+-- siswa. Untuk tipe surat lain, keduanya tetap privat seperti semula.
 create or replace view requests_public as
   select
     id,
@@ -42,7 +42,8 @@ create or replace view requests_public as
     submitted_at,
     status,
     data->>'namaLengkap' as nama_lengkap,
-    case when type = 'REKOMENDASI' then admin_note else null end as admin_note
+    case when type = 'REKOMENDASI' then admin_note else null end as admin_note,
+    case when type = 'REKOMENDASI' then data->>'completedAt' else null end as completed_at
   from requests;
 
 -- Fungsi khusus: siswa (anon, tanpa login) bisa perbaiki link form Rekomendasi
