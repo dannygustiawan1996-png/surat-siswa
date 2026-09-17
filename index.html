@@ -150,12 +150,10 @@
 
   .stat-block { background: var(--color-card); border-radius: 8px; padding: 16px 18px; margin: 14px 0; box-shadow: 0 1px 3px rgba(27,42,74,0.08); }
   .stat-block-title { font-family: var(--font-display); font-size: 14.5px; font-weight: 600; color: var(--color-navy); margin: 0 0 12px; }
-  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
-  .bar-row:last-child { margin-bottom: 0; }
-  .bar-row-label { flex: 0 0 34%; font-size: 12px; color: var(--color-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bar-track { flex: 1; height: 18px; background: #EEE8DA; border-radius: 9px; overflow: hidden; }
-  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--color-navy), var(--color-brass)); border-radius: 9px; }
-  .bar-row-count { flex: 0 0 24px; text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--color-navy); font-weight: 600; }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .metric-tile { background: var(--color-paper); border-top: 3px solid var(--color-brass); border-radius: 6px; padding: 12px 8px; text-align: center; }
+  .metric-tile-num { display: block; font-family: var(--font-display); font-size: 22px; color: var(--color-navy); font-weight: 700; }
+  .metric-tile-label { display: block; font-size: 10.5px; color: var(--color-ink-soft); margin-top: 4px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .detail-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #EEE8DA; font-size: 14px; }
   .detail-row:last-child { border-bottom: none; }
@@ -772,16 +770,14 @@
     return Object.keys(counts).map(function (k) { return { label: k, count: counts[k] }; })
       .sort(function (a, b) { return b.count - a.count; });
   }
-  function renderBarList(items, max) {
+  function renderMetricGrid(items) {
     if (items.length === 0) return '<p class="hint">Belum ada data.</p>';
-    return items.map(function (item) {
-      var pct = max > 0 ? Math.round((item.count / max) * 100) : 0;
-      return '<div class="bar-row">' +
-        '<span class="bar-row-label" title="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</span>' +
-        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="bar-row-count">' + item.count + '</span>' +
+    return '<div class="metric-grid">' + items.map(function (item) {
+      return '<div class="metric-tile">' +
+        '<span class="metric-tile-num">' + item.count + '</span>' +
+        '<span class="metric-tile-label" title="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</span>' +
       '</div>';
-    }).join('');
+    }).join('') + '</div>';
   }
   function generateId(type) {
     var d = new Date();
@@ -1211,9 +1207,6 @@
     var byGuru = tallyBy(rekomRequests, function (r) { return r.data.namaGuru; });
     var bySiswa = tallyBy(rekomRequests, function (r) { return r.data.namaLengkap; });
     var byUniv = tallyBy(rekomRequests, function (r) { return r.data.keperluan; });
-    var maxGuru = byGuru[0] ? byGuru[0].count : 0;
-    var maxSiswa = bySiswa[0] ? bySiswa[0].count : 0;
-    var maxUniv = byUniv[0] ? byUniv[0].count : 0;
 
     var rows = filtered.map(function (r) {
       return '<button class="card list-item" data-detail="' + r.id + '">' +
@@ -1237,9 +1230,9 @@
         '<div class="stat"><span class="stat-num">' + diproses + '</span><span class="stat-label">Diproses</span></div>' +
         '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
       '</div>' +
-      '<div class="stat-block"><p class="stat-block-title">Guru Paling Sering Diminta</p>' + renderBarList(byGuru.slice(0, 6), maxGuru) + '</div>' +
-      '<div class="stat-block"><p class="stat-block-title">Siswa Paling Sering Mengajukan</p>' + renderBarList(bySiswa.slice(0, 6), maxSiswa) + '</div>' +
-      '<div class="stat-block"><p class="stat-block-title">Universitas / Keperluan Terbanyak</p>' + renderBarList(byUniv.slice(0, 6), maxUniv) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Guru Paling Sering Diminta</p>' + renderMetricGrid(byGuru.slice(0, 6)) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Siswa Paling Sering Mengajukan</p>' + renderMetricGrid(bySiswa.slice(0, 6)) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Universitas / Keperluan Terbanyak</p>' + renderMetricGrid(byUniv.slice(0, 6)) + '</div>' +
       '<div class="filter-row">' +
         '<select id="guruFilterStatus" class="field-input">' +
           '<option value="all"' + (S.guruFilterStatus === 'all' ? ' selected' : '') + '>Semua Status</option>' +
