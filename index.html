@@ -626,6 +626,7 @@
       jumlahTransfer: 'Jumlah transfer:',
       prosesHint: 'Surat biasanya selesai 2-3 hari kerja setelah pembayaran diverifikasi admin.',
       prosesHintRekomendasi: 'Guru akan meninjau permintaan ini dan mengirimkan surat rekomendasi langsung ke email kamu setelah selesai diproses.',
+      followUpHint: 'Kalau butuh update, jangan sungkan cek status secara berkala sendiri lewat tombol "Cek Status Permintaan" di Beranda, pakai kode di atas.',
       rekomendasiBtn: 'Surat Rekomendasi',
       ajukanLain: 'Ajukan Surat Lain',
       kembaliBeranda: 'Kembali ke Beranda',
@@ -668,6 +669,7 @@
       jumlahTransfer: 'Transfer amount:',
       prosesHint: 'Letters are usually ready 2-3 business days after payment is verified by the admin.',
       prosesHintRekomendasi: 'The teacher will review this request and send the recommendation letter directly to your email once it is ready.',
+      followUpHint: 'If you’d like an update, feel free to check your status yourself anytime using the "Check Request Status" button on the Home page, with the code above.',
       rekomendasiBtn: 'Recommendation Letter',
       ajukanLain: 'Submit Another Letter',
       kembaliBeranda: 'Back to Home',
@@ -1075,6 +1077,7 @@
       '</div>' +
       noticeHtml +
       '<p class="hint center">' + escapeHtml(hintText) + '</p>' +
+      '<p class="hint center">' + escapeHtml(tt('followUpHint')) + '</p>' +
       '<div class="stack">' +
         '<button class="btn-outline" data-go="pilihJenis">' + escapeHtml(tt('ajukanLain')) + '</button>' +
         '<button class="btn-text" data-go="home">' + escapeHtml(tt('kembaliBeranda')) + '</button>' +
