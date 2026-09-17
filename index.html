@@ -639,6 +639,14 @@
       fieldWajib: 'Wajib diisi',
       pilihOpsi: 'Pilih...',
       pengambilanInfo: '📍 Dokumen sudah selesai dan siap diambil di Teacher Lounge (TL), temui Pak Danny.',
+      catatanGuruLabel: 'Catatan guru:',
+      linkBermasalahHint: '⚠️ Guru menandai link form kamu bermasalah (tidak bisa dibuka). Perbaiki dulu setting share-nya (pastikan "Anyone with the link" bisa lihat), lalu tempel link baru di bawah ini.',
+      linkBaruPlaceholder: 'Link baru (OneDrive/Google Drive)',
+      kirimLinkBaru: 'Kirim Link Baru',
+      mengirimLinkBaru: 'Mengirim...',
+      linkBaruKosong: 'Link tidak boleh kosong.',
+      linkBaruBerhasil: 'Link baru terkirim! Status diubah jadi Menunggu Diproses.',
+      linkBaruGagal: function (err) { return 'Gagal mengirim: ' + err; },
       gagalKirim: function (err) { return 'Gagal mengirim.\n\nDetail: ' + err + '\n\nCoba lagi, atau screenshot pesan ini kalau masih gagal.'; }
     },
     en: {
@@ -682,6 +690,14 @@
       fieldWajib: 'Required',
       pilihOpsi: 'Select...',
       pengambilanInfo: '📍 Your document is ready — pick it up at the Teacher Lounge (TL), see Mr. Danny.',
+      catatanGuruLabel: "Teacher's note:",
+      linkBermasalahHint: '⚠️ The teacher flagged your form link as inaccessible. Please fix its sharing settings first (make sure "Anyone with the link" can view it), then paste the new link below.',
+      linkBaruPlaceholder: 'New link (OneDrive/Google Drive)',
+      kirimLinkBaru: 'Submit New Link',
+      mengirimLinkBaru: 'Sending...',
+      linkBaruKosong: 'Link cannot be empty.',
+      linkBaruBerhasil: 'New link submitted! Status changed back to Awaiting Review.',
+      linkBaruGagal: function (err) { return 'Failed to send: ' + err; },
       gagalKirim: function (err) { return 'Failed to send.\n\nDetail: ' + err + '\n\nPlease try again, or screenshot this message if it keeps failing.'; }
     }
   };
@@ -733,7 +749,8 @@
     adminSelectedId: null,
     adminEditingSettings: false,
     statusQuery: '',
-    statusResults: null
+    statusResults: null,
+    fixLinkMessages: {}
   };
 
   function escapeHtml(str) {
@@ -807,7 +824,7 @@
   // LAPISAN DATA — Supabase (menggantikan window.storage)
   // ============================================================
   function mapPublicRow(row) {
-    return { id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status, data: { namaLengkap: row.nama_lengkap } };
+    return { id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status, adminNote: row.admin_note, data: { namaLengkap: row.nama_lengkap } };
   }
   function mapFullRow(row) {
     return {
@@ -883,6 +900,13 @@
   async function sendPasswordReset(email) {
     try {
       var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+      if (res.error) return { ok: false, error: res.error.message };
+      return { ok: true };
+    } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
+  }
+  async function fixRekomendasiLink(id, newLink) {
+    try {
+      var res = await sb.rpc('fix_rekomendasi_link', { request_id: id, new_link: newLink });
       if (res.error) return { ok: false, error: res.error.message };
       return { ok: true };
     } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
@@ -1094,6 +1118,17 @@
       } else {
         resultsHtml = results.map(function (r) {
           var pickupHtml = (r.status === 'selesai' && r.type !== 'REKOMENDASI') ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
+          var noteHtml = r.adminNote ? '<div class="hint" style="margin-top:6px;"><strong>' + escapeHtml(tt('catatanGuruLabel')) + '</strong> ' + escapeHtml(r.adminNote) + '</div>' : '';
+          var fixMsg = S.fixLinkMessages && S.fixLinkMessages[r.id];
+          var fixLinkHtml = '';
+          if (r.status === 'link_bermasalah') {
+            fixLinkHtml = '<div class="notice-card">' +
+              '<p style="margin:0 0 8px;">' + escapeHtml(tt('linkBermasalahHint')) + '</p>' +
+              '<input class="field-input" id="fixLinkInput-' + r.id + '" type="text" placeholder="' + escapeHtml(tt('linkBaruPlaceholder')) + '">' +
+              '<button class="btn-primary" data-fixlink="' + r.id + '" style="margin-top:8px">' + escapeHtml(tt('kirimLinkBaru')) + '</button>' +
+              (fixMsg ? '<p class="hint" style="margin-top:8px;">' + escapeHtml(fixMsg) + '</p>' : '') +
+            '</div>';
+          }
           return '<div class="card list-item">' +
             '<div class="list-item-top">' +
               '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
@@ -1103,7 +1138,9 @@
               '<span>' + escapeHtml(LETTER_TYPES[r.type] ? typeShortLabel(LETTER_TYPES[r.type]) : r.type) + '</span>' +
               '<span>' + escapeHtml(formatDateShort(r.submittedAt)) + '</span>' +
             '</div>' +
+            noteHtml +
             pickupHtml +
+            fixLinkHtml +
           '</div>';
         }).join('');
       }
@@ -1500,20 +1537,41 @@
     });
   }
 
+  async function runStatusSearch() {
+    var q = S.statusQuery.trim().toLowerCase();
+    if (!q) { S.statusResults = []; return; }
+    var all = await getRequestsPublic();
+    S.statusResults = all.filter(function (r) {
+      return r.id.toLowerCase().indexOf(q) !== -1 || (r.data.namaLengkap || '').toLowerCase().indexOf(q) !== -1;
+    });
+  }
   function attachCekStatus() {
     var inp = document.getElementById('statusQuery');
     inp.addEventListener('input', function () { S.statusQuery = inp.value; });
     document.getElementById('searchStatusBtn').addEventListener('click', async function () {
-      var q = S.statusQuery.trim().toLowerCase();
-      if (!q) { S.statusResults = []; render(); return; }
       var btn = document.getElementById('searchStatusBtn');
       btn.disabled = true; btn.textContent = tt('mencari');
-      var all = await getRequestsPublic();
+      await runStatusSearch();
       btn.disabled = false; btn.textContent = tt('cari');
-      S.statusResults = all.filter(function (r) {
-        return r.id.toLowerCase().indexOf(q) !== -1 || (r.data.namaLengkap || '').toLowerCase().indexOf(q) !== -1;
-      });
       render();
+    });
+    document.querySelectorAll('[data-fixlink]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var id = btn.getAttribute('data-fixlink');
+        var input = document.getElementById('fixLinkInput-' + id);
+        var newLink = input.value.trim();
+        if (!newLink) { S.fixLinkMessages[id] = tt('linkBaruKosong'); render(); return; }
+        btn.disabled = true; btn.textContent = tt('mengirimLinkBaru');
+        var result = await fixRekomendasiLink(id, newLink);
+        if (result.ok) {
+          S.fixLinkMessages[id] = tt('linkBaruBerhasil');
+          await runStatusSearch();
+        } else {
+          S.fixLinkMessages[id] = tt('linkBaruGagal')(result.error);
+          btn.disabled = false; btn.textContent = tt('kirimLinkBaru');
+        }
+        render();
+      });
     });
   }
 
