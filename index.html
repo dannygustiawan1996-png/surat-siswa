@@ -673,6 +673,7 @@
     paymentDate: '',
     lastRequest: null,
     adminAuthed: false,
+    forgotStatus: null,
     adminFilterType: 'all',
     adminFilterStatus: 'all',
     adminSelectedId: null,
@@ -800,6 +801,20 @@
     } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
   }
   async function adminLogout() { try { await sb.auth.signOut(); } catch (e) {} }
+  async function sendPasswordReset(email) {
+    try {
+      var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+      if (res.error) return { ok: false, error: res.error.message };
+      return { ok: true };
+    } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
+  }
+  async function updateAdminPassword(password) {
+    try {
+      var res = await sb.auth.updateUser({ password: password });
+      if (res.error) return { ok: false, error: res.error.message };
+      return { ok: true };
+    } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
+  }
   async function hasAdminSession() {
     try {
       var res = await sb.auth.getSession();
@@ -829,6 +844,7 @@
       case 'konfirmasi': html = renderKonfirmasi(); break;
       case 'cekStatus': html = renderCekStatus(); break;
       case 'adminGate': html = renderAdminGate(); break;
+      case 'adminResetPassword': html = renderAdminResetPassword(); break;
       case 'adminDashboard': html = renderAdminDashboard(); break;
       case 'adminDetail': html = renderAdminDetail(); break;
       default: html = renderHome();
@@ -996,12 +1012,26 @@
   }
 
   function renderAdminGate() {
+    var forgotMsg = '';
+    if (S.forgotStatus === 'sent') forgotMsg = '<p class="hint" style="margin-top:8px">Link reset password sudah dikirim. Cek inbox (atau folder Spam) email itu.</p>';
+    else if (S.forgotStatus && S.forgotStatus !== 'sending') forgotMsg = '<span class="field-error">' + escapeHtml(S.forgotStatus) + '</span>';
     return backBar('home', 'Beranda') +
       '<h2>Masuk Admin</h2>' +
       '<label class="field"><span class="field-label">Email Admin</span><input class="field-input" id="adminEmail" type="email" placeholder="admin@uphcollege.com"></label>' +
       '<label class="field"><span class="field-label">Password</span><input class="field-input" id="adminPassword" type="password" placeholder="Masukkan password"></label>' +
       '<span class="field-error" id="adminError"></span>' +
-      '<button class="btn-primary" id="adminLoginBtn" style="margin-top:12px">Masuk</button>';
+      '<button class="btn-primary" id="adminLoginBtn" style="margin-top:12px">Masuk</button>' +
+      '<button class="btn-text" id="forgotPasswordBtn" style="margin-top:8px">Lupa Password?</button>' +
+      forgotMsg;
+  }
+
+  function renderAdminResetPassword() {
+    return '<h2>Buat Password Baru</h2>' +
+      '<p class="hint">Link reset password valid. Masukkan password baru untuk akun admin ini.</p>' +
+      '<label class="field"><span class="field-label">Password Baru</span><input class="field-input" id="newPassword" type="password" placeholder="Minimal 6 karakter"></label>' +
+      '<label class="field"><span class="field-label">Ulangi Password Baru</span><input class="field-input" id="newPasswordConfirm" type="password" placeholder="Ulangi password baru"></label>' +
+      '<span class="field-error" id="resetPasswordError"></span>' +
+      '<button class="btn-primary" id="savePasswordBtn" style="margin-top:12px">Simpan Password Baru</button>';
   }
 
   function renderAdminDashboard() {
@@ -1145,6 +1175,7 @@
       case 'pembayaran': attachPembayaran(); break;
       case 'cekStatus': attachCekStatus(); break;
       case 'adminGate': attachAdminGate(); break;
+      case 'adminResetPassword': attachAdminResetPassword(); break;
       case 'adminDashboard': attachAdminDashboard(); break;
       case 'adminDetail': attachAdminDetail(); break;
     }
@@ -1251,6 +1282,34 @@
       S.requests = await getRequestsAdmin();
       go('adminDashboard');
     });
+    document.getElementById('forgotPasswordBtn').addEventListener('click', async function () {
+      var btn = document.getElementById('forgotPasswordBtn');
+      var email = document.getElementById('adminEmail').value.trim();
+      if (!email) { S.forgotStatus = 'Isi dulu email admin di atas, ya.'; render(); return; }
+      btn.disabled = true; btn.textContent = 'Mengirim...';
+      var result = await sendPasswordReset(email);
+      S.forgotStatus = result.ok ? 'sent' : ('Gagal mengirim: ' + result.error);
+      render();
+    });
+  }
+
+  function attachAdminResetPassword() {
+    document.getElementById('savePasswordBtn').addEventListener('click', async function () {
+      var pw = document.getElementById('newPassword').value;
+      var pw2 = document.getElementById('newPasswordConfirm').value;
+      var errEl = document.getElementById('resetPasswordError');
+      errEl.textContent = '';
+      if (pw.length < 6) { errEl.textContent = 'Password minimal 6 karakter.'; return; }
+      if (pw !== pw2) { errEl.textContent = 'Password tidak sama, coba lagi.'; return; }
+      var btn = document.getElementById('savePasswordBtn');
+      btn.disabled = true; btn.textContent = 'Menyimpan...';
+      var result = await updateAdminPassword(pw);
+      btn.disabled = false; btn.textContent = 'Simpan Password Baru';
+      if (!result.ok) { errEl.textContent = 'Gagal menyimpan: ' + result.error; return; }
+      S.adminAuthed = true;
+      S.requests = await getRequestsAdmin();
+      go('adminDashboard');
+    });
   }
 
   function attachAdminDashboard() {
@@ -1351,6 +1410,9 @@
     if (S.adminAuthed) S.requests = await getRequestsAdmin();
     S.loading = false;
     render();
+    sb.auth.onAuthStateChange(function (event) {
+      if (event === 'PASSWORD_RECOVERY') go('adminResetPassword');
+    });
   }
   init();
 </script>
