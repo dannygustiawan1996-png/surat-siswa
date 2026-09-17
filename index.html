@@ -577,7 +577,7 @@
         { key: 'linkForm', label: 'Link Form Rekomendasi (yang sudah diisi)', labelEn: 'Recommendation Form Link (filled)', placeholder: 'Link OneDrive/Google Drive', placeholderEn: 'OneDrive/Google Drive link', type: 'text', required: true, isLink: true },
         { key: 'keperluan', label: 'Keperluan / Universitas Tujuan', labelEn: 'Purpose / Destination University', type: 'textarea', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
-        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon dikerjakan sebelum tanggal tertentu', placeholderEn: 'e.g. Please complete before a certain date', type: 'textarea', required: false }
+        { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Informasi tambahan yang ingin disampaikan ke guru', placeholderEn: 'e.g. Additional information you would like to share with the teacher', type: 'textarea', required: false }
       ]
     }
   };
@@ -780,6 +780,37 @@
         '<span class="recap-dot" style="background:' + CHART_COLORS[idx % CHART_COLORS.length] + '"></span>' +
         '<span class="recap-label" title="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</span>' +
         '<span class="recap-count">' + item.count + '</span>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  function formatDuration(ms) {
+    var hours = ms / (1000 * 60 * 60);
+    if (hours < 24) return Math.max(1, Math.round(hours)) + ' jam';
+    return (Math.round((hours / 24) * 10) / 10) + ' hari';
+  }
+  function avgDurationByGuru(items) {
+    var byGuru = {};
+    items.forEach(function (r) {
+      if (r.status !== 'selesai' || !r.data.completedAt) return;
+      var dur = new Date(r.data.completedAt).getTime() - new Date(r.submittedAt).getTime();
+      if (!(dur >= 0)) return;
+      var guru = (r.data.namaGuru || '').trim() || '(kosong)';
+      if (!byGuru[guru]) byGuru[guru] = [];
+      byGuru[guru].push(dur);
+    });
+    return Object.keys(byGuru).map(function (guru) {
+      var arr = byGuru[guru];
+      var avg = arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
+      return { label: guru, avgMs: avg };
+    }).sort(function (a, b) { return a.avgMs - b.avgMs; });
+  }
+  function renderDurationList(items) {
+    if (items.length === 0) return '<p class="hint">Belum ada data (belum ada surat Selesai yang tercatat waktunya).</p>';
+    return '<div class="recap-list">' + items.map(function (item, idx) {
+      return '<div class="recap-row">' +
+        '<span class="recap-dot" style="background:' + CHART_COLORS[idx % CHART_COLORS.length] + '"></span>' +
+        '<span class="recap-label" title="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</span>' +
+        '<span class="recap-count">' + formatDuration(item.avgMs) + '</span>' +
       '</div>';
     }).join('') + '</div>';
   }
@@ -1211,6 +1242,7 @@
     var byGuru = tallyBy(rekomRequests, function (r) { return r.data.namaGuru; });
     var bySiswa = tallyBy(rekomRequests, function (r) { return r.data.namaLengkap; });
     var byUniv = tallyBy(rekomRequests, function (r) { return r.data.keperluan; });
+    var durasiByGuru = avgDurationByGuru(rekomRequests);
 
     var rows = filtered.map(function (r) {
       return '<button class="card list-item" data-detail="' + r.id + '">' +
@@ -1235,6 +1267,7 @@
         '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
       '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' + renderRecapList(byGuru.slice(0, 6)) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Rata-rata Waktu Proses per Guru</p>' + renderDurationList(durasiByGuru.slice(0, 6)) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswa.slice(0, 6)) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Univ</p>' + renderRecapList(byUniv.slice(0, 6)) + '</div>' +
       '<div class="filter-row">' +
@@ -1580,6 +1613,7 @@
   function attachAdminDetail() {
     document.getElementById('saveDetailBtn').addEventListener('click', async function () {
       var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+      var prevStatus = req.status;
       req.status = document.getElementById('statusSelect').value;
       req.adminNote = document.getElementById('adminNoteInput').value;
       var genArea = document.getElementById('generatedTextArea');
@@ -1589,7 +1623,13 @@
       var tglInput = document.getElementById('tanggalSuratInput');
       if (tglInput) req.tanggalSurat = tglInput.value;
       var linkSuratJadiInput = document.getElementById('linkSuratJadiInput');
-      if (linkSuratJadiInput) req.data = Object.assign({}, req.data, { linkSuratJadi: linkSuratJadiInput.value.trim() });
+      if (linkSuratJadiInput) {
+        var dataUpdates = { linkSuratJadi: linkSuratJadiInput.value.trim() };
+        if (req.status === 'selesai' && prevStatus !== 'selesai' && !req.data.completedAt) {
+          dataUpdates.completedAt = new Date().toISOString();
+        }
+        req.data = Object.assign({}, req.data, dataUpdates);
+      }
       var btn = document.getElementById('saveDetailBtn');
       btn.disabled = true; btn.textContent = 'Menyimpan...';
       var result = await updateRequest(req);
