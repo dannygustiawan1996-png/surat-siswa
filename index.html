@@ -124,6 +124,7 @@
   .stamp.lunas { color: var(--color-brass); }
   .stamp.selesai { color: var(--color-green); }
   .stamp.diproses { color: var(--color-brass); }
+  .stamp.link_bermasalah { color: var(--color-brass); }
   .stamp.ditolak { color: var(--color-red); }
 
   .req-id { font-family: var(--font-mono); font-size: 19px; color: var(--color-navy); font-weight: 600; margin: 6px 0; }
@@ -584,8 +585,8 @@
 
   var STATUS_LABEL = { baru: 'Menunggu Verifikasi', lunas: 'Lunas - Diproses', selesai: 'Selesai', diproses: 'Diproses', ditolak: 'Ditolak' };
   var STATUS_LABEL_EN = { baru: 'Pending Verification', lunas: 'Paid - Processing', selesai: 'Completed', diproses: 'In Progress', ditolak: 'Rejected' };
-  var STATUS_LABEL_REKOMENDASI = { baru: 'Menunggu Diproses', diproses: 'Diproses', selesai: 'Selesai', ditolak: 'Ditolak' };
-  var STATUS_LABEL_REKOMENDASI_EN = { baru: 'Awaiting Review', diproses: 'In Progress', selesai: 'Completed', ditolak: 'Rejected' };
+  var STATUS_LABEL_REKOMENDASI = { baru: 'Menunggu Diproses', diproses: 'Diproses', link_bermasalah: 'Link Bermasalah', selesai: 'Selesai', ditolak: 'Ditolak' };
+  var STATUS_LABEL_REKOMENDASI_EN = { baru: 'Awaiting Review', diproses: 'In Progress', link_bermasalah: 'Link Not Accessible', selesai: 'Completed', ditolak: 'Rejected' };
   function statusLabelFor(type, status) {
     var map = (type === 'REKOMENDASI') ? STATUS_LABEL_REKOMENDASI : STATUS_LABEL;
     return map[status] || status;
@@ -1185,6 +1186,7 @@
           '<option value="baru"' + (S.adminFilterStatus === 'baru' ? ' selected' : '') + '>Menunggu</option>' +
           '<option value="lunas"' + (S.adminFilterStatus === 'lunas' ? ' selected' : '') + '>Lunas</option>' +
           '<option value="diproses"' + (S.adminFilterStatus === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
+          '<option value="link_bermasalah"' + (S.adminFilterStatus === 'link_bermasalah' ? ' selected' : '') + '>Link Bermasalah</option>' +
           '<option value="selesai"' + (S.adminFilterStatus === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
           '<option value="ditolak"' + (S.adminFilterStatus === 'ditolak' ? ' selected' : '') + '>Ditolak</option>' +
         '</select>' +
@@ -1257,6 +1259,7 @@
           '<option value="all"' + (S.guruFilterStatus === 'all' ? ' selected' : '') + '>Semua Status</option>' +
           '<option value="baru"' + (S.guruFilterStatus === 'baru' ? ' selected' : '') + '>Menunggu Diproses</option>' +
           '<option value="diproses"' + (S.guruFilterStatus === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
+          '<option value="link_bermasalah"' + (S.guruFilterStatus === 'link_bermasalah' ? ' selected' : '') + '>Link Bermasalah</option>' +
           '<option value="selesai"' + (S.guruFilterStatus === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
           '<option value="ditolak"' + (S.guruFilterStatus === 'ditolak' ? ' selected' : '') + '>Ditolak</option>' +
         '</select>' +
@@ -1301,6 +1304,7 @@
     var statusOptionsHtml = isRekomendasi ? (
       '<option value="baru"' + (req.status === 'baru' ? ' selected' : '') + '>Menunggu Diproses</option>' +
       '<option value="diproses"' + (req.status === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
+      '<option value="link_bermasalah"' + (req.status === 'link_bermasalah' ? ' selected' : '') + '>Link Bermasalah</option>' +
       '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
       '<option value="ditolak"' + (req.status === 'ditolak' ? ' selected' : '') + '>Ditolak</option>'
     ) : (
@@ -1309,7 +1313,7 @@
       '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>'
     );
 
-    var catatanLabel = isRekomendasi ? 'Catatan Guru (isi alasan kalau Ditolak)' : 'Catatan Admin';
+    var catatanLabel = isRekomendasi ? 'Catatan Guru (isi keterangan, mis. alasan Ditolak atau kenapa Link Bermasalah)' : 'Catatan Admin';
 
     var actionCardHtml;
     if (isRekomendasi) {
@@ -1332,6 +1336,14 @@
       '</div>';
     }
 
+    var historyHtml = '';
+    if (isRekomendasi && req.data.statusHistory && req.data.statusHistory.length > 0) {
+      var historyRows = req.data.statusHistory.slice().reverse().map(function (h) {
+        return '<div class="detail-row"><span class="detail-label">' + escapeHtml(formatDateTimeFull(h.at)) + '</span><span class="detail-value">' + escapeHtml(statusLabelFor('REKOMENDASI', h.status)) + (h.note ? ' — ' + escapeHtml(h.note) : '') + '</span></div>';
+      }).join('');
+      historyHtml = '<div class="card"><p class="field-label">Riwayat Status</p>' + historyRows + '</div>';
+    }
+
     return backBar(dashboardViewFor(S.userRole), 'Dashboard') +
       '<h2>' + escapeHtml(req.id) + '</h2>' +
       '<div class="stamp ' + req.status + '">' + escapeHtml(statusLabelFor(req.type, req.status)) + '</div>' +
@@ -1348,6 +1360,7 @@
       '</label>' +
       '<label class="field"><span class="field-label">' + catatanLabel + '</span><textarea class="field-input" id="adminNoteInput" rows="2">' + escapeHtml(req.adminNote || '') + '</textarea></label>' +
       actionCardHtml +
+      historyHtml +
       '<div class="stack">' +
         '<button class="btn-primary" id="saveDetailBtn">Simpan Perubahan</button>' +
         '<button class="btn-text danger" id="deleteReqBtn">Hapus Permintaan</button>' +
@@ -1610,6 +1623,11 @@
         var dataUpdates = { linkSuratJadi: linkSuratJadiInput.value.trim() };
         if (req.status === 'selesai' && prevStatus !== 'selesai' && !req.data.completedAt) {
           dataUpdates.completedAt = new Date().toISOString();
+        }
+        if (req.status !== prevStatus) {
+          var statusHistory = (req.data.statusHistory || []).slice();
+          statusHistory.push({ status: req.status, note: req.adminNote || '', at: new Date().toISOString() });
+          dataUpdates.statusHistory = statusHistory;
         }
         req.data = Object.assign({}, req.data, dataUpdates);
       }
