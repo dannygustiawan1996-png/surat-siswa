@@ -618,6 +618,8 @@
       downloadFile: 'Form-Permohonan-Rekomendasi.docx',
       downloadLabel: 'Download Form Permohonan Rekomendasi',
       downloadLabelEn: 'Download Recommendation Request Form',
+      intro: 'Catatan: Layanan ini khusus untuk surat rekomendasi dari sekolah. Kalau universitas tujuan minta guru mengisi form rekomendasi milik universitas itu sendiri (misal lewat Common App atau portal universitas), silakan hubungi guru yang bersangkutan langsung — bukan lewat form ini.',
+      introEn: "Note: This service is only for school-issued recommendation letters. If your destination university requires the teacher to fill out their own recommendation form (e.g. via Common App or the university's portal), please contact the teacher directly instead of using this form.",
       notice: '⚠️ Pastikan kamu sudah download & isi Form Permohonan Rekomendasi di atas, LENGKAP dengan salinan rapor akademik & non-akademik, lalu upload semuanya ke OneDrive/Google Drive dan siapkan link share-nya SEBELUM mengisi form di bawah ini. Pengajuan tanpa lampiran yang lengkap (termasuk rapor) tidak akan diproses guru.',
       noticeEn: '⚠️ Make sure you have downloaded & filled in the Recommendation Request Form above, COMPLETE with a copy of your academic & non-academic report cards, then uploaded everything to OneDrive/Google Drive and have the share link ready BEFORE filling in the form below. Submissions with incomplete attachments (missing report cards) will not be processed by the teacher.',
       fields: [
@@ -1111,9 +1113,11 @@
     }).join('');
     var noticeHtml = t.notice ? '<div class="notice-card">' + escapeHtml(S.lang === 'en' ? (t.noticeEn || t.notice) : t.notice) + '</div>' : '';
     var downloadHtml = t.downloadFile ? '<div class="info-card"><a href="' + t.downloadFile + '" target="_blank" style="color:var(--color-navy);font-weight:600;text-decoration:none;">↓ ' + escapeHtml(S.lang === 'en' ? t.downloadLabelEn : t.downloadLabel) + '</a></div>' : '';
+    var introHtml = t.intro ? '<p class="hint">' + escapeHtml(S.lang === 'en' ? (t.introEn || t.intro) : t.intro) + '</p>' : '';
     var submitLabel = t.noPayment ? tt('kirimPermintaan') : tt('lanjutPembayaran');
     return backBar(t.hideFromMenu ? 'home' : 'pilihJenis', t.hideFromMenu ? tt('beranda') : tt('jenisSurat')) +
       '<h2>' + escapeHtml(typeLabel(t)) + '</h2>' +
+      introHtml +
       '<p class="hint">' + escapeHtml(tt('formHint')) + '</p>' +
       downloadHtml +
       noticeHtml +
