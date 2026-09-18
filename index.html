@@ -188,6 +188,23 @@
     { value: 'IPS', label: 'Ilmu Pengetahuan Sosial (IPS)', labelEn: 'Social Sciences' },
     { value: 'IPA', label: 'Ilmu Pengetahuan Alam (IPA)', labelEn: 'Mathematics and Natural Sciences' }
   ];
+  function buildKelasOptions() {
+    var opts = [];
+    var i, code;
+    for (i = 1; i <= 20; i++) { code = 'F1' + String(i).padStart(2, '0'); opts.push({ value: code, label: code, labelEn: code, group: 'First Year (FY)' }); }
+    opts.push({ value: 'FDL', label: 'FDL (First Year Distance Learning)', labelEn: 'FDL (First Year Distance Learning)', group: 'First Year (FY)' });
+    for (i = 1; i <= 18; i++) { code = 'S2' + String(i).padStart(2, '0'); opts.push({ value: code, label: code, labelEn: code, group: 'Second Year (SY)' }); }
+    opts.push({ value: 'SDL', label: 'SDL (Second Year Distance Learning)', labelEn: 'SDL (Second Year Distance Learning)', group: 'Second Year (SY)' });
+    for (i = 1; i <= 18; i++) { code = 'L3' + String(i).padStart(2, '0'); opts.push({ value: code, label: code, labelEn: code, group: 'Last Year (LY)' }); }
+    opts.push({ value: 'LDL', label: 'LDL (Last Year Distance Learning)', labelEn: 'LDL (Last Year Distance Learning)', group: 'Last Year (LY)' });
+    var currentYear = new Date().getFullYear();
+    for (var y = currentYear; y >= currentYear - 15; y--) {
+      var label = 'Alumni ' + y;
+      opts.push({ value: label, label: label, labelEn: label, group: 'Alumni' });
+    }
+    return opts;
+  }
+  var KELAS_OPTIONS = buildKelasOptions();
 
   function pronoun(g) {
     if (g === 'P') return { subject: 'she', possessive: 'her', object: 'her' };
@@ -250,7 +267,7 @@
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'ttl', label: 'Tempat, Tanggal Lahir', labelEn: 'Place, Date of Birth', placeholder: 'Contoh: Tangerang, 12 Mei 2008', placeholderEn: 'e.g. Tangerang, May 12, 2008', type: 'text', required: true },
         { key: 'studentId', label: 'Student ID / NISN', labelEn: 'Student ID / NISN', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11), atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11), or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
@@ -283,7 +300,7 @@
       descEn: "For students who haven't graduated yet, without naming a specific university — for general purposes (expected graduation).",
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11), atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11), or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
@@ -316,7 +333,7 @@
       descEn: "For students who haven't graduated yet, naming a specific destination university (expected graduation).",
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11), atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11), or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
@@ -350,7 +367,7 @@
       descEn: 'For graduated students, used for overseas university applications (graduation).',
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11), atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11), or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
@@ -390,7 +407,7 @@
         { key: 'namaAyah', label: 'Nama Ayah', labelEn: "Father's Name", type: 'text', required: true },
         { key: 'namaIbu', label: 'Nama Ibu', labelEn: "Mother's Name", type: 'text', required: true },
         { key: 'alamat', label: 'Alamat', labelEn: 'Address', type: 'textarea', required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: 10A, atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. 10A, or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'namaPerusahaan', label: 'Nama Tempat Kerja Orang Tua', labelEn: "Parent's Workplace Name", type: 'text', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
@@ -427,7 +444,7 @@
       fee: 25000,
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11), atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11), or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'semesterDiminta', label: 'Rentang Semester yang Diminta', labelEn: 'Requested Semester Range', placeholder: 'Contoh: 1-4, 1-5, atau 1-6', placeholderEn: 'e.g. 1-4, 1-5, or 1-6', type: 'text', required: true },
         { key: 'keperluan', label: 'Keperluan Transkrip', labelEn: 'Purpose of Transcript', placeholder: 'Contoh: Pengajuan beasiswa, aplikasi universitas, dll', placeholderEn: 'e.g. Scholarship application, university application, etc.', type: 'textarea', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
@@ -459,7 +476,7 @@
       fee: 25000,
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: L316, F101, S201 (L=Last Year/12, F=First Year/10, S=Second Year/11), atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. L316, F101, S201 (L=Last Year/Gr.12, F=First Year/Gr.10, S=Second Year/Gr.11), or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'NIS (Nomor Induk Siswa)', labelEn: 'Student Number (NIS)', type: 'text', required: true },
@@ -497,7 +514,7 @@
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'studentId', label: 'Student ID / NISN', labelEn: 'Student ID / NISN', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: 10A, atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. 10A, or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
@@ -531,7 +548,7 @@
         { key: 'ttl', label: 'Tempat, Tanggal Lahir', labelEn: 'Place, Date of Birth', placeholder: 'Contoh: Tangerang, 12 Mei 2008', placeholderEn: 'e.g. Tangerang, May 12, 2008', type: 'text', required: true },
         { key: 'studentId', label: 'NIS / Student ID', labelEn: 'NIS / Student ID', type: 'text', required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: 9B, atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. 9B, or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'alamat', label: 'Alamat Lengkap', labelEn: 'Full Address', type: 'textarea', required: true },
         { key: 'negaraTujuan', label: 'Negara Tujuan', labelEn: 'Destination Country', placeholder: 'Contoh: Italy, Australia, Japan', placeholderEn: 'e.g. Italy, Australia, Japan', type: 'text', required: true },
         { key: 'tanggalBerangkat', label: 'Tanggal Berangkat', labelEn: 'Departure Date', type: 'date', required: true },
@@ -581,7 +598,7 @@
       noticeEn: '⚠️ Make sure you have downloaded & filled in the Recommendation Request Form above, uploaded it to OneDrive/Google Drive, and have the share link ready BEFORE filling in the form below. Submissions without a filled form link will not be processed by the teacher.',
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
-        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', placeholder: 'Contoh: L316, F101, S201, atau tulis "Alumni 2023" kalau sudah lulus', placeholderEn: 'e.g. L316, F101, S201, or write "Alumni 2023" if already graduated', type: 'text', required: true },
+        { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'namaGuru', label: 'Nama Guru yang Diminta', labelEn: "Requested Teacher's Name", type: 'text', required: true },
         { key: 'linkForm', label: 'Link Form Rekomendasi (yang sudah diisi)', labelEn: 'Recommendation Form Link (filled)', placeholder: 'Link OneDrive/Google Drive', placeholderEn: 'OneDrive/Google Drive link', type: 'text', required: true, isLink: true },
         { key: 'keperluan', label: 'Keperluan / Universitas Tujuan', labelEn: 'Purpose / Destination University', type: 'textarea', required: true },
@@ -1026,8 +1043,17 @@
       if (f.type === 'textarea') {
         inputEl = '<textarea class="field-input" data-field="' + f.key + '" placeholder="' + escapeHtml(fieldPlaceholder(f)) + '" rows="2">' + val + '</textarea>';
       } else if (f.type === 'select') {
-        var opts = f.options.map(function (o) {
-          return '<option value="' + o.value + '"' + ((S.formDraft && S.formDraft[f.key]) === o.value ? ' selected' : '') + '>' + escapeHtml(optionLabel(o)) + '</option>';
+        var groups = {}; var groupOrder = [];
+        f.options.forEach(function (o) {
+          var g = o.group || '';
+          if (groups[g] === undefined) { groups[g] = []; groupOrder.push(g); }
+          groups[g].push(o);
+        });
+        var opts = groupOrder.map(function (g) {
+          var inner = groups[g].map(function (o) {
+            return '<option value="' + escapeHtml(o.value) + '"' + ((S.formDraft && S.formDraft[f.key]) === o.value ? ' selected' : '') + '>' + escapeHtml(optionLabel(o)) + '</option>';
+          }).join('');
+          return g ? ('<optgroup label="' + escapeHtml(g) + '">' + inner + '</optgroup>') : inner;
         }).join('');
         inputEl = '<select class="field-input" data-field="' + f.key + '"><option value="">' + escapeHtml(tt('pilihOpsi')) + '</option>' + opts + '</select>';
       } else if (f.type === 'date') {
