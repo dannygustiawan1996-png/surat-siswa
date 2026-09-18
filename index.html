@@ -228,7 +228,7 @@
     'DANIEL WINARDI', 'DINA MAWARNI, S.T.', 'EDUARDUS KEVIN GUNADJAJA', 'HEIDI TIRZA', 'JOHNSEN',
     'KEZHIA BIANTA SIRAIT', 'LEONARDO ADI DHARMA WIDYA', 'MARSELDA LAURA SARAGIH', 'NADYA PRIGUNA POERNAMA', 'NICKY PRANATA YOHANDA GAMA',
     'PIPIN BUDILOU', 'RATNA NUR SALIM', 'RIA JAYANTI', 'ROVINDRA CHRISTIAN SANJAYA', 'VENANTIUS VLADIMIR IVAN PRATAMA',
-    'VIOLETA SHARLENE HONGGOWIDJOJO', 'Hans Deny (Kepala Sekolah)'
+    'VIOLETA SHARLENE HONGGOWIDJOJO', 'Hans Deny (Kepala Sekolah)', 'Danny Gustiawan'
   ].sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
   var GURU_OPTIONS = GURU_NAMES.map(function (n) { return { value: n, label: n, labelEn: n }; });
 
@@ -624,7 +624,9 @@
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'kontak', label: 'Alamat Email Sekolah', labelEn: 'School Email Address', placeholder: 'nama@student.uphcollege.ac.id', placeholderEn: 'name@student.uphcollege.ac.id', type: 'email', required: true },
-        { key: 'namaGuru', label: 'Nama Guru yang Diminta', labelEn: "Requested Teacher's Name", type: 'select', options: GURU_OPTIONS, required: true },
+        { key: 'namaGuru', label: 'Nama Guru yang Diminta (1)', labelEn: "Requested Teacher's Name (1)", type: 'select', options: GURU_OPTIONS, required: true },
+        { key: 'namaGuru2', label: 'Nama Guru yang Diminta (2, opsional)', labelEn: "Requested Teacher's Name (2, optional)", type: 'select', options: GURU_OPTIONS, required: false },
+        { key: 'namaGuru3', label: 'Nama Guru yang Diminta (3, opsional)', labelEn: "Requested Teacher's Name (3, optional)", type: 'select', options: GURU_OPTIONS, required: false },
         { key: 'linkForm', label: 'Link Form Rekomendasi (yang sudah diisi)', labelEn: 'Recommendation Form Link (filled)', placeholder: 'Link OneDrive/Google Drive', placeholderEn: 'OneDrive/Google Drive link', type: 'text', required: true, isLink: true },
         { key: 'keperluan', label: 'Keperluan / Universitas Tujuan', labelEn: 'Purpose / Destination University', type: 'textarea', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Informasi tambahan yang ingin disampaikan ke guru', placeholderEn: 'e.g. Additional information you would like to share with the teacher', type: 'textarea', required: false }
@@ -841,6 +843,21 @@
     items.forEach(function (item) {
       var k = (keyFn(item) || '').trim() || '(kosong)';
       counts[k] = (counts[k] || 0) + 1;
+    });
+    return Object.keys(counts).map(function (k) { return { label: k, count: counts[k] }; })
+      .sort(function (a, b) { return b.count - a.count; });
+  }
+  function guruNamesFor(data) {
+    return [data.namaGuru, data.namaGuru2, data.namaGuru3].filter(function (n) { return n && String(n).trim(); });
+  }
+  function tallyByMulti(items, namesFn) {
+    var counts = {};
+    items.forEach(function (item) {
+      namesFn(item).forEach(function (name) {
+        var k = String(name).trim();
+        if (!k) return;
+        counts[k] = (counts[k] || 0) + 1;
+      });
     });
     return Object.keys(counts).map(function (k) { return { label: k, count: counts[k] }; })
       .sort(function (a, b) { return b.count - a.count; });
@@ -1320,7 +1337,7 @@
     var diproses = rekomRequests.filter(function (r) { return r.status === 'diproses'; }).length;
     var selesai = rekomRequests.filter(function (r) { return r.status === 'selesai'; }).length;
 
-    var byGuru = tallyBy(rekomRequests, function (r) { return r.data.namaGuru; });
+    var byGuru = tallyByMulti(rekomRequests, function (r) { return guruNamesFor(r.data); });
     var bySiswa = tallyBy(rekomRequests, function (r) { return r.data.namaLengkap; });
     var byUniv = tallyBy(rekomRequests, function (r) { return r.data.keperluan; });
 
@@ -1337,7 +1354,7 @@
           '<span class="stamp ' + r.status + '">' + escapeHtml(statusLabelFor(r.type, r.status)) + '</span>' +
         '</div>' +
         '<div class="list-item-bottom">' +
-          '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' &rarr; ' + escapeHtml(r.data.namaGuru || '-') + '</span>' +
+          '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' &rarr; ' + escapeHtml(guruNamesFor(r.data).join(', ') || '-') + '</span>' +
           '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
         '</div>' +
         completedLine +
@@ -1753,7 +1770,7 @@
         r.id,
         d.namaLengkap || '',
         d.kelas || '',
-        d.namaGuru || '',
+        guruNamesFor(d).join(', '),
         d.keperluan || '',
         d.kontak || '',
         d.linkForm || '',
