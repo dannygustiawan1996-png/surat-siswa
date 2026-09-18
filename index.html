@@ -575,7 +575,7 @@
         { key: 'studentId', label: 'NIS / Student ID', labelEn: 'NIS / Student ID', type: 'text', required: true },
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
-        { key: 'alamat', label: 'Alamat Lengkap', labelEn: 'Full Address', type: 'textarea', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'negaraTujuan', label: 'Negara Tujuan', labelEn: 'Destination Country', placeholder: 'Contoh: Italy, Australia, Japan', placeholderEn: 'e.g. Italy, Australia, Japan', type: 'text', required: true },
         { key: 'tanggalBerangkat', label: 'Tanggal Berangkat', labelEn: 'Departure Date', type: 'date', required: true },
         { key: 'tanggalKembali', label: 'Tanggal Kembali', labelEn: 'Return Date', type: 'date', required: true },
@@ -585,24 +585,22 @@
       generator: function (d, nomor, tgl) {
         var p = pronoun(d.jenisKelamin);
         return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
-          'No: ' + nomor + '\n\n' +
-          'To:\n\n' +
+          'LETTER OF STATEMENT\n' +
+          'No. : ' + nomor + '\n\n' +
           'Embassy of ' + d.negaraTujuan + '\n' +
-          'Jakarta\n\n' +
-          'Attention : Visa Section\n\n' +
-          'Re. : Supporting Document for Visa Application\n\n' +
+          'Jakarta – Indonesia\n\n' +
+          'To Whom It May Concern:\n\n' +
           'Dear Sir/Madam,\n\n' +
-          'This is to certify that the following is a registered student of UPH College, and that the parents have requested this letter to support the visa application below:\n\n' +
-          'STUDENT INFORMATION\n' +
+          'With this letter, I would like to inform you that I am the undersigned,\n\n' +
+          'Name              : Hans Deny\n' +
+          'Position          : Academic Principal\n\n' +
+          'This is to certify that,\n\n' +
           'Name                  : ' + d.namaLengkap + '\n' +
           'Place, Date of Birth  : ' + d.ttl + '\n' +
-          'Student ID            : ' + d.studentId + '\n' +
-          'Grade/Class           : ' + d.kelas + '\n' +
-          'Address               : ' + d.alamat + '\n\n' +
-          'TRAVEL INFORMATION\n' +
-          'Destination Country   : ' + d.negaraTujuan + '\n' +
-          'Travel Period         : ' + formatDateEN(d.tanggalBerangkat) + ' – ' + formatDateEN(d.tanggalKembali) + '\n\n' +
-          cap(p.subject) + ' will return to Indonesia to continue ' + p.possessive + ' studies after the trip.\n\n' +
+          'NIS                   : ' + d.studentId + '\n' +
+          'Grade/Class           : ' + d.kelas + '\n\n' +
+          'is a student at UPH College in the academic year of ' + d.tahunAjaran + ', and will be traveling to ' + d.negaraTujuan + ' from ' + formatDateEN(d.tanggalBerangkat) + ' to ' + formatDateEN(d.tanggalKembali) + '. ' + cap(p.subject) + ' will return to Indonesia to continue ' + p.possessive + ' studies after the trip.\n\n' +
+          'Your kind assistance in processing this visa application would be highly appreciated.\n\n' +
           'Yours Sincerely,\n\n\n' +
           'Hans Deny\n' +
           'Academic Principal';
