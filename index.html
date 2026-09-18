@@ -205,6 +205,32 @@
     return opts;
   }
   var KELAS_OPTIONS = buildKelasOptions();
+  var GURU_NAMES = [
+    'Ferdy Rinus Hardianto', 'Lisa Agatha', 'Antonius ART', 'P. Maju Sipahutar', 'Arrhenius Petwien Gunde',
+    'Frankie Kusumawardana', 'FX. Pujo Santosa', 'Arif Sutikno', 'Dwie Astuti', 'Theresia Veni Tri Nugraheni',
+    'Octaviyanto Samuel', 'Patryks Gerald Yeheskiel Supit', 'Armae Dianrevy', 'Ezra Putra Sani', 'Sabina Puspa Lesmana',
+    'IVANA FAJAR KRISTIN ZEGA', 'FERRY IMMANUEL WIGUNA', 'GABRIEL CHRISTIAN', 'HELGA EVLIN LEONORA ZENDRATO', 'KEZIA DANES EFRILIANA',
+    'MIKAEL FARADAEY', 'SELVIA MARIANA', 'TIMOTHY JORDAN CHRISTIANTO', 'FIRDAUS SALIM', 'MARIA KRISTIADONA GUNAWAN',
+    'ERAWATI', 'JOHANES KRISTIAN WIJAYA', 'HEBRON WINTER PEMASELA', 'EVELINE ARAUNA PUTRI IMANUELA', 'FRENALDI ABYATAR PAPPANG',
+    'LIONY MISSYELLA KARTINI SETIA BUDI CHANDRA', 'THERESIA EMMANUELLA', 'WENNY CAROLINE', 'YOUKE PRATAMA SALOMO FANOLO DACHI', 'AFRILIA KRISTIANA',
+    'VELITA THEODORA HENDRIANI', 'YANUAR STEFEN TISCHO RASSI', 'CLAUDIA MELINDA PIDU', 'MARIA YASHINTA PUTRI KUMALASARI', 'CHRISTEVEN MEVOTEMA',
+    'JHONES GANDANG SATRIA', 'PETRUSMEN LAOLI', 'RIFALDO FREEDOM TATIPIKALAWAN', 'RISTYAN ANDHIKA SETYAWAN', 'MERRY STEFANI FERIN',
+    'NENCY PASCARINA PURBA', 'DIMAS EVAN SANCTUS', 'NUR CAHYA WULANDARI', 'RAMESH MAHENDRA THANGAVEL', 'IRA NUGRAHA',
+    'NATANAEL RAFAEL ADHINUGROHO', 'AYODEJI ADEBISI ADEYEMI', 'JM JA SAN MAI', 'CATHARINE AGATHA KURNIAWAN', 'FERYAN CHRIST JONATHAN',
+    'MARSHELLA NOVITASARI LUKMAN', 'MEYVIANE PRICILIA GLORIA', 'NATASHA CHRISTIN WIJAYA DACHI', 'SOLUSI KHARISNAWATI DAELI', 'SOPIAN GYSBERT WUNGOW',
+    'PEBRIYANI NANCY TAMBUNAN', 'RICHARD ANDRE SUNARJO', 'CHARLES BONG', 'CLARA ZANETHA', 'M.R. TYASRATNAWATI',
+    'DESIANA LAILY PUTRI', 'JOANA NATHALIA LISELLA PIOH', 'KATRINA FEBRIANI SIMAMORA', 'JOVAN NATHANAEL TORRENO', 'KEZIA ALLENIA PUTRI ASIKA',
+    'PATRICIA TESSALONIKA SITUMORANG', 'TIMOTHY KEVIN BENEDICT', 'KAREN ANGELIQUE HERLINA', 'APDRIE CALYCA JACQUILINE NITBANI', 'IRENE EUNIKE SUDIBYO',
+    'Lasmaria Panjaitan, S.Pd', 'CHRISTINA MICHELLE SUSANTO', 'CHRISTOPHER RUSDIANTO', 'DIANA PRIMA PENYAMI', 'ENGKING SOETONO',
+    'GIAN ANDERSON LUKMANA', 'HARIANTO RICKSEIR WIDJAJA', 'INGRID PERMATA', 'MICHAEL HERDY HADILAYA', 'OTTO BERMAN SIHITE',
+    'TJONG PO DJUN', 'WESLEY ALVA MARDIKIN', 'WESLEY GERALDO', 'WIDIYATMOKO', 'YEHUDA HERMAN ANDREW',
+    'YUSUF DHARMAWAN', 'ZETIANTINO HUTABARAT', 'BIRGITA PRISCILLA', 'BOBY AUGUSPUTRA LIMIJAYA', 'CHELSEA',
+    'DANIEL WINARDI', 'DINA MAWARNI, S.T.', 'EDUARDUS KEVIN GUNADJAJA', 'HEIDI TIRZA', 'JOHNSEN',
+    'KEZHIA BIANTA SIRAIT', 'LEONARDO ADI DHARMA WIDYA', 'MARSELDA LAURA SARAGIH', 'NADYA PRIGUNA POERNAMA', 'NICKY PRANATA YOHANDA GAMA',
+    'PIPIN BUDILOU', 'RATNA NUR SALIM', 'RIA JAYANTI', 'ROVINDRA CHRISTIAN SANJAYA', 'VENANTIUS VLADIMIR IVAN PRATAMA',
+    'VIOLETA SHARLENE HONGGOWIDJOJO'
+  ].sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+  var GURU_OPTIONS = GURU_NAMES.map(function (n) { return { value: n, label: n, labelEn: n }; });
 
   function pronoun(g) {
     if (g === 'P') return { subject: 'she', possessive: 'her', object: 'her' };
@@ -600,7 +626,7 @@
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'kontak', label: 'Alamat Email Sekolah', labelEn: 'School Email Address', placeholder: 'nama@student.uphcollege.ac.id', placeholderEn: 'name@student.uphcollege.ac.id', type: 'email', required: true },
-        { key: 'namaGuru', label: 'Nama Guru yang Diminta', labelEn: "Requested Teacher's Name", type: 'text', required: true },
+        { key: 'namaGuru', label: 'Nama Guru yang Diminta', labelEn: "Requested Teacher's Name", type: 'select', options: GURU_OPTIONS, required: true },
         { key: 'linkForm', label: 'Link Form Rekomendasi (yang sudah diisi)', labelEn: 'Recommendation Form Link (filled)', placeholder: 'Link OneDrive/Google Drive', placeholderEn: 'OneDrive/Google Drive link', type: 'text', required: true, isLink: true },
         { key: 'keperluan', label: 'Keperluan / Universitas Tujuan', labelEn: 'Purpose / Destination University', type: 'textarea', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Informasi tambahan yang ingin disampaikan ke guru', placeholderEn: 'e.g. Additional information you would like to share with the teacher', type: 'textarea', required: false }
