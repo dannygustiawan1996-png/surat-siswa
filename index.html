@@ -1219,7 +1219,7 @@
               '<span class="stamp ' + r.status + '">' + escapeHtml(studentStatusLabel(r.type, r.status)) + '</span>' +
             '</div>' +
             '<div class="list-item-bottom">' +
-              '<span>' + escapeHtml(LETTER_TYPES[r.type] ? typeShortLabel(LETTER_TYPES[r.type]) : r.type) + '</span>' +
+              '<span>' + escapeHtml((r.data && r.data.namaLengkap) || '-') + ' &middot; ' + escapeHtml(LETTER_TYPES[r.type] ? typeShortLabel(LETTER_TYPES[r.type]) : r.type) + '</span>' +
               '<span>' + escapeHtml(formatDateShort(r.submittedAt)) + '</span>' +
             '</div>' +
             noteHtml +
