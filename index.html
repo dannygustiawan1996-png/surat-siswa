@@ -144,6 +144,8 @@
 
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0; }
   .stat { background: var(--color-card); border-radius: 4px; padding: 12px 4px; text-align: center; box-shadow: 0 1px 3px rgba(27,42,74,0.08); }
+  .stat-clickable { border: none; font: inherit; cursor: pointer; width: 100%; }
+  .stat-clickable.active { box-shadow: 0 0 0 2px var(--color-navy) inset; }
   .stat-num { display: block; font-family: var(--font-display); font-size: 21px; color: var(--color-navy); font-weight: 700; }
   .stat-label { display: block; font-size: 9.5px; color: var(--color-ink-soft); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
 
@@ -797,6 +799,7 @@
     adminFilterType: 'all',
     adminFilterStatus: 'all',
     guruFilterStatus: 'all',
+    guruStatFilter: null,
     adminSelectedId: null,
     adminEditingSettings: false,
     statusQuery: '',
@@ -877,6 +880,32 @@
   }
   function guruNamesFor(data) {
     return guruSlotsFor(data).map(function (n) { return guruNameAt(data, n); });
+  }
+  function guruSlotEntries(rekomRequests) {
+    var list = [];
+    rekomRequests.forEach(function (r) {
+      guruSlotsFor(r.data).forEach(function (n) {
+        list.push({
+          req: r,
+          n: n,
+          name: guruNameAt(r.data, n),
+          status: guruStatusAt(r.data, n, r.status),
+          note: guruCatatanAt(r.data, n),
+          completedAt: guruCompletedAtAt(r.data, n)
+        });
+      });
+    });
+    return list;
+  }
+  function guruStatBucket(status) {
+    if (status === 'diproses') return 'diproses';
+    if (status === 'selesai' || status === 'ditolak') return 'selesai';
+    return 'menunggu';
+  }
+  function formatDuration(ms) {
+    var hours = ms / (1000 * 60 * 60);
+    if (hours < 24) return Math.max(1, Math.round(hours)) + ' jam';
+    return (Math.round((hours / 24) * 10) / 10) + ' hari';
   }
   function tallyByMulti(items, namesFn) {
     var counts = {};
@@ -1383,13 +1412,38 @@
     }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
 
     var total = rekomRequests.length;
-    var guruSlotStatuses = [];
-    rekomRequests.forEach(function (r) {
-      guruSlotsFor(r.data).forEach(function (n) { guruSlotStatuses.push(guruStatusAt(r.data, n, r.status)); });
-    });
-    var menunggu = guruSlotStatuses.filter(function (st) { return st === 'baru' || st === 'link_bermasalah'; }).length;
-    var diproses = guruSlotStatuses.filter(function (st) { return st === 'diproses'; }).length;
-    var selesai = guruSlotStatuses.filter(function (st) { return st === 'selesai' || st === 'ditolak'; }).length;
+    var guruEntries = guruSlotEntries(rekomRequests);
+    var menunggu = guruEntries.filter(function (e) { return guruStatBucket(e.status) === 'menunggu'; }).length;
+    var diproses = guruEntries.filter(function (e) { return guruStatBucket(e.status) === 'diproses'; }).length;
+    var selesai = guruEntries.filter(function (e) { return guruStatBucket(e.status) === 'selesai'; }).length;
+
+    var statDetailHtml = '';
+    if (S.guruStatFilter) {
+      var matching = guruEntries.filter(function (e) { return guruStatBucket(e.status) === S.guruStatFilter; })
+        .sort(function (a, b) {
+          var ad = a.completedAt || a.req.submittedAt;
+          var bd = b.completedAt || b.req.submittedAt;
+          return new Date(bd) - new Date(ad);
+        });
+      var statLabel = { menunggu: 'Guru Menunggu', diproses: 'Guru Diproses', selesai: 'Guru Selesai' }[S.guruStatFilter];
+      var rowsHtml = matching.map(function (e) {
+        var timingHtml;
+        if ((e.status === 'selesai' || e.status === 'ditolak') && e.completedAt) {
+          var deltaMs = new Date(e.completedAt).getTime() - new Date(e.req.submittedAt).getTime();
+          timingHtml = 'Diajukan ' + escapeHtml(formatDateShort(e.req.submittedAt)) + ' &rarr; ' + escapeHtml(statusLabelFor('REKOMENDASI', e.status)) + ' ' + escapeHtml(formatDateTimeFull(e.completedAt)) + (deltaMs >= 0 ? ' (' + escapeHtml(formatDuration(deltaMs)) + ')' : '');
+        } else {
+          timingHtml = 'Diajukan ' + escapeHtml(formatDateShort(e.req.submittedAt)) + ' &middot; ' + escapeHtml(statusLabelFor('REKOMENDASI', e.status));
+        }
+        var noteHtml = e.note ? '<div class="hint" style="margin-top:2px;">Catatan: ' + escapeHtml(e.note) + '</div>' : '';
+        return '<button class="card list-item" data-detail="' + e.req.id + '">' +
+          '<div class="list-item-top"><span>' + escapeHtml(e.name) + '</span><span class="req-id-small">' + escapeHtml(e.req.id) + '</span></div>' +
+          '<div class="list-item-bottom"><span>' + escapeHtml(e.req.data.namaLengkap || '-') + '</span></div>' +
+          '<div class="hint" style="margin-top:4px;">' + timingHtml + '</div>' +
+          noteHtml +
+        '</button>';
+      }).join('') || '<p class="hint">Belum ada.</p>';
+      statDetailHtml = '<div class="stat-block"><p class="stat-block-title">Detail ' + escapeHtml(statLabel) + '</p>' + rowsHtml + '</div>';
+    }
 
     var byGuru = tallyByMulti(rekomRequests, function (r) { return guruNamesFor(r.data); });
     var bySiswa = tallyBy(rekomRequests, function (r) { return r.data.namaLengkap; });
@@ -1422,10 +1476,12 @@
       '<h2>Dashboard Surat Rekomendasi</h2>' +
       '<div class="stats-grid">' +
         '<div class="stat"><span class="stat-num">' + total + '</span><span class="stat-label">Total Permintaan</span></div>' +
-        '<div class="stat"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Guru Menunggu</span></div>' +
-        '<div class="stat"><span class="stat-num">' + diproses + '</span><span class="stat-label">Guru Diproses</span></div>' +
-        '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Guru Selesai</span></div>' +
+        '<button class="stat stat-clickable' + (S.guruStatFilter === 'menunggu' ? ' active' : '') + '" data-statfilter="menunggu"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Guru Menunggu</span></button>' +
+        '<button class="stat stat-clickable' + (S.guruStatFilter === 'diproses' ? ' active' : '') + '" data-statfilter="diproses"><span class="stat-num">' + diproses + '</span><span class="stat-label">Guru Diproses</span></button>' +
+        '<button class="stat stat-clickable' + (S.guruStatFilter === 'selesai' ? ' active' : '') + '" data-statfilter="selesai"><span class="stat-num">' + selesai + '</span><span class="stat-label">Guru Selesai</span></button>' +
       '</div>' +
+      '<p class="hint" style="margin-top:-8px;">Klik salah satu angka guru di atas untuk lihat rinciannya.</p>' +
+      statDetailHtml +
       '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' + renderRecapList(byGuru) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswa) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Univ</p>' + renderRecapList(byUniv) + '</div>' +
@@ -1451,6 +1507,13 @@
     });
     var filterEl = document.getElementById('guruFilterStatus');
     if (filterEl) filterEl.addEventListener('change', function (e) { S.guruFilterStatus = e.target.value; render(); });
+    document.querySelectorAll('[data-statfilter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var key = btn.getAttribute('data-statfilter');
+        S.guruStatFilter = (S.guruStatFilter === key) ? null : key;
+        render();
+      });
+    });
     document.querySelectorAll('[data-detail]').forEach(function (btn) {
       btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
     });
