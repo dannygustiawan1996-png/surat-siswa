@@ -37,7 +37,8 @@ insert into settings (id) values (1) on conflict (id) do nothing;
 -- diminta (sampai 3) punya status & catatan SENDIRI-SENDIRI -- diekspos
 -- lewat kolom guruN_* di bawah, supaya siswa bisa lihat progres per guru
 -- secara terpisah (guru A sudah selesai, guru B belum, dst).
-create or replace view requests_public as
+drop view if exists requests_public;
+create view requests_public as
   select
     id,
     type,
