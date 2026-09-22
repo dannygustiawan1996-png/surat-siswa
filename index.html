@@ -843,8 +843,40 @@
     return Object.keys(counts).map(function (k) { return { label: k, count: counts[k] }; })
       .sort(function (a, b) { return b.count - a.count; });
   }
+  function guruSlotsFor(data) {
+    var slots = [];
+    if (data.namaGuru && String(data.namaGuru).trim()) slots.push(1);
+    if (data.namaGuru2 && String(data.namaGuru2).trim()) slots.push(2);
+    if (data.namaGuru3 && String(data.namaGuru3).trim()) slots.push(3);
+    return slots;
+  }
+  function guruNameAt(data, n) {
+    return n === 1 ? data.namaGuru : (n === 2 ? data.namaGuru2 : data.namaGuru3);
+  }
+  function guruStatusAt(data, n, fallback) {
+    return data['guruStatus' + n] || fallback || 'baru';
+  }
+  function guruCatatanAt(data, n) {
+    return data['guruCatatan' + n] || '';
+  }
+  function guruCompletedAtAt(data, n) {
+    return data['guruCompletedAt' + n];
+  }
+  var GURU_STATUS_RANK = { link_bermasalah: 0, baru: 1, diproses: 2 };
+  function computeOverallGuruStatus(data, fallbackStatus) {
+    var slots = guruSlotsFor(data);
+    if (slots.length === 0) return fallbackStatus || 'baru';
+    var statuses = slots.map(function (n) { return guruStatusAt(data, n, fallbackStatus); });
+    var allResolved = statuses.every(function (st) { return st === 'selesai' || st === 'ditolak'; });
+    if (allResolved) {
+      return statuses.every(function (st) { return st === 'ditolak'; }) ? 'ditolak' : 'selesai';
+    }
+    var pending = statuses.filter(function (st) { return st !== 'selesai' && st !== 'ditolak'; });
+    pending.sort(function (a, b) { return (GURU_STATUS_RANK[a] || 0) - (GURU_STATUS_RANK[b] || 0); });
+    return pending[0];
+  }
   function guruNamesFor(data) {
-    return [data.namaGuru, data.namaGuru2, data.namaGuru3].filter(function (n) { return n && String(n).trim(); });
+    return guruSlotsFor(data).map(function (n) { return guruNameAt(data, n); });
   }
   function tallyByMulti(items, namesFn) {
     var counts = {};
@@ -869,11 +901,6 @@
       '</div>';
     }).join('') + '</div>';
   }
-  function formatDuration(ms) {
-    var hours = ms / (1000 * 60 * 60);
-    if (hours < 24) return Math.max(1, Math.round(hours)) + ' jam';
-    return (Math.round((hours / 24) * 10) / 10) + ' hari';
-  }
   function generateId(type) {
     var d = new Date();
     var yy = String(d.getFullYear()).slice(-2);
@@ -890,7 +917,10 @@
   // LAPISAN DATA — Supabase (menggantikan window.storage)
   // ============================================================
   function mapPublicRow(row) {
-    return { id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status, adminNote: row.admin_note, completedAt: row.completed_at, data: { namaLengkap: row.nama_lengkap } };
+    var guruSlots = [1, 2, 3].map(function (n) {
+      return { n: n, name: row['guru' + n + '_nama'], status: row['guru' + n + '_status'], note: row['guru' + n + '_catatan'], completedAt: row['guru' + n + '_completed_at'] };
+    }).filter(function (g) { return g.name; });
+    return { id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status, adminNote: row.admin_note, guruSlots: guruSlots, data: { namaLengkap: row.nama_lengkap } };
   }
   function mapFullRow(row) {
     return {
@@ -1195,13 +1225,32 @@
         resultsHtml = '<p class="hint">' + escapeHtml(tt('tidakDitemukan')) + '</p>';
       } else {
         resultsHtml = results.map(function (r) {
-          var pickupHtml = (r.status === 'selesai' && r.type !== 'REKOMENDASI') ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
-          var rekomendasiSelesaiHtml = (r.status === 'selesai' && r.type === 'REKOMENDASI' && r.completedAt) ? '<div class="pickup-card">' + escapeHtml(tt('rekomendasiSelesaiInfo')(formatDateTimeFull(r.completedAt))) + '</div>' : '';
-          var noteLabel = r.type === 'REKOMENDASI' ? tt('catatanGuruLabel') : tt('catatanAdminLabel');
-          var noteHtml = r.adminNote ? '<div class="hint" style="margin-top:6px;"><strong>' + escapeHtml(noteLabel) + '</strong> ' + escapeHtml(r.adminNote) + '</div>' : '';
+          var isRekom = r.type === 'REKOMENDASI';
+          var pickupHtml = (r.status === 'selesai' && !isRekom) ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
+          var noteHtml = '';
+          var guruBreakdownHtml = '';
+          var anyLinkBermasalah = false;
+          if (isRekom) {
+            anyLinkBermasalah = (r.guruSlots || []).some(function (g) { return g.status === 'link_bermasalah'; });
+            guruBreakdownHtml = (r.guruSlots || []).map(function (g) {
+              var st = g.status || 'baru';
+              var selesaiInfoHtml = (st === 'selesai' && g.completedAt) ? '<div class="pickup-card" style="margin-top:6px;">' + escapeHtml(tt('rekomendasiSelesaiInfo')(formatDateTimeFull(g.completedAt))) + '</div>' : '';
+              var noteLineHtml = g.note ? '<div class="hint" style="margin-top:4px;"><strong>' + escapeHtml(tt('catatanGuruLabel')) + '</strong> ' + escapeHtml(g.note) + '</div>' : '';
+              return '<div style="padding:8px 0;border-top:1px solid var(--border, #e5e5e5)">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+                  '<span>' + escapeHtml(g.name) + '</span>' +
+                  '<span class="stamp ' + st + '">' + escapeHtml(studentStatusLabel('REKOMENDASI', st)) + '</span>' +
+                '</div>' +
+                noteLineHtml +
+                selesaiInfoHtml +
+              '</div>';
+            }).join('');
+          } else {
+            noteHtml = r.adminNote ? '<div class="hint" style="margin-top:6px;"><strong>' + escapeHtml(tt('catatanAdminLabel')) + '</strong> ' + escapeHtml(r.adminNote) + '</div>' : '';
+          }
           var fixMsg = S.fixLinkMessages && S.fixLinkMessages[r.id];
           var fixLinkHtml = '';
-          if (r.status === 'link_bermasalah') {
+          if (anyLinkBermasalah) {
             fixLinkHtml = '<div class="notice-card">' +
               '<p style="margin:0 0 8px;">' + escapeHtml(tt('linkBermasalahHint')) + '</p>' +
               '<input class="field-input" id="fixLinkInput-' + r.id + '" type="text" placeholder="' + escapeHtml(tt('linkBaruPlaceholder')) + '">' +
@@ -1212,15 +1261,15 @@
           return '<div class="card list-item">' +
             '<div class="list-item-top">' +
               '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
-              '<span class="stamp ' + r.status + '">' + escapeHtml(studentStatusLabel(r.type, r.status)) + '</span>' +
+              (isRekom ? '' : '<span class="stamp ' + r.status + '">' + escapeHtml(studentStatusLabel(r.type, r.status)) + '</span>') +
             '</div>' +
             '<div class="list-item-bottom">' +
               '<span>' + escapeHtml((r.data && r.data.namaLengkap) || '-') + ' &middot; ' + escapeHtml(LETTER_TYPES[r.type] ? typeShortLabel(LETTER_TYPES[r.type]) : r.type) + '</span>' +
               '<span>' + escapeHtml(formatDateShort(r.submittedAt)) + '</span>' +
             '</div>' +
             noteHtml +
+            guruBreakdownHtml +
             pickupHtml +
-            rekomendasiSelesaiHtml +
             fixLinkHtml +
           '</div>';
         }).join('');
@@ -1343,22 +1392,24 @@
     var byUniv = tallyBy(rekomRequests, function (r) { return r.data.keperluan; });
 
     var rows = filtered.map(function (r) {
-      var completedLine = '';
-      if (r.status === 'selesai' && r.data.completedAt) {
-        var deltaMs = new Date(r.data.completedAt).getTime() - new Date(r.submittedAt).getTime();
-        var deltaLabel = deltaMs >= 0 ? ' (' + formatDuration(deltaMs) + ')' : '';
-        completedLine = '<div class="hint" style="margin-top:4px;">Diajukan ' + escapeHtml(formatDateShort(r.submittedAt)) + ' &rarr; Selesai ' + escapeHtml(formatDateShort(r.data.completedAt)) + deltaLabel + '</div>';
-      }
+      var guruLinesHtml = guruSlotsFor(r.data).map(function (n) {
+        var name = guruNameAt(r.data, n);
+        var st = guruStatusAt(r.data, n, r.status);
+        var completedAt = guruCompletedAtAt(r.data, n);
+        var line = escapeHtml(name) + ': ' + escapeHtml(statusLabelFor('REKOMENDASI', st));
+        if (st === 'selesai' && completedAt) line += ' (' + escapeHtml(formatDateShort(completedAt)) + ')';
+        return '<div class="hint" style="margin-top:2px;">' + line + '</div>';
+      }).join('');
       return '<button class="card list-item" data-detail="' + r.id + '">' +
         '<div class="list-item-top">' +
           '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
           '<span class="stamp ' + r.status + '">' + escapeHtml(statusLabelFor(r.type, r.status)) + '</span>' +
         '</div>' +
         '<div class="list-item-bottom">' +
-          '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' &rarr; ' + escapeHtml(guruNamesFor(r.data).join(', ') || '-') + '</span>' +
+          '<span>' + escapeHtml(r.data.namaLengkap || '-') + '</span>' +
           '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
         '</div>' +
-        completedLine +
+        guruLinesHtml +
       '</button>';
     }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
 
@@ -1427,27 +1478,41 @@
       '</div>'
     );
 
-    var statusOptionsHtml = isRekomendasi ? (
-      '<option value="baru"' + (req.status === 'baru' ? ' selected' : '') + '>Menunggu Diproses</option>' +
-      '<option value="diproses"' + (req.status === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
-      '<option value="link_bermasalah"' + (req.status === 'link_bermasalah' ? ' selected' : '') + '>Link Bermasalah</option>' +
-      '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
-      '<option value="ditolak"' + (req.status === 'ditolak' ? ' selected' : '') + '>Ditolak</option>'
-    ) : (
+    var statusOptionsHtml =
       '<option value="baru"' + (req.status === 'baru' ? ' selected' : '') + '>Menunggu Verifikasi</option>' +
       '<option value="pembayaran_belum_diterima"' + (req.status === 'pembayaran_belum_diterima' ? ' selected' : '') + '>Pembayaran Belum Diterima</option>' +
       '<option value="lunas"' + (req.status === 'lunas' ? ' selected' : '') + '>Lunas - Diproses</option>' +
-      '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>'
-    );
+      '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>';
 
-    var catatanLabel = isRekomendasi ? 'Catatan Guru (isi keterangan, mis. alasan Ditolak atau kenapa Link Bermasalah)' : 'Catatan Admin';
+    function renderGuruStatusOptions(st) {
+      return '<option value="baru"' + (st === 'baru' ? ' selected' : '') + '>Menunggu Diproses</option>' +
+        '<option value="diproses"' + (st === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
+        '<option value="link_bermasalah"' + (st === 'link_bermasalah' ? ' selected' : '') + '>Link Bermasalah</option>' +
+        '<option value="selesai"' + (st === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
+        '<option value="ditolak"' + (st === 'ditolak' ? ' selected' : '') + '>Ditolak</option>';
+    }
+    var guruBlocksHtml = '';
+    if (isRekomendasi) {
+      guruBlocksHtml = guruSlotsFor(req.data).map(function (n) {
+        var name = guruNameAt(req.data, n);
+        var st = guruStatusAt(req.data, n, req.status);
+        var note = guruCatatanAt(req.data, n);
+        var completedAt = guruCompletedAtAt(req.data, n);
+        return '<div class="card">' +
+          '<p class="field-label">Guru ' + n + ': ' + escapeHtml(name) + '</p>' +
+          (completedAt ? '<p class="hint">Selesai: ' + escapeHtml(formatDateTimeFull(completedAt)) + '</p>' : '') +
+          '<label class="field"><span class="field-label">Ubah Status</span><select id="guruStatusSelect-' + n + '" class="field-input">' + renderGuruStatusOptions(st) + '</select></label>' +
+          '<label class="field"><span class="field-label">Catatan Guru (isi keterangan, mis. alasan Ditolak atau kenapa Link Bermasalah)</span><textarea class="field-input" id="guruNoteInput-' + n + '" rows="2">' + escapeHtml(note) + '</textarea></label>' +
+        '</div>';
+      }).join('');
+    }
 
     var actionCardHtml;
     if (isRekomendasi) {
       actionCardHtml = '<div class="card">' +
         '<p class="field-label">Link Surat Rekomendasi Jadi (opsional)</p>' +
         '<label class="field"><span class="field-label">Link (OneDrive/Drive) setelah surat selesai dibuat</span><input class="field-input" id="linkSuratJadiInput" type="text" value="' + escapeHtml(req.data.linkSuratJadi || '') + '" placeholder="Tempel link di sini setelah surat jadi"></label>' +
-        '<p class="hint">Surat tetap dikirim langsung lewat email ke siswa oleh guru — link ini cuma cadangan/arsip.</p>' +
+        '<p class="hint">Surat tetap dikirim langsung lewat email ke siswa oleh guru — link ini cuma cadangan/arsip. Kalau lebih dari satu guru diminta, tetap satu link ini (dipakai bersama).</p>' +
       '</div>';
     } else {
       var defaultTgl = req.tanggalSurat || todayISO();
@@ -1482,10 +1547,12 @@
         (req.data.completedAt ? '<div class="detail-row"><span class="detail-label">Waktu Selesai</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.data.completedAt)) + '</span></div>' : '') +
       '</div>' +
       paymentCardHtml +
-      '<label class="field"><span class="field-label">Ubah Status</span>' +
-        '<select id="statusSelect" class="field-input">' + statusOptionsHtml + '</select>' +
-      '</label>' +
-      '<label class="field"><span class="field-label">' + catatanLabel + '</span><textarea class="field-input" id="adminNoteInput" rows="2">' + escapeHtml(req.adminNote || '') + '</textarea></label>' +
+      (isRekomendasi ? guruBlocksHtml : (
+        '<label class="field"><span class="field-label">Ubah Status</span>' +
+          '<select id="statusSelect" class="field-input">' + statusOptionsHtml + '</select>' +
+        '</label>' +
+        '<label class="field"><span class="field-label">Catatan Admin</span><textarea class="field-input" id="adminNoteInput" rows="2">' + escapeHtml(req.adminNote || '') + '</textarea></label>'
+      )) +
       actionCardHtml +
       historyHtml +
       '<div class="stack">' +
@@ -1760,24 +1827,29 @@
   }
   function csvField(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
   function buildRekomendasiCsv(requests) {
-    var headers = ['Kode Permintaan', 'Nama Siswa', 'Kelas / Alumni', 'Nama Guru', 'Keperluan / Universitas', 'Alamat Email', 'Link Form Rekomendasi', 'Link Surat Jadi', 'Status', 'Catatan Guru', 'Tanggal Diajukan', 'Tanggal Selesai'];
+    var headers = ['Kode Permintaan', 'Nama Siswa', 'Kelas / Alumni', 'Keperluan / Universitas', 'Alamat Email', 'Link Form Rekomendasi', 'Link Surat Jadi', 'Status Keseluruhan', 'Tanggal Diajukan', 'Guru 1', 'Status Guru 1', 'Catatan Guru 1', 'Selesai Guru 1', 'Guru 2', 'Status Guru 2', 'Catatan Guru 2', 'Selesai Guru 2', 'Guru 3', 'Status Guru 3', 'Catatan Guru 3', 'Selesai Guru 3'];
     var lines = [headers.map(csvField).join(',')];
     requests.slice().sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); }).forEach(function (r) {
       var d = r.data || {};
-      lines.push([
+      var row = [
         r.id,
         d.namaLengkap || '',
         d.kelas || '',
-        guruNamesFor(d).join(', '),
         d.keperluan || '',
         d.kontak || '',
         d.linkForm || '',
         d.linkSuratJadi || '',
         statusLabelFor(r.type, r.status),
-        r.adminNote || '',
-        formatDateTimeFull(r.submittedAt),
-        d.completedAt ? formatDateTimeFull(d.completedAt) : ''
-      ].map(csvField).join(','));
+        formatDateTimeFull(r.submittedAt)
+      ];
+      [1, 2, 3].forEach(function (n) {
+        var name = guruNameAt(d, n);
+        if (!name) { row.push('', '', '', ''); return; }
+        var st = guruStatusAt(d, n, r.status);
+        var completedAt = guruCompletedAtAt(d, n);
+        row.push(name, statusLabelFor('REKOMENDASI', st), guruCatatanAt(d, n), completedAt ? formatDateTimeFull(completedAt) : '');
+      });
+      lines.push(row.map(csvField).join(','));
     });
     return lines.join('\n');
   }
@@ -1797,27 +1869,44 @@
     document.getElementById('saveDetailBtn').addEventListener('click', async function () {
       var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
       var prevStatus = req.status;
-      req.status = document.getElementById('statusSelect').value;
-      req.adminNote = document.getElementById('adminNoteInput').value;
-      var genArea = document.getElementById('generatedTextArea');
-      if (genArea) req.generatedText = genArea.value;
-      var nomorInput = document.getElementById('nomorSuratInput');
-      if (nomorInput) req.nomorSurat = nomorInput.value.trim();
-      var tglInput = document.getElementById('tanggalSuratInput');
-      if (tglInput) req.tanggalSurat = tglInput.value;
-      var linkSuratJadiInput = document.getElementById('linkSuratJadiInput');
-      if (linkSuratJadiInput) {
-        var dataUpdates = { linkSuratJadi: linkSuratJadiInput.value.trim() };
-        if (req.status === 'selesai' && prevStatus !== 'selesai' && !req.data.completedAt) {
-          dataUpdates.completedAt = new Date().toISOString();
-        }
-        if (req.status !== prevStatus) {
-          var statusHistory = (req.data.statusHistory || []).slice();
-          statusHistory.push({ status: req.status, note: req.adminNote || '', at: new Date().toISOString() });
-          dataUpdates.statusHistory = statusHistory;
-        }
+      var isRekomendasiReq = req.type === 'REKOMENDASI';
+
+      if (isRekomendasiReq) {
+        var dataUpdates = {};
+        var historyEntries = [];
+        guruSlotsFor(req.data).forEach(function (n) {
+          var selectEl = document.getElementById('guruStatusSelect-' + n);
+          var noteEl = document.getElementById('guruNoteInput-' + n);
+          if (!selectEl) return;
+          var newSt = selectEl.value;
+          var newNote = noteEl ? noteEl.value : '';
+          var oldSt = guruStatusAt(req.data, n, prevStatus);
+          var oldNote = guruCatatanAt(req.data, n);
+          dataUpdates['guruStatus' + n] = newSt;
+          dataUpdates['guruCatatan' + n] = newNote;
+          if (newSt === 'selesai' && !guruCompletedAtAt(req.data, n)) {
+            dataUpdates['guruCompletedAt' + n] = new Date().toISOString();
+          }
+          if (newSt !== oldSt || newNote !== oldNote) {
+            historyEntries.push({ status: newSt, note: newNote || '', at: new Date().toISOString(), guru: guruNameAt(req.data, n) });
+          }
+        });
+        var linkSuratJadiInput = document.getElementById('linkSuratJadiInput');
+        if (linkSuratJadiInput) dataUpdates.linkSuratJadi = linkSuratJadiInput.value.trim();
+        if (historyEntries.length) dataUpdates.statusHistory = (req.data.statusHistory || []).concat(historyEntries);
         req.data = Object.assign({}, req.data, dataUpdates);
+        req.status = computeOverallGuruStatus(req.data, prevStatus);
+      } else {
+        req.status = document.getElementById('statusSelect').value;
+        req.adminNote = document.getElementById('adminNoteInput').value;
+        var genArea = document.getElementById('generatedTextArea');
+        if (genArea) req.generatedText = genArea.value;
+        var nomorInput = document.getElementById('nomorSuratInput');
+        if (nomorInput) req.nomorSurat = nomorInput.value.trim();
+        var tglInput = document.getElementById('tanggalSuratInput');
+        if (tglInput) req.tanggalSurat = tglInput.value;
       }
+
       var btn = document.getElementById('saveDetailBtn');
       btn.disabled = true; btn.textContent = 'Menyimpan...';
       var result = await updateRequest(req);

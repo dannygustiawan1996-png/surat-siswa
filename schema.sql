@@ -32,11 +32,11 @@ insert into settings (id) values (1) on conflict (id) do nothing;
 
 -- View terbatas untuk publik: dipakai halaman "Cek Status" siswa.
 -- Tidak mengekspos payment_note, generated_text, atau isi data pribadi lain.
--- admin_note (Catatan Admin/Guru) diekspos untuk SEMUA jenis surat, karena
--- kolom ini dipakai admin/guru untuk komunikasi langsung ke siswa (mis.
--- "Pembayaran belum diterima" atau alasan status lainnya).
--- completed_at tetap khusus tipe REKOMENDASI (dipakai untuk info "surat
--- selesai jam X, cek email" yang spesifik untuk alur itu).
+-- admin_note (Catatan Admin) diekspos untuk jenis surat SELAIN Rekomendasi
+-- (mis. "Pembayaran belum diterima"). Untuk Rekomendasi, tiap guru yang
+-- diminta (sampai 3) punya status & catatan SENDIRI-SENDIRI -- diekspos
+-- lewat kolom guruN_* di bawah, supaya siswa bisa lihat progres per guru
+-- secara terpisah (guru A sudah selesai, guru B belum, dst).
 create or replace view requests_public as
   select
     id,
@@ -44,16 +44,30 @@ create or replace view requests_public as
     submitted_at,
     status,
     data->>'namaLengkap' as nama_lengkap,
-    admin_note,
-    case when type = 'REKOMENDASI' then data->>'completedAt' else null end as completed_at
+    case when type = 'REKOMENDASI' then null else admin_note end as admin_note,
+    data->>'namaGuru' as guru1_nama,
+    coalesce(data->>'guruStatus1', status) as guru1_status,
+    data->>'guruCatatan1' as guru1_catatan,
+    data->>'guruCompletedAt1' as guru1_completed_at,
+    data->>'namaGuru2' as guru2_nama,
+    coalesce(data->>'guruStatus2', status) as guru2_status,
+    data->>'guruCatatan2' as guru2_catatan,
+    data->>'guruCompletedAt2' as guru2_completed_at,
+    data->>'namaGuru3' as guru3_nama,
+    coalesce(data->>'guruStatus3', status) as guru3_status,
+    data->>'guruCatatan3' as guru3_catatan,
+    data->>'guruCompletedAt3' as guru3_completed_at
   from requests;
 
 -- Fungsi khusus: siswa (anon, tanpa login) bisa perbaiki link form Rekomendasi
--- kalau statusnya "link_bermasalah", cukup modal tahu kode permintaannya.
--- Aman karena: (1) hanya menyentuh baris dengan status link_bermasalah &
--- tipe REKOMENDASI, (2) hanya mengubah field linkForm di dalam data + status
--- balik ke 'baru' + catat ke statusHistory, tidak ada field lain yang bisa
--- disentuh siswa lewat jalur ini.
+-- kalau statusnya (atau status salah satu guru yang diminta) "link_bermasalah",
+-- cukup modal tahu kode permintaannya. Me-reset SEMUA slot guru yang sedang
+-- link_bermasalah balik ke 'baru' (karena linkForm-nya memang satu & dipakai
+-- bersama oleh semua guru yang diminta di permintaan itu).
+-- Aman karena: (1) hanya menyentuh baris tipe REKOMENDASI yang memang sedang
+-- ada slot berstatus link_bermasalah, (2) hanya mengubah field linkForm +
+-- status guru yang bermasalah + catat ke statusHistory, tidak ada field lain
+-- yang bisa disentuh siswa lewat jalur ini.
 create or replace function public.fix_rekomendasi_link(request_id text, new_link text)
 returns void
 language plpgsql
@@ -61,16 +75,43 @@ security definer
 set search_path = public
 as $$
 declare
+  d jsonb;
+  cur_status text;
+  new_data jsonb;
   history_entry jsonb;
+  slot_key text;
+  i int;
+  st text;
+  any_fixed boolean := false;
 begin
+  select data, status into d, cur_status from requests where id = request_id and type = 'REKOMENDASI';
+  if d is null then
+    return;
+  end if;
+
+  new_data := coalesce(d, '{}'::jsonb) || jsonb_build_object('linkForm', new_link);
+
+  for i in 1..3 loop
+    slot_key := 'guruStatus' || i;
+    st := coalesce(d->>slot_key, cur_status);
+    if st = 'link_bermasalah' then
+      new_data := new_data || jsonb_build_object(slot_key, 'baru');
+      any_fixed := true;
+    end if;
+  end loop;
+
+  if not any_fixed then
+    return;
+  end if;
+
   history_entry := jsonb_build_object('status', 'baru', 'note', 'Siswa memperbaiki link form', 'at', now());
+  new_data := new_data || jsonb_build_object('statusHistory', coalesce(d->'statusHistory', '[]'::jsonb) || jsonb_build_array(history_entry));
+
   update requests
   set
-    data = coalesce(data, '{}'::jsonb)
-      || jsonb_build_object('linkForm', new_link)
-      || jsonb_build_object('statusHistory', coalesce(data->'statusHistory', '[]'::jsonb) || jsonb_build_array(history_entry)),
-    status = 'baru'
-  where id = request_id and type = 'REKOMENDASI' and status = 'link_bermasalah';
+    data = new_data,
+    status = case when cur_status = 'link_bermasalah' then 'baru' else cur_status end
+  where id = request_id and type = 'REKOMENDASI';
 end;
 $$;
 
