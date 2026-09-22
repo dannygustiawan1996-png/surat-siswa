@@ -121,6 +121,7 @@
     font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 600; margin: 8px 0;
   }
   .stamp.baru { color: var(--color-red); }
+  .stamp.pembayaran_belum_diterima { color: var(--color-red); }
   .stamp.lunas { color: var(--color-brass); }
   .stamp.selesai { color: var(--color-green); }
   .stamp.diproses { color: var(--color-brass); }
@@ -636,8 +637,8 @@
     }
   };
 
-  var STATUS_LABEL = { baru: 'Menunggu Verifikasi', lunas: 'Lunas - Diproses', selesai: 'Selesai', diproses: 'Diproses', ditolak: 'Ditolak' };
-  var STATUS_LABEL_EN = { baru: 'Pending Verification', lunas: 'Paid - Processing', selesai: 'Completed', diproses: 'In Progress', ditolak: 'Rejected' };
+  var STATUS_LABEL = { baru: 'Menunggu Verifikasi', pembayaran_belum_diterima: 'Pembayaran Belum Diterima', lunas: 'Lunas - Diproses', selesai: 'Selesai', diproses: 'Diproses', ditolak: 'Ditolak' };
+  var STATUS_LABEL_EN = { baru: 'Pending Verification', pembayaran_belum_diterima: 'Payment Not Received', lunas: 'Paid - Processing', selesai: 'Completed', diproses: 'In Progress', ditolak: 'Rejected' };
   var STATUS_LABEL_REKOMENDASI = { baru: 'Menunggu Diproses', diproses: 'Diproses', link_bermasalah: 'Link Bermasalah', selesai: 'Selesai', ditolak: 'Ditolak' };
   var STATUS_LABEL_REKOMENDASI_EN = { baru: 'Awaiting Review', diproses: 'In Progress', link_bermasalah: 'Link Not Accessible', selesai: 'Completed', ditolak: 'Rejected' };
   function statusLabelFor(type, status) {
@@ -1271,7 +1272,7 @@
     var menunggu = S.requests.filter(function (r) { return r.status === 'baru'; }).length;
     var lunas = S.requests.filter(function (r) { return r.status === 'lunas'; }).length;
     var selesai = S.requests.filter(function (r) { return r.status === 'selesai'; }).length;
-    var pendapatan = S.requests.filter(function (r) { return r.status !== 'baru' && r.type !== 'REKOMENDASI'; })
+    var pendapatan = S.requests.filter(function (r) { return r.status !== 'baru' && r.status !== 'pembayaran_belum_diterima' && r.type !== 'REKOMENDASI'; })
       .reduce(function (sum, r) { return sum + (r.amount != null ? r.amount : FEE); }, 0);
 
     var typeOptions = Object.keys(LETTER_TYPES).map(function (key) {
@@ -1306,6 +1307,7 @@
         '<select id="filterStatus" class="field-input">' +
           '<option value="all"' + (S.adminFilterStatus === 'all' ? ' selected' : '') + '>Semua Status</option>' +
           '<option value="baru"' + (S.adminFilterStatus === 'baru' ? ' selected' : '') + '>Menunggu</option>' +
+          '<option value="pembayaran_belum_diterima"' + (S.adminFilterStatus === 'pembayaran_belum_diterima' ? ' selected' : '') + '>Pembayaran Belum Diterima</option>' +
           '<option value="lunas"' + (S.adminFilterStatus === 'lunas' ? ' selected' : '') + '>Lunas</option>' +
           '<option value="diproses"' + (S.adminFilterStatus === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
           '<option value="link_bermasalah"' + (S.adminFilterStatus === 'link_bermasalah' ? ' selected' : '') + '>Link Bermasalah</option>' +
@@ -1438,6 +1440,7 @@
       '<option value="ditolak"' + (req.status === 'ditolak' ? ' selected' : '') + '>Ditolak</option>'
     ) : (
       '<option value="baru"' + (req.status === 'baru' ? ' selected' : '') + '>Menunggu Verifikasi</option>' +
+      '<option value="pembayaran_belum_diterima"' + (req.status === 'pembayaran_belum_diterima' ? ' selected' : '') + '>Pembayaran Belum Diterima</option>' +
       '<option value="lunas"' + (req.status === 'lunas' ? ' selected' : '') + '>Lunas - Diproses</option>' +
       '<option value="selesai"' + (req.status === 'selesai' ? ' selected' : '') + '>Selesai</option>'
     );
