@@ -90,6 +90,7 @@
     background: transparent; color: var(--color-navy); border: 1.5px solid var(--color-navy);
     border-radius: 4px; padding: 13px 20px; font-size: 15px; font-weight: 600; width: 100%;
   }
+  .btn-outline.active { background: var(--color-navy); color: var(--color-paper); }
   .btn-text { background: none; border: none; color: var(--color-ink-soft); font-size: 14px; text-decoration: underline; padding: 8px; width: 100%; }
   .btn-text.danger { color: var(--color-red); }
 
@@ -796,6 +797,7 @@
     adminAuthed: false,
     userRole: null,
     forgotStatus: null,
+    adminTab: 'umum',
     adminFilterType: 'all',
     adminFilterStatus: 'all',
     guruFilterStatus: 'all',
@@ -1335,64 +1337,75 @@
   }
 
   function renderAdminDashboard() {
-    var filtered = S.requests.filter(function (r) {
-      if (S.adminFilterType !== 'all' && r.type !== S.adminFilterType) return false;
-      if (S.adminFilterStatus !== 'all' && r.status !== S.adminFilterStatus) return false;
-      return true;
-    }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
+    var tabsHtml = '<div class="filter-row">' +
+      '<button class="btn-outline' + (S.adminTab === 'umum' ? ' active' : '') + '" data-admintab="umum" style="flex:1">Surat Umum (Berbayar)</button>' +
+      '<button class="btn-outline' + (S.adminTab === 'rekomendasi' ? ' active' : '') + '" data-admintab="rekomendasi" style="flex:1">Surat Rekomendasi</button>' +
+    '</div>';
 
-    var total = S.requests.length;
-    var menunggu = S.requests.filter(function (r) { return r.status === 'baru'; }).length;
-    var lunas = S.requests.filter(function (r) { return r.status === 'lunas'; }).length;
-    var selesai = S.requests.filter(function (r) { return r.status === 'selesai'; }).length;
-    var pendapatan = S.requests.filter(function (r) { return r.status !== 'baru' && r.status !== 'pembayaran_belum_diterima' && r.type !== 'REKOMENDASI'; })
-      .reduce(function (sum, r) { return sum + (r.amount != null ? r.amount : FEE); }, 0);
+    var bodyHtml;
+    if (S.adminTab === 'rekomendasi') {
+      bodyHtml = renderRekomendasiBody();
+    } else {
+      var umumRequests = S.requests.filter(function (r) { return r.type !== 'REKOMENDASI'; });
+      var filtered = umumRequests.filter(function (r) {
+        if (S.adminFilterType !== 'all' && r.type !== S.adminFilterType) return false;
+        if (S.adminFilterStatus !== 'all' && r.status !== S.adminFilterStatus) return false;
+        return true;
+      }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
 
-    var typeOptions = Object.keys(LETTER_TYPES).map(function (key) {
-      return '<option value="' + key + '"' + (S.adminFilterType === key ? ' selected' : '') + '>' + escapeHtml(LETTER_TYPES[key].shortLabel) + '</option>';
-    }).join('');
+      var total = umumRequests.length;
+      var menunggu = umumRequests.filter(function (r) { return r.status === 'baru'; }).length;
+      var lunas = umumRequests.filter(function (r) { return r.status === 'lunas'; }).length;
+      var selesai = umumRequests.filter(function (r) { return r.status === 'selesai'; }).length;
+      var pendapatan = umumRequests.filter(function (r) { return r.status !== 'baru' && r.status !== 'pembayaran_belum_diterima'; })
+        .reduce(function (sum, r) { return sum + (r.amount != null ? r.amount : FEE); }, 0);
 
-    var rows = filtered.map(function (r) {
-      return '<button class="card list-item" data-detail="' + r.id + '">' +
-        '<div class="list-item-top">' +
-          '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
-          '<span class="stamp ' + r.status + '">' + escapeHtml(statusLabelFor(r.type, r.status)) + '</span>' +
+      var typeOptions = Object.keys(LETTER_TYPES).filter(function (key) { return key !== 'REKOMENDASI'; }).map(function (key) {
+        return '<option value="' + key + '"' + (S.adminFilterType === key ? ' selected' : '') + '>' + escapeHtml(LETTER_TYPES[key].shortLabel) + '</option>';
+      }).join('');
+
+      var rows = filtered.map(function (r) {
+        return '<button class="card list-item" data-detail="' + r.id + '">' +
+          '<div class="list-item-top">' +
+            '<span class="req-id-small">' + escapeHtml(r.id) + '</span>' +
+            '<span class="stamp ' + r.status + '">' + escapeHtml(statusLabelFor(r.type, r.status)) + '</span>' +
+          '</div>' +
+          '<div class="list-item-bottom">' +
+            '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' · ' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span>' +
+            '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
+          '</div>' +
+        '</button>';
+      }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
+
+      bodyHtml = '' +
+        '<div class="stats-grid">' +
+          '<div class="stat"><span class="stat-num">' + total + '</span><span class="stat-label">Total</span></div>' +
+          '<div class="stat"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Menunggu</span></div>' +
+          '<div class="stat"><span class="stat-num">' + lunas + '</span><span class="stat-label">Lunas</span></div>' +
+          '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
         '</div>' +
-        '<div class="list-item-bottom">' +
-          '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' · ' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span>' +
-          '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
+        '<p class="hint">Estimasi pendapatan terverifikasi: <strong>' + formatRupiah(pendapatan) + '</strong></p>' +
+        '<div class="filter-row">' +
+          '<select id="filterType" class="field-input"><option value="all"' + (S.adminFilterType === 'all' ? ' selected' : '') + '>Semua Jenis</option>' + typeOptions + '</select>' +
+          '<select id="filterStatus" class="field-input">' +
+            '<option value="all"' + (S.adminFilterStatus === 'all' ? ' selected' : '') + '>Semua Status</option>' +
+            '<option value="baru"' + (S.adminFilterStatus === 'baru' ? ' selected' : '') + '>Menunggu</option>' +
+            '<option value="pembayaran_belum_diterima"' + (S.adminFilterStatus === 'pembayaran_belum_diterima' ? ' selected' : '') + '>Pembayaran Belum Diterima</option>' +
+            '<option value="lunas"' + (S.adminFilterStatus === 'lunas' ? ' selected' : '') + '>Lunas</option>' +
+            '<option value="selesai"' + (S.adminFilterStatus === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
+          '</select>' +
         '</div>' +
-      '</button>';
-    }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
+        '<div class="stack">' + rows + '</div>' +
+        '<button class="btn-outline" id="exportBtn">Salin Semua sebagai CSV</button>' +
+        '<button class="btn-text" id="editSettingsBtn">Pengaturan (Rekening & Nomor Surat)</button>' +
+        (S.adminEditingSettings ? renderSettingsEditor() : '');
+    }
 
     return '' +
       '<div class="top-row">' + backBar('home', 'Beranda') + '<button class="btn-text" id="adminLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
       '<h2>Dashboard Admin</h2>' +
-      '<div class="stats-grid">' +
-        '<div class="stat"><span class="stat-num">' + total + '</span><span class="stat-label">Total</span></div>' +
-        '<div class="stat"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Menunggu</span></div>' +
-        '<div class="stat"><span class="stat-num">' + lunas + '</span><span class="stat-label">Lunas</span></div>' +
-        '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
-      '</div>' +
-      '<p class="hint">Estimasi pendapatan terverifikasi: <strong>' + formatRupiah(pendapatan) + '</strong></p>' +
-      '<div class="filter-row">' +
-        '<select id="filterType" class="field-input"><option value="all"' + (S.adminFilterType === 'all' ? ' selected' : '') + '>Semua Jenis</option>' + typeOptions + '</select>' +
-        '<select id="filterStatus" class="field-input">' +
-          '<option value="all"' + (S.adminFilterStatus === 'all' ? ' selected' : '') + '>Semua Status</option>' +
-          '<option value="baru"' + (S.adminFilterStatus === 'baru' ? ' selected' : '') + '>Menunggu</option>' +
-          '<option value="pembayaran_belum_diterima"' + (S.adminFilterStatus === 'pembayaran_belum_diterima' ? ' selected' : '') + '>Pembayaran Belum Diterima</option>' +
-          '<option value="lunas"' + (S.adminFilterStatus === 'lunas' ? ' selected' : '') + '>Lunas</option>' +
-          '<option value="diproses"' + (S.adminFilterStatus === 'diproses' ? ' selected' : '') + '>Diproses</option>' +
-          '<option value="link_bermasalah"' + (S.adminFilterStatus === 'link_bermasalah' ? ' selected' : '') + '>Link Bermasalah</option>' +
-          '<option value="selesai"' + (S.adminFilterStatus === 'selesai' ? ' selected' : '') + '>Selesai</option>' +
-          '<option value="ditolak"' + (S.adminFilterStatus === 'ditolak' ? ' selected' : '') + '>Ditolak</option>' +
-        '</select>' +
-      '</div>' +
-      '<div class="stack">' + rows + '</div>' +
-      '<button class="btn-outline" id="exportBtn">Salin Semua sebagai CSV</button>' +
-      '<button class="btn-outline" id="exportRekomendasiBtn" style="margin-top:8px">Export Arsip Rekomendasi (CSV)</button>' +
-      '<button class="btn-text" id="editSettingsBtn">Pengaturan (Rekening & Nomor Surat)</button>' +
-      (S.adminEditingSettings ? renderSettingsEditor() : '');
+      tabsHtml +
+      bodyHtml;
   }
 
   function renderSettingsEditor() {
@@ -1404,7 +1417,7 @@
       '<button class="btn-primary" id="saveSettingsBtn">Simpan</button></div>';
   }
 
-  function renderGuruDashboard() {
+  function renderRekomendasiBody() {
     var rekomRequests = S.requests.filter(function (r) { return r.type === 'REKOMENDASI'; });
     var filtered = rekomRequests.filter(function (r) {
       if (S.guruFilterStatus !== 'all' && r.status !== S.guruFilterStatus) return false;
@@ -1472,8 +1485,6 @@
     }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
 
     return '' +
-      '<div class="top-row">' + backBar('home', 'Beranda') + '<button class="btn-text" id="adminLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
-      '<h2>Dashboard Surat Rekomendasi</h2>' +
       '<div class="stats-grid">' +
         '<div class="stat"><span class="stat-num">' + total + '</span><span class="stat-label">Total Permintaan</span></div>' +
         '<button class="stat stat-clickable' + (S.guruStatFilter === 'menunggu' ? ' active' : '') + '" data-statfilter="menunggu"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Guru Menunggu</span></button>' +
@@ -1499,12 +1510,7 @@
       '<button class="btn-outline" id="exportRekomendasiBtn" style="margin-top:12px">Export Arsip Rekomendasi (CSV)</button>';
   }
 
-  function attachGuruDashboard() {
-    document.getElementById('adminLogoutBtn').addEventListener('click', async function () {
-      await adminLogout();
-      S.adminAuthed = false; S.userRole = null; S.requests = [];
-      go('home');
-    });
+  function attachRekomendasiBody() {
     var filterEl = document.getElementById('guruFilterStatus');
     if (filterEl) filterEl.addEventListener('change', function (e) { S.guruFilterStatus = e.target.value; render(); });
     document.querySelectorAll('[data-statfilter]').forEach(function (btn) {
@@ -1522,6 +1528,22 @@
       var csv = buildRekomendasiCsv(rekomRequests);
       downloadCsv('rekap-surat-rekomendasi-' + todayISO() + '.csv', csv);
     });
+  }
+
+  function renderGuruDashboard() {
+    return '' +
+      '<div class="top-row">' + backBar('home', 'Beranda') + '<button class="btn-text" id="adminLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
+      '<h2>Dashboard Surat Rekomendasi</h2>' +
+      renderRekomendasiBody();
+  }
+
+  function attachGuruDashboard() {
+    document.getElementById('adminLogoutBtn').addEventListener('click', async function () {
+      await adminLogout();
+      S.adminAuthed = false; S.userRole = null; S.requests = [];
+      go('home');
+    });
+    attachRekomendasiBody();
   }
 
   function renderAdminDetail() {
@@ -1846,25 +1868,32 @@
   }
 
   function attachAdminDashboard() {
-    document.getElementById('filterType').addEventListener('change', function (e) { S.adminFilterType = e.target.value; render(); });
-    document.getElementById('filterStatus').addEventListener('change', function (e) { S.adminFilterStatus = e.target.value; render(); });
     document.getElementById('adminLogoutBtn').addEventListener('click', async function () {
       await adminLogout();
       S.adminAuthed = false; S.requests = [];
       go('home');
     });
+    document.querySelectorAll('[data-admintab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        S.adminTab = btn.getAttribute('data-admintab');
+        render();
+      });
+    });
+
+    if (S.adminTab === 'rekomendasi') {
+      attachRekomendasiBody();
+      return;
+    }
+
+    document.getElementById('filterType').addEventListener('change', function (e) { S.adminFilterType = e.target.value; render(); });
+    document.getElementById('filterStatus').addEventListener('change', function (e) { S.adminFilterStatus = e.target.value; render(); });
     document.querySelectorAll('[data-detail]').forEach(function (btn) {
       btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
     });
     document.getElementById('exportBtn').addEventListener('click', async function () {
-      var csv = buildCsv(S.requests);
+      var csv = buildCsv(S.requests.filter(function (r) { return r.type !== 'REKOMENDASI'; }));
       try { await navigator.clipboard.writeText(csv); alert('CSV disalin ke clipboard. Paste ke Excel/Sheets.'); }
       catch (e) { alert('Gagal menyalin otomatis.'); console.log(csv); }
-    });
-    document.getElementById('exportRekomendasiBtn').addEventListener('click', function () {
-      var rekomRequests = S.requests.filter(function (r) { return r.type === 'REKOMENDASI'; });
-      var csv = buildRekomendasiCsv(rekomRequests);
-      downloadCsv('rekap-surat-rekomendasi-' + todayISO() + '.csv', csv);
     });
     document.getElementById('editSettingsBtn').addEventListener('click', function () {
       S.adminEditingSettings = !S.adminEditingSettings; render();
