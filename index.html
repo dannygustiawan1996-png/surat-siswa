@@ -246,13 +246,6 @@
     return '';
   }
   var SCHOOL_EMAIL_DOMAIN = 'student.uphcollege.ac.id';
-  function isAlumniKelas(kelas) {
-    return /^alumni/i.test(String(kelas || '').trim());
-  }
-  function isSchoolEmail(email) {
-    var parts = String(email || '').split('@');
-    return parts.length === 2 && parts[1].toLowerCase() === SCHOOL_EMAIL_DOMAIN;
-  }
   function majorLabelEn(code) {
     var found = MAJOR_OPTIONS.filter(function (o) { return o.value === code; })[0];
     return found ? found.labelEn : (code || '-');
@@ -296,7 +289,7 @@
         { key: 'studentId', label: 'Student ID / NISN', labelEn: 'Student ID / NISN', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
@@ -332,7 +325,7 @@
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
@@ -366,7 +359,7 @@
         { key: 'studentNumber', label: 'Student Number', labelEn: 'Student Number', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', labelEn: 'Destination University Name', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
@@ -401,7 +394,7 @@
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2025/2026', placeholderEn: 'e.g. 2025/2026', type: 'text', required: true },
         { key: 'tanggalLulus', label: 'Tanggal Lulus', labelEn: 'Graduation Date', type: 'date', required: true },
         { key: 'namaUniversitas', label: 'Nama Universitas Tujuan', labelEn: 'Destination University Name', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
@@ -437,7 +430,7 @@
         { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
         { key: 'namaPerusahaan', label: 'Nama Tempat Kerja Orang Tua', labelEn: "Parent's Workplace Name", type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
@@ -474,7 +467,7 @@
         { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'semesterDiminta', label: 'Rentang Semester yang Diminta', labelEn: 'Requested Semester Range', placeholder: 'Contoh: 1-4, 1-5, atau 1-6', placeholderEn: 'e.g. 1-4, 1-5, or 1-6', type: 'text', required: true },
         { key: 'keperluan', label: 'Keperluan Transkrip', labelEn: 'Purpose of Transcript', placeholder: 'Contoh: Pengajuan beasiswa, aplikasi universitas, dll', placeholderEn: 'e.g. Scholarship application, university application, etc.', type: 'textarea', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
@@ -508,7 +501,7 @@
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'NIS (Nomor Induk Siswa)', labelEn: 'Student Number (NIS)', type: 'text', required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
@@ -543,7 +536,7 @@
         { key: 'studentId', label: 'Student ID / NISN', labelEn: 'Student ID / NISN', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
@@ -580,7 +573,7 @@
         { key: 'negaraTujuan', label: 'Negara Tujuan', labelEn: 'Destination Country', placeholder: 'Contoh: Italy, Australia, Japan', placeholderEn: 'e.g. Italy, Australia, Japan', type: 'text', required: true },
         { key: 'tanggalBerangkat', label: 'Tanggal Berangkat', labelEn: 'Departure Date', type: 'date', required: true },
         { key: 'tanggalKembali', label: 'Tanggal Kembali', labelEn: 'Return Date', type: 'date', required: true },
-        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
@@ -626,7 +619,7 @@
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
-        { key: 'kontak', label: 'Alamat Email Sekolah', labelEn: 'School Email Address', placeholder: 'nama@student.uphcollege.ac.id', placeholderEn: 'name@student.uphcollege.ac.id', type: 'email', required: true },
+        { key: 'kontak', label: 'Alamat Email Sekolah', labelEn: 'School Email Address', placeholder: 'nama@student.uphcollege.ac.id', placeholderEn: 'name@student.uphcollege.ac.id', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'namaGuru', label: 'Nama Guru yang Diminta (1)', labelEn: "Requested Teacher's Name (1)", type: 'select', options: GURU_OPTIONS, required: true },
         { key: 'namaGuru2', label: 'Nama Guru yang Diminta (2, opsional)', labelEn: "Requested Teacher's Name (2, optional)", type: 'select', options: GURU_OPTIONS, required: false },
         { key: 'namaGuru3', label: 'Nama Guru yang Diminta (3, opsional)', labelEn: "Requested Teacher's Name (3, optional)", type: 'select', options: GURU_OPTIONS, required: false },
@@ -691,7 +684,6 @@
       mencari: 'Mencari...',
       tidakDitemukan: 'Tidak ditemukan. Coba cek kode atau nama lagi.',
       fieldWajib: 'Wajib diisi',
-      emailHarusSekolah: 'Gunakan email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau kamu alumni, tulis "Alumni [tahun lulus]" di kolom Kelas, baru boleh pakai email lain.',
       pilihOpsi: 'Pilih...',
       pengambilanInfo: '📍 Dokumen sudah selesai dan siap diambil di Teacher Lounge (TL), temui Pak Danny.',
       catatanGuruLabel: 'Catatan guru:',
@@ -745,7 +737,6 @@
       mencari: 'Searching...',
       tidakDitemukan: 'Not found. Try checking the code or name again.',
       fieldWajib: 'Required',
-      emailHarusSekolah: 'Please use your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If you’re an alumnus/alumna, write "Alumni [graduation year]" in the Grade/Class field to use another email.',
       pilihOpsi: 'Select...',
       pengambilanInfo: '📍 Your document is ready — pick it up at the Teacher Lounge (TL), see Mr. Danny.',
       catatanGuruLabel: "Teacher's note:",
@@ -1109,9 +1100,10 @@
       } else {
         inputEl = '<input class="field-input" data-field="' + f.key + '" type="text" placeholder="' + escapeHtml(fieldPlaceholder(f)) + '" value="' + val + '">';
       }
+      var fieldHint = f.hint ? '<span class="hint">' + escapeHtml(S.lang === 'en' ? (f.hintEn || f.hint) : f.hint) + '</span>' : '';
       return '<label class="field">' +
         '<span class="field-label">' + escapeHtml(fieldLabel(f)) + (f.required ? ' <span class="req">*</span>' : '') + '</span>' +
-        inputEl + err +
+        inputEl + fieldHint + err +
       '</label>';
     }).join('');
     var noticeHtml = t.notice ? '<div class="notice-card">' + escapeHtml(S.lang === 'en' ? (t.noticeEn || t.notice) : t.notice) + '</div>' : '';
@@ -1572,10 +1564,6 @@
       t.fields.forEach(function (f) {
         if (f.required && !(S.formDraft[f.key] && String(S.formDraft[f.key]).trim())) errors[f.key] = tt('fieldWajib');
       });
-      var hasKelasField = t.fields.some(function (f) { return f.key === 'kelas'; });
-      if (!errors.kontak && hasKelasField && !isAlumniKelas(S.formDraft.kelas) && S.formDraft.kontak && !isSchoolEmail(S.formDraft.kontak)) {
-        errors.kontak = tt('emailHarusSekolah');
-      }
       S.formErrors = errors;
       if (Object.keys(errors).length > 0) { render(); return; }
       var id = generateId(S.selectedType);
