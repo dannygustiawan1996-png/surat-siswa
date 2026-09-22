@@ -1383,9 +1383,13 @@
     }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
 
     var total = rekomRequests.length;
-    var menunggu = rekomRequests.filter(function (r) { return r.status === 'baru'; }).length;
-    var diproses = rekomRequests.filter(function (r) { return r.status === 'diproses'; }).length;
-    var selesai = rekomRequests.filter(function (r) { return r.status === 'selesai'; }).length;
+    var guruSlotStatuses = [];
+    rekomRequests.forEach(function (r) {
+      guruSlotsFor(r.data).forEach(function (n) { guruSlotStatuses.push(guruStatusAt(r.data, n, r.status)); });
+    });
+    var menunggu = guruSlotStatuses.filter(function (st) { return st === 'baru' || st === 'link_bermasalah'; }).length;
+    var diproses = guruSlotStatuses.filter(function (st) { return st === 'diproses'; }).length;
+    var selesai = guruSlotStatuses.filter(function (st) { return st === 'selesai' || st === 'ditolak'; }).length;
 
     var byGuru = tallyByMulti(rekomRequests, function (r) { return guruNamesFor(r.data); });
     var bySiswa = tallyBy(rekomRequests, function (r) { return r.data.namaLengkap; });
@@ -1417,14 +1421,14 @@
       '<div class="top-row">' + backBar('home', 'Beranda') + '<button class="btn-text" id="adminLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
       '<h2>Dashboard Surat Rekomendasi</h2>' +
       '<div class="stats-grid">' +
-        '<div class="stat"><span class="stat-num">' + total + '</span><span class="stat-label">Total</span></div>' +
-        '<div class="stat"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Menunggu</span></div>' +
-        '<div class="stat"><span class="stat-num">' + diproses + '</span><span class="stat-label">Diproses</span></div>' +
-        '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
+        '<div class="stat"><span class="stat-num">' + total + '</span><span class="stat-label">Total Permintaan</span></div>' +
+        '<div class="stat"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Guru Menunggu</span></div>' +
+        '<div class="stat"><span class="stat-num">' + diproses + '</span><span class="stat-label">Guru Diproses</span></div>' +
+        '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Guru Selesai</span></div>' +
       '</div>' +
-      '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' + renderRecapList(byGuru.slice(0, 6)) + '</div>' +
-      '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswa.slice(0, 6)) + '</div>' +
-      '<div class="stat-block"><p class="stat-block-title">Rekap Univ</p>' + renderRecapList(byUniv.slice(0, 6)) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' + renderRecapList(byGuru) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswa) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Rekap Univ</p>' + renderRecapList(byUniv) + '</div>' +
       '<div class="filter-row">' +
         '<select id="guruFilterStatus" class="field-input">' +
           '<option value="all"' + (S.guruFilterStatus === 'all' ? ' selected' : '') + '>Semua Status</option>' +
