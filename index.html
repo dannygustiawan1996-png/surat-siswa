@@ -695,6 +695,7 @@
       pilihOpsi: 'Pilih...',
       pengambilanInfo: '📍 Dokumen sudah selesai dan siap diambil di Teacher Lounge (TL), temui Pak Danny.',
       catatanGuruLabel: 'Catatan guru:',
+      catatanAdminLabel: 'Catatan:',
       rekomendasiSelesaiInfo: function (waktu) { return '✅ Surat selesai pada ' + waktu + '. Silakan cek email yang kamu daftarkan saat mengajukan — guru sudah mengirimkan surat rekomendasi ke email tersebut. Kalau belum ada dalam waktu 1x24 jam, silakan hubungi guru yang bersangkutan secara langsung.'; },
       linkBermasalahHint: '⚠️ Guru menandai link form kamu bermasalah (tidak bisa dibuka). Perbaiki dulu setting share-nya (pastikan "Anyone with the link" bisa lihat), lalu tempel link baru di bawah ini.',
       linkBaruPlaceholder: 'Link baru (OneDrive/Google Drive)',
@@ -748,6 +749,7 @@
       pilihOpsi: 'Select...',
       pengambilanInfo: '📍 Your document is ready — pick it up at the Teacher Lounge (TL), see Mr. Danny.',
       catatanGuruLabel: "Teacher's note:",
+      catatanAdminLabel: 'Note:',
       rekomendasiSelesaiInfo: function (waktu) { return '✅ Completed on ' + waktu + '. Please check the email you registered when submitting — the teacher has sent the recommendation letter to that address. If it hasn’t arrived within 24 hours, please contact the teacher directly.'; },
       linkBermasalahHint: '⚠️ The teacher flagged your form link as inaccessible. Please fix its sharing settings first (make sure "Anyone with the link" can view it), then paste the new link below.',
       linkBaruPlaceholder: 'New link (OneDrive/Google Drive)',
@@ -1203,7 +1205,8 @@
         resultsHtml = results.map(function (r) {
           var pickupHtml = (r.status === 'selesai' && r.type !== 'REKOMENDASI') ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
           var rekomendasiSelesaiHtml = (r.status === 'selesai' && r.type === 'REKOMENDASI' && r.completedAt) ? '<div class="pickup-card">' + escapeHtml(tt('rekomendasiSelesaiInfo')(formatDateTimeFull(r.completedAt))) + '</div>' : '';
-          var noteHtml = r.adminNote ? '<div class="hint" style="margin-top:6px;"><strong>' + escapeHtml(tt('catatanGuruLabel')) + '</strong> ' + escapeHtml(r.adminNote) + '</div>' : '';
+          var noteLabel = r.type === 'REKOMENDASI' ? tt('catatanGuruLabel') : tt('catatanAdminLabel');
+          var noteHtml = r.adminNote ? '<div class="hint" style="margin-top:6px;"><strong>' + escapeHtml(noteLabel) + '</strong> ' + escapeHtml(r.adminNote) + '</div>' : '';
           var fixMsg = S.fixLinkMessages && S.fixLinkMessages[r.id];
           var fixLinkHtml = '';
           if (r.status === 'link_bermasalah') {
