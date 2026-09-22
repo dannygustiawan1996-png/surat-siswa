@@ -1379,11 +1379,12 @@
 
       bodyHtml = '' +
         '<div class="stats-grid">' +
-          '<div class="stat"><span class="stat-num">' + total + '</span><span class="stat-label">Total</span></div>' +
-          '<div class="stat"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Menunggu</span></div>' +
-          '<div class="stat"><span class="stat-num">' + lunas + '</span><span class="stat-label">Lunas</span></div>' +
-          '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
+          '<button class="stat stat-clickable' + (S.adminFilterStatus === 'all' ? ' active' : '') + '" data-adminstatfilter="all"><span class="stat-num">' + total + '</span><span class="stat-label">Total</span></button>' +
+          '<button class="stat stat-clickable' + (S.adminFilterStatus === 'baru' ? ' active' : '') + '" data-adminstatfilter="baru"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Menunggu</span></button>' +
+          '<button class="stat stat-clickable' + (S.adminFilterStatus === 'lunas' ? ' active' : '') + '" data-adminstatfilter="lunas"><span class="stat-num">' + lunas + '</span><span class="stat-label">Lunas</span></button>' +
+          '<button class="stat stat-clickable' + (S.adminFilterStatus === 'selesai' ? ' active' : '') + '" data-adminstatfilter="selesai"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></button>' +
         '</div>' +
+        '<p class="hint" style="margin-top:-8px;">Klik salah satu angka di atas untuk filter daftar di bawah.</p>' +
         '<p class="hint">Estimasi pendapatan terverifikasi: <strong>' + formatRupiah(pendapatan) + '</strong></p>' +
         '<div class="filter-row">' +
           '<select id="filterType" class="field-input"><option value="all"' + (S.adminFilterType === 'all' ? ' selected' : '') + '>Semua Jenis</option>' + typeOptions + '</select>' +
@@ -1887,6 +1888,12 @@
 
     document.getElementById('filterType').addEventListener('change', function (e) { S.adminFilterType = e.target.value; render(); });
     document.getElementById('filterStatus').addEventListener('change', function (e) { S.adminFilterStatus = e.target.value; render(); });
+    document.querySelectorAll('[data-adminstatfilter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        S.adminFilterStatus = btn.getAttribute('data-adminstatfilter');
+        render();
+      });
+    });
     document.querySelectorAll('[data-detail]').forEach(function (btn) {
       btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
     });
