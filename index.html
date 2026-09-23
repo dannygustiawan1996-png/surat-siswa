@@ -847,7 +847,8 @@
     fixLinkMessages: {},
     klinikPetugas: '',
     klinikIdle: false,
-    klinikErrors: {}
+    klinikErrors: {},
+    dormparentTab: 'form'
   };
 
   function escapeHtml(str) {
@@ -1627,18 +1628,36 @@
         : '<input class="field-input" data-field="' + f.key + '" type="text" placeholder="' + escapeHtml(f.placeholder || '') + '" value="' + val + '">';
       return '<label class="field"><span class="field-label">' + escapeHtml(f.label) + ' <span class="req">*</span></span>' + inputEl + errHtml + '</label>';
     }
-    return '<div class="klinik-theme">' +
-      '<div class="top-row"><h2 style="margin:0">Izin ke Klinik</h2><button class="btn-text" id="klinikLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
+    var tabsHtml = '<div class="filter-row">' +
+      '<button class="btn-outline' + (S.dormparentTab !== 'stats' ? ' active' : '') + '" data-dormparenttab="form" style="flex:1">Ajukan Izin</button>' +
+      '<button class="btn-outline' + (S.dormparentTab === 'stats' ? ' active' : '') + '" data-dormparenttab="stats" style="flex:1">Statistik</button>' +
+    '</div>';
+    var bodyHtml = S.dormparentTab === 'stats' ? renderKlinikDashboardBody({ readOnly: true }) : (
       '<div class="info-card">Diisi oleh <strong>Dorm Parent / SPV</strong> yang sedang bertugas saat siswa mengeluh sakit.</div>' +
       '<form id="klinikDataForm" class="stack">' +
         t.fields.map(field).join('') +
         '<button type="submit" class="btn-primary">Kirim &amp; Terbitkan Izin</button>' +
-      '</form>' +
+      '</form>'
+    );
+    return '<div class="klinik-theme">' +
+      '<div class="top-row"><h2 style="margin:0">Izin ke Klinik</h2><button class="btn-text" id="klinikLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
+      tabsHtml +
+      bodyHtml +
     '</div>';
   }
 
   function attachKlinikForm() {
     document.getElementById('klinikLogoutBtn').addEventListener('click', klinikLogoutHandler());
+    document.querySelectorAll('[data-dormparenttab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        S.dormparentTab = btn.getAttribute('data-dormparenttab');
+        render();
+      });
+    });
+    if (S.dormparentTab === 'stats') {
+      attachKlinikDashboardBody();
+      return;
+    }
     document.querySelectorAll('#klinikDataForm .field-input').forEach(function (inp) {
       var handler = function () {
         if (!S.formDraft) S.formDraft = {};
@@ -1720,18 +1739,28 @@
     if (logout) logout.addEventListener('click', klinikLogoutHandler());
   }
 
-  function renderKlinikDashboardBody() {
+  function renderKlinikDashboardBody(opts) {
+    opts = opts || {};
     var klinikRequests = S.requests.filter(function (r) { return r.type === 'IZIN_KLINIK'; });
     var pending = klinikRequests.filter(function (r) { return r.status !== 'selesai'; })
       .sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
+    var selesaiSemua = klinikRequests.filter(function (r) { return r.status === 'selesai'; });
     var todayStr = todayISO();
-    var historyToday = klinikRequests.filter(function (r) {
-      return r.status === 'selesai' && r.data && r.data.completedAt && String(r.data.completedAt).slice(0, 10) === todayStr;
+    var historyToday = selesaiSemua.filter(function (r) {
+      return r.data && r.data.completedAt && String(r.data.completedAt).slice(0, 10) === todayStr;
     }).sort(function (a, b) { return new Date(b.data.completedAt) - new Date(a.data.completedAt); });
 
-    var petugasInputHtml = '<label class="field"><span class="field-label">Petugas Bertugas</span>' +
+    var statsHtml = '<div class="stats-grid">' +
+      '<div class="stat"><span class="stat-num">' + klinikRequests.length + '</span><span class="stat-label">Total Pengajuan</span></div>' +
+      '<div class="stat"><span class="stat-num">' + pending.length + '</span><span class="stat-label">Menunggu</span></div>' +
+      '<div class="stat"><span class="stat-num">' + selesaiSemua.length + '</span><span class="stat-label">Sudah Ditandai Klinik</span></div>' +
+    '</div>';
+
+    var petugasInputHtml = opts.readOnly ? '' : ('<div class="card">' +
+      '<label class="field"><span class="field-label">Petugas Bertugas</span>' +
       '<input class="field-input" id="klinikPetugasInput" type="text" placeholder="Nama petugas klinik saat ini" value="' + escapeHtml(S.klinikPetugas) + '"></label>' +
-      '<p class="hint">Diisi sekali per shift — tiap "Tandai Selesai" akan tercatat atas nama ini.</p>';
+      '<p class="hint">Diisi sekali per shift — tiap "Tandai Selesai" akan tercatat atas nama ini.</p>' +
+    '</div>');
 
     var pendingHtml = pending.length === 0
       ? '<p class="hint">Tidak ada izin yang menunggu.</p>'
@@ -1749,7 +1778,7 @@
               'Diotorisasi: ' + escapeHtml(d.namaPengaju || '-') + '<br>' +
               'No. Referensi: ' + escapeHtml(r.id) +
             '</div>' +
-            '<button class="btn-primary klinik-selesai-btn" data-klinik-selesai="' + r.id + '">Tandai Selesai</button>' +
+            (opts.readOnly ? '' : '<button class="btn-primary klinik-selesai-btn" data-klinik-selesai="' + r.id + '">Tandai Selesai</button>') +
           '</div>';
         }).join('');
 
@@ -1764,7 +1793,8 @@
         }).join('');
 
     return '' +
-      '<div class="card">' + petugasInputHtml + '</div>' +
+      statsHtml +
+      petugasInputHtml +
       '<div class="section-label">Izin Menunggu</div>' +
       '<div class="stack">' + pendingHtml + '</div>' +
       '<div class="section-label" style="margin-top:18px;">Riwayat Hari Ini</div>' +
