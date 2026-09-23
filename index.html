@@ -667,7 +667,8 @@
       dedicatedTab: true,
       fields: [
         { key: 'namaSiswa', label: 'Nama Siswa', type: 'text', required: true },
-        { key: 'kelasAsrama', label: 'Kelas / Asrama', type: 'text', required: true, placeholder: 'Contoh: XI IPA 2 · Wisma Efrata' },
+        { key: 'kelas', label: 'Kelas', type: 'text', required: true, placeholder: 'Contoh: XI IPA 2' },
+        { key: 'asrama', label: 'Asrama', type: 'text', required: true, placeholder: 'Contoh: Wisma Efrata' },
         { key: 'keluhan', label: 'Keluhan Singkat', type: 'textarea', required: true, placeholder: 'Contoh: demam, pusing sejak pagi' },
         { key: 'peranPengaju', label: 'Peran Pengaju', type: 'toggle', required: true, options: [{ value: 'Dorm Parent', label: 'Dorm Parent' }, { value: 'SPV', label: 'SPV' }] },
         { key: 'namaPengaju', label: 'Nama Dorm Parent / SPV', type: 'text', required: true }
@@ -688,6 +689,12 @@
   function statusLabelForEn(type, status) {
     var map = (type === 'REKOMENDASI') ? STATUS_LABEL_REKOMENDASI_EN : (type === 'IZIN_KLINIK') ? STATUS_LABEL_KLINIK_EN : STATUS_LABEL_EN;
     return map[status] || status;
+  }
+  // Gabungkan field kelas + asrama yang terpisah; fallback ke kelasAsrama lama
+  // untuk data Izin Klinik yang sudah terlanjur tersimpan sebelum field dipisah.
+  function klinikKelasAsramaText(d) {
+    var joined = [d.kelas, d.asrama].filter(Boolean).join(' · ');
+    return joined || d.kelasAsrama || '-';
   }
 
   // Teks UI untuk halaman siswa saja (Dashboard Admin tetap Bahasa Indonesia).
@@ -1767,7 +1774,7 @@
       '</div>' +
       '<div class="card">' +
         '<div class="detail-row"><span class="detail-label">Nama Siswa</span><span class="detail-value">' + escapeHtml(d.namaSiswa || '-') + '</span></div>' +
-        '<div class="detail-row"><span class="detail-label">Kelas / Asrama</span><span class="detail-value">' + escapeHtml(d.kelasAsrama || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Kelas / Asrama</span><span class="detail-value">' + escapeHtml(klinikKelasAsramaText(d)) + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Keluhan</span><span class="detail-value">' + escapeHtml(d.keluhan || '-') + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Waktu</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Diajukan Oleh</span><span class="detail-value">' + escapeHtml(d.namaPengaju || '-') + (d.peranPengaju ? ' (' + escapeHtml(d.peranPengaju) + ')' : '') + '</span></div>' +
@@ -1826,7 +1833,7 @@
               '<span class="klinik-alert-time">' + escapeHtml(formatDateTimeFull(r.submittedAt)) + '</span>' +
             '</div>' +
             '<div class="klinik-alert-name">' + escapeHtml(d.namaSiswa || '-') + '</div>' +
-            '<div class="klinik-alert-sub">' + escapeHtml(d.kelasAsrama || '-') + '</div>' +
+            '<div class="klinik-alert-sub">' + escapeHtml(klinikKelasAsramaText(d)) + '</div>' +
             '<div class="klinik-alert-body">' +
               'Keluhan: ' + escapeHtml(d.keluhan || '-') + '<br>' +
               'Diotorisasi: ' + escapeHtml(d.namaPengaju || '-') + '<br>' +
@@ -1842,7 +1849,7 @@
           var d = r.data || {};
           return '<div class="card list-item">' +
             '<div class="list-item-top"><span>' + escapeHtml(d.namaSiswa || '-') + '</span><span class="stamp selesai">Selesai</span></div>' +
-            '<div class="list-item-bottom"><span>' + escapeHtml(d.kelasAsrama || '-') + '</span><span>' + escapeHtml(formatDateShort(d.completedAt)) + (d.petugasKlinik ? ' · ' + escapeHtml(d.petugasKlinik) : '') + '</span></div>' +
+            '<div class="list-item-bottom"><span>' + escapeHtml(klinikKelasAsramaText(d)) + '</span><span>' + escapeHtml(formatDateShort(d.completedAt)) + (d.petugasKlinik ? ' · ' + escapeHtml(d.petugasKlinik) : '') + '</span></div>' +
           '</div>';
         }).join('');
 
