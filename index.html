@@ -189,6 +189,10 @@
   .detail-row:last-child { border-bottom: none; }
   .detail-label { color: var(--color-ink-soft); flex-shrink: 0; }
   .detail-value { text-align: right; font-weight: 500; word-break: break-word; }
+  @media (max-width: 420px) {
+    .detail-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .detail-value { text-align: left; }
+  }
 
   .loading-screen { display: flex; align-items: center; justify-content: center; min-height: 60vh; }
   .summary-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
@@ -665,6 +669,7 @@
         { key: 'namaSiswa', label: 'Nama Siswa', type: 'text', required: true },
         { key: 'kelasAsrama', label: 'Kelas / Asrama', type: 'text', required: true, placeholder: 'Contoh: XI IPA 2 · Wisma Efrata' },
         { key: 'keluhan', label: 'Keluhan Singkat', type: 'textarea', required: true, placeholder: 'Contoh: demam, pusing sejak pagi' },
+        { key: 'peranPengaju', label: 'Peran Pengaju', type: 'toggle', required: true, options: [{ value: 'Dorm Parent', label: 'Dorm Parent' }, { value: 'SPV', label: 'SPV' }] },
         { key: 'namaPengaju', label: 'Nama Dorm Parent / SPV', type: 'text', required: true }
       ]
     }
@@ -733,7 +738,7 @@
       klinikNamaSiswa: 'Nama Siswa',
       klinikKelasAsrama: 'Kelas / Asrama',
       klinikKeluhan: 'Keluhan',
-      klinikDiizinkanOleh: 'Diizinkan Oleh (Dorm Parent/SPV)',
+      klinikDiizinkanOleh: 'Diizinkan Oleh',
       klinikPernyataan: 'Siswa ini telah mendapat persetujuan dari Dorm Parent/SPV untuk pergi ke klinik. Keterangan ini mohon digunakan dengan sebaik-baiknya dan hanya berlaku untuk tanggal pengajuan di atas.',
       catatanGuruLabel: 'Catatan guru:',
       catatanAdminLabel: 'Catatan:',
@@ -793,7 +798,7 @@
       klinikNamaSiswa: 'Student Name',
       klinikKelasAsrama: 'Class / Dorm',
       klinikKeluhan: 'Complaint',
-      klinikDiizinkanOleh: 'Approved By (Dorm Parent/SPV)',
+      klinikDiizinkanOleh: 'Approved By',
       klinikPernyataan: 'This student has received approval from a Dorm Parent/SPV to visit the clinic. Please use this notice responsibly — it is valid only for the submission date above.',
       catatanGuruLabel: "Teacher's note:",
       catatanAdminLabel: 'Note:',
@@ -1010,7 +1015,7 @@
     }).filter(function (g) { return g.name; });
     return {
       id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status, adminNote: row.admin_note, guruSlots: guruSlots,
-      data: { namaLengkap: row.nama_lengkap, namaSiswa: row.klinik_nama_siswa, namaPengaju: row.klinik_nama_pengaju, kelasAsrama: row.klinik_kelas_asrama, keluhan: row.klinik_keluhan }
+      data: { namaLengkap: row.nama_lengkap, namaSiswa: row.klinik_nama_siswa, namaPengaju: row.klinik_nama_pengaju, kelasAsrama: row.klinik_kelas_asrama, keluhan: row.klinik_keluhan, peranPengaju: row.klinik_peran_pengaju }
     };
   }
   function mapFullRow(row) {
@@ -1332,7 +1337,7 @@
             '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikNamaSiswa')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.namaSiswa) || '-') + '</span></div>' +
             '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikKelasAsrama')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.kelasAsrama) || '-') + '</span></div>' +
             '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikKeluhan')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.keluhan) || '-') + '</span></div>' +
-            '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikDiizinkanOleh')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.namaPengaju) || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikDiizinkanOleh')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.namaPengaju) || '-') + ((r.data && r.data.peranPengaju) ? ' (' + escapeHtml(r.data.peranPengaju) + ')' : '') + '</span></div>' +
           '</div><p class="hint" style="margin-top:8px;">' + escapeHtml(tt('klinikPernyataan')) + '</p>' : '';
           var noteHtml = '';
           var guruBreakdownHtml = '';
@@ -1651,9 +1656,17 @@
     function field(f) {
       var val = escapeHtml(draft[f.key] || '');
       var errHtml = err[f.key] ? '<span class="field-error">' + escapeHtml(err[f.key]) + '</span>' : '';
-      var inputEl = f.type === 'textarea'
-        ? '<textarea class="field-input" data-field="' + f.key + '" placeholder="' + escapeHtml(f.placeholder || '') + '" rows="2">' + val + '</textarea>'
-        : '<input class="field-input" data-field="' + f.key + '" type="text" placeholder="' + escapeHtml(f.placeholder || '') + '" value="' + val + '">';
+      var inputEl;
+      if (f.type === 'toggle') {
+        inputEl = '<div class="filter-row">' + f.options.map(function (o) {
+          var active = draft[f.key] === o.value ? ' active' : '';
+          return '<button type="button" class="btn-outline' + active + '" data-toggle-field="' + f.key + '" data-toggle-value="' + escapeHtml(o.value) + '" style="flex:1">' + escapeHtml(o.label) + '</button>';
+        }).join('') + '</div>';
+      } else if (f.type === 'textarea') {
+        inputEl = '<textarea class="field-input" data-field="' + f.key + '" placeholder="' + escapeHtml(f.placeholder || '') + '" rows="2">' + val + '</textarea>';
+      } else {
+        inputEl = '<input class="field-input" data-field="' + f.key + '" type="text" placeholder="' + escapeHtml(f.placeholder || '') + '" value="' + val + '">';
+      }
       return '<label class="field"><span class="field-label">' + escapeHtml(f.label) + ' <span class="req">*</span></span>' + inputEl + errHtml + '</label>';
     }
     var tabsHtml = '<div class="filter-row">' +
@@ -1693,6 +1706,13 @@
       };
       inp.addEventListener('input', handler);
       inp.addEventListener('change', handler);
+    });
+    document.querySelectorAll('#klinikDataForm [data-toggle-field]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!S.formDraft) S.formDraft = {};
+        S.formDraft[btn.getAttribute('data-toggle-field')] = btn.getAttribute('data-toggle-value');
+        render();
+      });
     });
     document.getElementById('klinikDataForm').addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -1750,7 +1770,7 @@
         '<div class="detail-row"><span class="detail-label">Kelas / Asrama</span><span class="detail-value">' + escapeHtml(d.kelasAsrama || '-') + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Keluhan</span><span class="detail-value">' + escapeHtml(d.keluhan || '-') + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Waktu</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
-        '<div class="detail-row"><span class="detail-label">Diajukan Oleh</span><span class="detail-value">' + escapeHtml(d.namaPengaju || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Diajukan Oleh</span><span class="detail-value">' + escapeHtml(d.namaPengaju || '-') + (d.peranPengaju ? ' (' + escapeHtml(d.peranPengaju) + ')' : '') + '</span></div>' +
       '</div>' +
       '<p class="hint center">Klinik dapat melihat izin ini langsung di dashboard mereka.</p>' +
       '<div class="stack">' +

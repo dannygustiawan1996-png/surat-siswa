@@ -65,7 +65,8 @@ create view requests_public as
     case when type = 'IZIN_KLINIK' then data->>'namaSiswa' end as klinik_nama_siswa,
     case when type = 'IZIN_KLINIK' then data->>'namaPengaju' end as klinik_nama_pengaju,
     case when type = 'IZIN_KLINIK' then data->>'kelasAsrama' end as klinik_kelas_asrama,
-    case when type = 'IZIN_KLINIK' then data->>'keluhan' end as klinik_keluhan
+    case when type = 'IZIN_KLINIK' then data->>'keluhan' end as klinik_keluhan,
+    case when type = 'IZIN_KLINIK' then data->>'peranPengaju' end as klinik_peran_pengaju
   from requests;
 
 -- Fungsi khusus: siswa (anon, tanpa login) bisa perbaiki link form Rekomendasi
