@@ -675,12 +675,13 @@
   var STATUS_LABEL_REKOMENDASI = { baru: 'Menunggu Diproses', diproses: 'Diproses', link_bermasalah: 'Link Bermasalah', selesai: 'Selesai', ditolak: 'Ditolak' };
   var STATUS_LABEL_REKOMENDASI_EN = { baru: 'Awaiting Review', diproses: 'In Progress', link_bermasalah: 'Link Not Accessible', selesai: 'Completed', ditolak: 'Rejected' };
   var STATUS_LABEL_KLINIK = { baru: 'Menunggu di Klinik', selesai: 'Selesai' };
+  var STATUS_LABEL_KLINIK_EN = { baru: 'Waiting at Clinic', selesai: 'Completed' };
   function statusLabelFor(type, status) {
     var map = (type === 'REKOMENDASI') ? STATUS_LABEL_REKOMENDASI : (type === 'IZIN_KLINIK') ? STATUS_LABEL_KLINIK : STATUS_LABEL;
     return map[status] || status;
   }
   function statusLabelForEn(type, status) {
-    var map = (type === 'REKOMENDASI') ? STATUS_LABEL_REKOMENDASI_EN : STATUS_LABEL_EN;
+    var map = (type === 'REKOMENDASI') ? STATUS_LABEL_REKOMENDASI_EN : (type === 'IZIN_KLINIK') ? STATUS_LABEL_KLINIK_EN : STATUS_LABEL_EN;
     return map[status] || status;
   }
 
@@ -727,6 +728,8 @@
       fieldWajib: 'Wajib diisi',
       pilihOpsi: 'Pilih...',
       pengambilanInfo: '📍 Dokumen sudah selesai dan siap diambil di Teacher Lounge (TL), temui Pak Danny.',
+      klinikBaruInfo: '✅ Izin ke klinik sudah diberikan — silakan langsung menuju klinik.',
+      klinikSelesaiInfo: '✅ Kunjungan ke klinik sudah selesai dicatat.',
       catatanGuruLabel: 'Catatan guru:',
       catatanAdminLabel: 'Catatan:',
       rekomendasiSelesaiInfo: function (waktu) { return '✅ Surat selesai pada ' + waktu + '. Silakan cek email yang kamu daftarkan saat mengajukan — guru sudah mengirimkan surat rekomendasi ke email tersebut. Kalau belum ada dalam waktu 1x24 jam, silakan hubungi guru yang bersangkutan secara langsung.'; },
@@ -780,6 +783,8 @@
       fieldWajib: 'Required',
       pilihOpsi: 'Select...',
       pengambilanInfo: '📍 Your document is ready — pick it up at the Teacher Lounge (TL), see Mr. Danny.',
+      klinikBaruInfo: '✅ Clinic permission has been granted — please head to the clinic now.',
+      klinikSelesaiInfo: '✅ The clinic visit has been recorded as completed.',
       catatanGuruLabel: "Teacher's note:",
       catatanAdminLabel: 'Note:',
       rekomendasiSelesaiInfo: function (waktu) { return '✅ Completed on ' + waktu + '. Please check the email you registered when submitting — the teacher has sent the recommendation letter to that address. If it hasn’t arrived within 24 hours, please contact the teacher directly.'; },
@@ -1307,7 +1312,9 @@
       } else {
         resultsHtml = results.map(function (r) {
           var isRekom = r.type === 'REKOMENDASI';
-          var pickupHtml = (r.status === 'selesai' && !isRekom) ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
+          var isKlinik = r.type === 'IZIN_KLINIK';
+          var pickupHtml = (r.status === 'selesai' && !isRekom && !isKlinik) ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
+          var klinikInfoHtml = isKlinik ? '<div class="pickup-card">' + escapeHtml(r.status === 'selesai' ? tt('klinikSelesaiInfo') : tt('klinikBaruInfo')) + '</div>' : '';
           var noteHtml = '';
           var guruBreakdownHtml = '';
           var anyLinkBermasalah = false;
@@ -1345,12 +1352,13 @@
               (isRekom ? '' : '<span class="stamp ' + r.status + '">' + escapeHtml(studentStatusLabel(r.type, r.status)) + '</span>') +
             '</div>' +
             '<div class="list-item-bottom">' +
-              '<span>' + escapeHtml((r.data && r.data.namaLengkap) || '-') + ' &middot; ' + escapeHtml(LETTER_TYPES[r.type] ? typeShortLabel(LETTER_TYPES[r.type]) : r.type) + '</span>' +
+              '<span>' + ((r.data && r.data.namaLengkap) ? escapeHtml(r.data.namaLengkap) + ' &middot; ' : '') + escapeHtml(LETTER_TYPES[r.type] ? typeShortLabel(LETTER_TYPES[r.type]) : r.type) + '</span>' +
               '<span>' + escapeHtml(formatDateShort(r.submittedAt)) + '</span>' +
             '</div>' +
             noteHtml +
             guruBreakdownHtml +
             pickupHtml +
+            klinikInfoHtml +
             fixLinkHtml +
           '</div>';
         }).join('');
