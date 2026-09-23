@@ -70,9 +70,10 @@
   .pickup-card { background: #EAF3EC; border-left: 3px solid var(--color-green); border-radius: 4px; padding: 10px 14px; margin-top: 8px; font-size: 12.5px; line-height: 1.5; color: var(--color-ink); }
   .info-card { background: #FBF3E4; border-left: 3px solid var(--color-brass); border-radius: 4px; padding: 14px 16px; margin: 12px 0; font-size: 13px; line-height: 1.55; color: var(--color-ink); }
 
-  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--color-ink-soft); text-transform: uppercase; }
   .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: var(--color-ink-soft); text-transform: uppercase; margin: 14px 0 8px; }
 
+  .klinik-theme { --color-navy: #0E6B5C; }
+  .klinik-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--color-ink-soft); text-transform: uppercase; }
   .klinik-alert-card { background: var(--color-navy); border-left: none; color: #FFFFFF; }
   .klinik-alert-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .klinik-alert-badge { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -1626,13 +1627,14 @@
         : '<input class="field-input" data-field="' + f.key + '" type="text" placeholder="' + escapeHtml(f.placeholder || '') + '" value="' + val + '">';
       return '<label class="field"><span class="field-label">' + escapeHtml(f.label) + ' <span class="req">*</span></span>' + inputEl + errHtml + '</label>';
     }
-    return '' +
+    return '<div class="klinik-theme">' +
       '<div class="top-row"><h2 style="margin:0">Izin ke Klinik</h2><button class="btn-text" id="klinikLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
       '<div class="info-card">Diisi oleh <strong>Dorm Parent / SPV</strong> yang sedang bertugas saat siswa mengeluh sakit.</div>' +
       '<form id="klinikDataForm" class="stack">' +
         t.fields.map(field).join('') +
         '<button type="submit" class="btn-primary">Kirim &amp; Terbitkan Izin</button>' +
-      '</form>';
+      '</form>' +
+    '</div>';
   }
 
   function attachKlinikForm() {
@@ -1679,7 +1681,7 @@
     var req = S.lastRequest;
     if (!req || req.type !== 'IZIN_KLINIK') return renderKlinikForm();
     var d = req.data || {};
-    return '' +
+    return '<div class="klinik-theme">' +
       '<div class="hero small">' +
         '<div class="seal">&#10003;</div>' +
         '<h1>Izin Klinik Diterbitkan</h1>' +
@@ -1707,7 +1709,8 @@
       '<div class="stack">' +
         '<button class="btn-primary" id="klinikAjukanLagiBtn">Ajukan Izin Lain</button>' +
         '<button class="btn-text" id="klinikLogoutBtn2">Keluar</button>' +
-      '</div>';
+      '</div>' +
+    '</div>';
   }
 
   function attachKlinikSlip() {
@@ -1821,12 +1824,13 @@
   function renderKlinikDashboard() {
     var pendingCount = S.requests.filter(function (r) { return r.type === 'IZIN_KLINIK' && r.status !== 'selesai'; }).length;
     var idleOverlayHtml = S.klinikIdle ? renderKlinikIdleOverlay(pendingCount) : '';
-    return '' +
+    return '<div class="klinik-theme">' +
       idleOverlayHtml +
-      '<div class="top-row"><span class="eyebrow">Layar Klinik</span><button class="btn-text" id="klinikLogoutBtn3" style="width:auto;padding:0;">Keluar</button></div>' +
+      '<div class="top-row"><span class="klinik-eyebrow">Layar Klinik</span><button class="btn-text" id="klinikLogoutBtn3" style="width:auto;padding:0;">Keluar</button></div>' +
       '<h2>Dashboard Izin Klinik</h2>' +
       '<p class="hint">Layar ini bisa dibiarkan menyala terus di meja klinik.</p>' +
-      renderKlinikDashboardBody();
+      renderKlinikDashboardBody() +
+    '</div>';
   }
 
   function attachKlinikDashboard() {
