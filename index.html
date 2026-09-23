@@ -732,6 +732,7 @@
       klinikSelesaiInfo: '✅ Kunjungan ke klinik sudah selesai dicatat.',
       klinikNamaSiswa: 'Nama Siswa',
       klinikKelasAsrama: 'Kelas / Asrama',
+      klinikKeluhan: 'Keluhan',
       klinikDiizinkanOleh: 'Diizinkan Oleh',
       klinikPernyataan: 'Siswa ini telah mendapat persetujuan dari Dorm Parent/SPV untuk pergi ke klinik. Keterangan ini mohon digunakan dengan sebaik-baiknya dan hanya berlaku untuk tanggal pengajuan di atas.',
       catatanGuruLabel: 'Catatan guru:',
@@ -791,6 +792,7 @@
       klinikSelesaiInfo: '✅ The clinic visit has been recorded as completed.',
       klinikNamaSiswa: 'Student Name',
       klinikKelasAsrama: 'Class / Dorm',
+      klinikKeluhan: 'Complaint',
       klinikDiizinkanOleh: 'Approved By',
       klinikPernyataan: 'This student has received approval from a Dorm Parent/SPV to visit the clinic. Please use this notice responsibly — it is valid only for the submission date above.',
       catatanGuruLabel: "Teacher's note:",
@@ -1008,7 +1010,7 @@
     }).filter(function (g) { return g.name; });
     return {
       id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status, adminNote: row.admin_note, guruSlots: guruSlots,
-      data: { namaLengkap: row.nama_lengkap, namaSiswa: row.klinik_nama_siswa, namaPengaju: row.klinik_nama_pengaju, kelasAsrama: row.klinik_kelas_asrama }
+      data: { namaLengkap: row.nama_lengkap, namaSiswa: row.klinik_nama_siswa, namaPengaju: row.klinik_nama_pengaju, kelasAsrama: row.klinik_kelas_asrama, keluhan: row.klinik_keluhan }
     };
   }
   function mapFullRow(row) {
@@ -1329,6 +1331,7 @@
           var klinikDetailHtml = isKlinik ? '<div class="card" style="margin-top:8px;">' +
             '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikNamaSiswa')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.namaSiswa) || '-') + '</span></div>' +
             '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikKelasAsrama')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.kelasAsrama) || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikKeluhan')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.keluhan) || '-') + '</span></div>' +
             '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikDiizinkanOleh')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.namaPengaju) || '-') + '</span></div>' +
           '</div><p class="hint" style="margin-top:8px;">' + escapeHtml(tt('klinikPernyataan')) + '</p>' : '';
           var noteHtml = '';
