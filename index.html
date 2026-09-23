@@ -70,6 +70,28 @@
   .pickup-card { background: #EAF3EC; border-left: 3px solid var(--color-green); border-radius: 4px; padding: 10px 14px; margin-top: 8px; font-size: 12.5px; line-height: 1.5; color: var(--color-ink); }
   .info-card { background: #FBF3E4; border-left: 3px solid var(--color-brass); border-radius: 4px; padding: 14px 16px; margin: 12px 0; font-size: 13px; line-height: 1.55; color: var(--color-ink); }
 
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--color-ink-soft); text-transform: uppercase; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: var(--color-ink-soft); text-transform: uppercase; margin: 14px 0 8px; }
+
+  .klinik-alert-card { background: var(--color-navy); border-left: none; color: #FFFFFF; }
+  .klinik-alert-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .klinik-alert-badge { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .klinik-alert-time { font-size: 10.5px; color: rgba(255,255,255,0.75); }
+  .klinik-alert-name { font-size: 17px; font-weight: 700; font-family: var(--font-display); margin-bottom: 2px; }
+  .klinik-alert-sub { font-size: 12.5px; color: rgba(255,255,255,0.8); margin-bottom: 10px; }
+  .klinik-alert-body { background: rgba(255,255,255,0.12); border-radius: 6px; padding: 10px 12px; font-size: 12.5px; line-height: 1.7; margin-bottom: 12px; }
+  .klinik-alert-card .btn-primary { background: #FFFFFF; color: var(--color-navy); }
+
+  #klinikIdleOverlay {
+    position: fixed; inset: 0; background: var(--color-navy); color: #FFFFFF; z-index: 999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px;
+  }
+  .klinik-idle-icon { font-size: 26px; margin-bottom: 14px; opacity: 0.8; }
+  .klinik-idle-title { font-size: 19px; font-weight: 800; margin-bottom: 6px; font-family: var(--font-display); }
+  .klinik-idle-sub { font-size: 13px; color: rgba(255,255,255,0.7); max-width: 260px; line-height: 1.6; margin-bottom: 22px; }
+  .klinik-idle-count { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.12); border-radius: 999px; padding: 8px 16px; margin-bottom: 26px; font-size: 12.5px; font-weight: 600; }
+  .klinik-idle-wake { padding: 13px 28px; border: 1px solid rgba(255,255,255,0.4); border-radius: 999px; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 13.5px; font-weight: 700; }
+
   .type-card {
     display: flex; flex-direction: column; gap: 6px; text-align: left;
     background: var(--color-card); border: none; border-left: 3px solid var(--color-navy);
@@ -611,6 +633,7 @@
       desc: 'Pengajuan surat rekomendasi dari guru untuk keperluan aplikasi universitas.',
       descEn: 'Request a recommendation letter from a teacher for university application purposes.',
       hideFromMenu: true,
+      dedicatedTab: true,
       noPayment: true,
       downloadFile: 'Form-Permohonan-Rekomendasi.docx',
       downloadLabel: 'Download Form Permohonan Rekomendasi',
@@ -630,6 +653,19 @@
         { key: 'keperluan', label: 'Keperluan / Universitas Tujuan', labelEn: 'Purpose / Destination University', type: 'textarea', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Informasi tambahan yang ingin disampaikan ke guru', placeholderEn: 'e.g. Additional information you would like to share with the teacher', type: 'textarea', required: false }
       ]
+    },
+    IZIN_KLINIK: {
+      shortLabel: 'Izin Klinik',
+      label: 'Izin ke Klinik',
+      hideFromMenu: true,
+      noPayment: true,
+      dedicatedTab: true,
+      fields: [
+        { key: 'namaSiswa', label: 'Nama Siswa', type: 'text', required: true },
+        { key: 'kelasAsrama', label: 'Kelas / Asrama', type: 'text', required: true, placeholder: 'Contoh: XI IPA 2 · Wisma Efrata' },
+        { key: 'keluhan', label: 'Keluhan Singkat', type: 'textarea', required: true, placeholder: 'Contoh: demam, pusing sejak pagi' },
+        { key: 'namaPengaju', label: 'Nama Dorm Parent / SPV', type: 'text', required: true }
+      ]
     }
   };
 
@@ -637,8 +673,9 @@
   var STATUS_LABEL_EN = { baru: 'Pending Verification', pembayaran_belum_diterima: 'Payment Not Received', lunas: 'Paid - Processing', selesai: 'Completed', diproses: 'In Progress', ditolak: 'Rejected' };
   var STATUS_LABEL_REKOMENDASI = { baru: 'Menunggu Diproses', diproses: 'Diproses', link_bermasalah: 'Link Bermasalah', selesai: 'Selesai', ditolak: 'Ditolak' };
   var STATUS_LABEL_REKOMENDASI_EN = { baru: 'Awaiting Review', diproses: 'In Progress', link_bermasalah: 'Link Not Accessible', selesai: 'Completed', ditolak: 'Rejected' };
+  var STATUS_LABEL_KLINIK = { baru: 'Menunggu di Klinik', selesai: 'Selesai' };
   function statusLabelFor(type, status) {
-    var map = (type === 'REKOMENDASI') ? STATUS_LABEL_REKOMENDASI : STATUS_LABEL;
+    var map = (type === 'REKOMENDASI') ? STATUS_LABEL_REKOMENDASI : (type === 'IZIN_KLINIK') ? STATUS_LABEL_KLINIK : STATUS_LABEL;
     return map[status] || status;
   }
   function statusLabelForEn(type, status) {
@@ -806,7 +843,10 @@
     adminEditingSettings: false,
     statusQuery: '',
     statusResults: null,
-    fixLinkMessages: {}
+    fixLinkMessages: {},
+    klinikPetugas: '',
+    klinikIdle: false,
+    klinikErrors: {}
   };
 
   function escapeHtml(str) {
@@ -1059,7 +1099,12 @@
       return (session.user && session.user.user_metadata && session.user.user_metadata.role) || 'admin';
     } catch (e) { return 'admin'; }
   }
-  function dashboardViewFor(role) { return role === 'guru' ? 'guruDashboard' : 'adminDashboard'; }
+  function dashboardViewFor(role) {
+    if (role === 'guru') return 'guruDashboard';
+    if (role === 'dormparent') return 'klinikForm';
+    if (role === 'klinik') return 'klinikDashboard';
+    return 'adminDashboard';
+  }
 
   function go(view, extra) {
     S.view = view;
@@ -1086,6 +1131,9 @@
       case 'adminResetPassword': html = renderAdminResetPassword(); break;
       case 'adminDashboard': html = renderAdminDashboard(); break;
       case 'guruDashboard': html = renderGuruDashboard(); break;
+      case 'klinikForm': html = renderKlinikForm(); break;
+      case 'klinikSlip': html = renderKlinikSlip(); break;
+      case 'klinikDashboard': html = renderKlinikDashboard(); break;
       case 'adminDetail':
         var detailReq = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
         if (!detailReq || (S.userRole === 'guru' && detailReq.type !== 'REKOMENDASI')) {
@@ -1336,17 +1384,24 @@
       '<button class="btn-primary" id="savePasswordBtn" style="margin-top:12px">Simpan Password Baru</button>';
   }
 
+  function isDedicatedTabType(type) {
+    return !!(LETTER_TYPES[type] && LETTER_TYPES[type].dedicatedTab);
+  }
+
   function renderAdminDashboard() {
     var tabsHtml = '<div class="filter-row">' +
       '<button class="btn-outline' + (S.adminTab === 'umum' ? ' active' : '') + '" data-admintab="umum" style="flex:1">Surat Umum (Berbayar)</button>' +
       '<button class="btn-outline' + (S.adminTab === 'rekomendasi' ? ' active' : '') + '" data-admintab="rekomendasi" style="flex:1">Surat Rekomendasi</button>' +
+      '<button class="btn-outline' + (S.adminTab === 'klinik' ? ' active' : '') + '" data-admintab="klinik" style="flex:1">Izin Klinik</button>' +
     '</div>';
 
     var bodyHtml;
     if (S.adminTab === 'rekomendasi') {
       bodyHtml = renderRekomendasiBody();
+    } else if (S.adminTab === 'klinik') {
+      bodyHtml = renderKlinikDashboardBody();
     } else {
-      var umumRequests = S.requests.filter(function (r) { return r.type !== 'REKOMENDASI'; });
+      var umumRequests = S.requests.filter(function (r) { return !isDedicatedTabType(r.type); });
       var filtered = umumRequests.filter(function (r) {
         if (S.adminFilterType !== 'all' && r.type !== S.adminFilterType) return false;
         if (S.adminFilterStatus !== 'all' && r.status !== S.adminFilterStatus) return false;
@@ -1360,7 +1415,7 @@
       var pendapatan = umumRequests.filter(function (r) { return r.status !== 'baru' && r.status !== 'pembayaran_belum_diterima'; })
         .reduce(function (sum, r) { return sum + (r.amount != null ? r.amount : FEE); }, 0);
 
-      var typeOptions = Object.keys(LETTER_TYPES).filter(function (key) { return key !== 'REKOMENDASI'; }).map(function (key) {
+      var typeOptions = Object.keys(LETTER_TYPES).filter(function (key) { return !isDedicatedTabType(key); }).map(function (key) {
         return '<option value="' + key + '"' + (S.adminFilterType === key ? ' selected' : '') + '>' + escapeHtml(LETTER_TYPES[key].shortLabel) + '</option>';
       }).join('');
 
@@ -1547,6 +1602,241 @@
     attachRekomendasiBody();
   }
 
+  // ============================================================
+  // IZIN KLINIK — Dorm Parent/SPV mengajukan, Klinik memantau live
+  // ============================================================
+  function klinikLogoutHandler() {
+    return async function () {
+      if (klinikIdleTimer) clearTimeout(klinikIdleTimer);
+      await adminLogout();
+      S.adminAuthed = false; S.userRole = null; S.requests = []; S.klinikIdle = false;
+      go('home');
+    };
+  }
+
+  function renderKlinikForm() {
+    var t = LETTER_TYPES.IZIN_KLINIK;
+    var draft = S.formDraft || {};
+    var err = S.klinikErrors || {};
+    function field(f) {
+      var val = escapeHtml(draft[f.key] || '');
+      var errHtml = err[f.key] ? '<span class="field-error">' + escapeHtml(err[f.key]) + '</span>' : '';
+      var inputEl = f.type === 'textarea'
+        ? '<textarea class="field-input" data-field="' + f.key + '" placeholder="' + escapeHtml(f.placeholder || '') + '" rows="2">' + val + '</textarea>'
+        : '<input class="field-input" data-field="' + f.key + '" type="text" placeholder="' + escapeHtml(f.placeholder || '') + '" value="' + val + '">';
+      return '<label class="field"><span class="field-label">' + escapeHtml(f.label) + ' <span class="req">*</span></span>' + inputEl + errHtml + '</label>';
+    }
+    return '' +
+      '<div class="top-row"><h2 style="margin:0">Izin ke Klinik</h2><button class="btn-text" id="klinikLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
+      '<div class="info-card">Diisi oleh <strong>Dorm Parent / SPV</strong> yang sedang bertugas saat siswa mengeluh sakit.</div>' +
+      '<form id="klinikDataForm" class="stack">' +
+        t.fields.map(field).join('') +
+        '<button type="submit" class="btn-primary">Kirim &amp; Terbitkan Izin</button>' +
+      '</form>';
+  }
+
+  function attachKlinikForm() {
+    document.getElementById('klinikLogoutBtn').addEventListener('click', klinikLogoutHandler());
+    document.querySelectorAll('#klinikDataForm .field-input').forEach(function (inp) {
+      var handler = function () {
+        if (!S.formDraft) S.formDraft = {};
+        S.formDraft[inp.getAttribute('data-field')] = inp.value;
+      };
+      inp.addEventListener('input', handler);
+      inp.addEventListener('change', handler);
+    });
+    document.getElementById('klinikDataForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var t = LETTER_TYPES.IZIN_KLINIK;
+      var errors = {};
+      t.fields.forEach(function (f) {
+        if (f.required && !(S.formDraft[f.key] && String(S.formDraft[f.key]).trim())) errors[f.key] = tt('fieldWajib');
+      });
+      S.klinikErrors = errors;
+      if (Object.keys(errors).length > 0) { render(); return; }
+      var submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true; submitBtn.textContent = 'Mengirim...';
+      var newReq = {
+        id: generateId('IZIN_KLINIK'), type: 'IZIN_KLINIK', submittedAt: new Date().toISOString(), status: 'baru',
+        paymentChecked: false, paymentNote: '', paymentDate: null, paymentCode: null, amount: 0,
+        adminNote: '', nomorSurat: '', tanggalSurat: '', generatedText: '',
+        data: Object.assign({}, S.formDraft)
+      };
+      var result = await insertRequest(newReq);
+      if (!result.ok) {
+        alert('Gagal mengirim: ' + result.error);
+        submitBtn.disabled = false; submitBtn.textContent = 'Kirim & Terbitkan Izin';
+        return;
+      }
+      S.requests = (S.requests || []).concat([newReq]);
+      S.lastRequest = newReq;
+      S.formDraft = {}; S.klinikErrors = {};
+      go('klinikSlip');
+    });
+  }
+
+  function renderKlinikSlip() {
+    var req = S.lastRequest;
+    if (!req || req.type !== 'IZIN_KLINIK') return renderKlinikForm();
+    var d = req.data || {};
+    return '' +
+      '<div class="hero small">' +
+        '<div class="seal">&#10003;</div>' +
+        '<h1>Izin Klinik Diterbitkan</h1>' +
+        '<p class="sub">Tunjukkan halaman ini ke petugas klinik</p>' +
+      '</div>' +
+      '<div class="card center">' +
+        '<p class="field-label">Nomor Referensi</p>' +
+        '<p class="req-id">' + escapeHtml(req.id) + '</p>' +
+        '<div class="stamp ' + req.status + '">' + escapeHtml(statusLabelFor('IZIN_KLINIK', req.status)) + '</div>' +
+      '</div>' +
+      '<div class="card" style="text-align:center;">' +
+        '<div style="display:inline-flex;flex-direction:column;align-items:center;gap:4px;border:1px dashed var(--color-brass);border-radius:8px;padding:16px 24px;">' +
+          '<span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:var(--color-ink-soft);text-transform:uppercase;">QR (placeholder)</span>' +
+          '<span style="font-size:11px;color:var(--color-ink-soft);">Akan diganti QR asli</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="detail-row"><span class="detail-label">Nama Siswa</span><span class="detail-value">' + escapeHtml(d.namaSiswa || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Kelas / Asrama</span><span class="detail-value">' + escapeHtml(d.kelasAsrama || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Keluhan</span><span class="detail-value">' + escapeHtml(d.keluhan || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Waktu</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Diajukan Oleh</span><span class="detail-value">' + escapeHtml(d.namaPengaju || '-') + '</span></div>' +
+      '</div>' +
+      '<p class="hint center">Klinik dapat melihat izin ini langsung di dashboard mereka.</p>' +
+      '<div class="stack">' +
+        '<button class="btn-primary" id="klinikAjukanLagiBtn">Ajukan Izin Lain</button>' +
+        '<button class="btn-text" id="klinikLogoutBtn2">Keluar</button>' +
+      '</div>';
+  }
+
+  function attachKlinikSlip() {
+    var again = document.getElementById('klinikAjukanLagiBtn');
+    if (again) again.addEventListener('click', function () { go('klinikForm'); });
+    var logout = document.getElementById('klinikLogoutBtn2');
+    if (logout) logout.addEventListener('click', klinikLogoutHandler());
+  }
+
+  function renderKlinikDashboardBody() {
+    var klinikRequests = S.requests.filter(function (r) { return r.type === 'IZIN_KLINIK'; });
+    var pending = klinikRequests.filter(function (r) { return r.status !== 'selesai'; })
+      .sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
+    var todayStr = todayISO();
+    var historyToday = klinikRequests.filter(function (r) {
+      return r.status === 'selesai' && r.data && r.data.completedAt && String(r.data.completedAt).slice(0, 10) === todayStr;
+    }).sort(function (a, b) { return new Date(b.data.completedAt) - new Date(a.data.completedAt); });
+
+    var petugasInputHtml = '<label class="field"><span class="field-label">Petugas Bertugas</span>' +
+      '<input class="field-input" id="klinikPetugasInput" type="text" placeholder="Nama petugas klinik saat ini" value="' + escapeHtml(S.klinikPetugas) + '"></label>' +
+      '<p class="hint">Diisi sekali per shift — tiap "Tandai Selesai" akan tercatat atas nama ini.</p>';
+
+    var pendingHtml = pending.length === 0
+      ? '<p class="hint">Tidak ada izin yang menunggu.</p>'
+      : pending.map(function (r) {
+          var d = r.data || {};
+          return '<div class="card klinik-alert-card">' +
+            '<div class="klinik-alert-top">' +
+              '<span class="klinik-alert-badge">Izin Baru</span>' +
+              '<span class="klinik-alert-time">' + escapeHtml(formatDateTimeFull(r.submittedAt)) + '</span>' +
+            '</div>' +
+            '<div class="klinik-alert-name">' + escapeHtml(d.namaSiswa || '-') + '</div>' +
+            '<div class="klinik-alert-sub">' + escapeHtml(d.kelasAsrama || '-') + '</div>' +
+            '<div class="klinik-alert-body">' +
+              'Keluhan: ' + escapeHtml(d.keluhan || '-') + '<br>' +
+              'Diotorisasi: ' + escapeHtml(d.namaPengaju || '-') + '<br>' +
+              'No. Referensi: ' + escapeHtml(r.id) +
+            '</div>' +
+            '<button class="btn-primary klinik-selesai-btn" data-klinik-selesai="' + r.id + '">Tandai Selesai</button>' +
+          '</div>';
+        }).join('');
+
+    var historyHtml = historyToday.length === 0
+      ? '<p class="hint">Belum ada riwayat hari ini.</p>'
+      : historyToday.map(function (r) {
+          var d = r.data || {};
+          return '<div class="card list-item">' +
+            '<div class="list-item-top"><span>' + escapeHtml(d.namaSiswa || '-') + '</span><span class="stamp selesai">Selesai</span></div>' +
+            '<div class="list-item-bottom"><span>' + escapeHtml(d.kelasAsrama || '-') + '</span><span>' + escapeHtml(formatDateShort(d.completedAt)) + (d.petugasKlinik ? ' · ' + escapeHtml(d.petugasKlinik) : '') + '</span></div>' +
+          '</div>';
+        }).join('');
+
+    return '' +
+      '<div class="card">' + petugasInputHtml + '</div>' +
+      '<div class="section-label">Izin Menunggu</div>' +
+      '<div class="stack">' + pendingHtml + '</div>' +
+      '<div class="section-label" style="margin-top:18px;">Riwayat Hari Ini</div>' +
+      '<div class="stack">' + historyHtml + '</div>';
+  }
+
+  function attachKlinikDashboardBody() {
+    var petugasInput = document.getElementById('klinikPetugasInput');
+    if (petugasInput) petugasInput.addEventListener('input', function () { S.klinikPetugas = petugasInput.value; });
+    document.querySelectorAll('[data-klinik-selesai]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var id = btn.getAttribute('data-klinik-selesai');
+        if (!S.klinikPetugas || !S.klinikPetugas.trim()) {
+          alert('Isi dulu nama Petugas Bertugas di atas sebelum menandai selesai.');
+          var el = document.getElementById('klinikPetugasInput');
+          if (el) el.focus();
+          return;
+        }
+        var req = S.requests.find(function (r) { return r.id === id; });
+        if (!req) return;
+        btn.disabled = true; btn.textContent = 'Menyimpan...';
+        var prevStatus = req.status;
+        var prevData = req.data;
+        req.status = 'selesai';
+        req.data = Object.assign({}, req.data, { petugasKlinik: S.klinikPetugas.trim(), completedAt: new Date().toISOString() });
+        var result = await updateRequest(req);
+        if (!result.ok) {
+          alert('Gagal menyimpan: ' + result.error);
+          req.status = prevStatus; req.data = prevData;
+          btn.disabled = false; btn.textContent = 'Tandai Selesai';
+          return;
+        }
+        render();
+      });
+    });
+  }
+
+  var klinikIdleTimer = null;
+  function resetKlinikIdleTimer() {
+    if (klinikIdleTimer) clearTimeout(klinikIdleTimer);
+    if (S.view !== 'klinikDashboard' || S.klinikIdle) return;
+    klinikIdleTimer = setTimeout(function () {
+      if (S.view === 'klinikDashboard') { S.klinikIdle = true; render(); }
+    }, 2 * 60 * 1000);
+  }
+
+  function renderKlinikIdleOverlay(pendingCount) {
+    return '<div id="klinikIdleOverlay">' +
+      '<div class="klinik-idle-icon">&#128274;</div>' +
+      '<div class="klinik-idle-title">Layar Siaga</div>' +
+      '<div class="klinik-idle-sub">Detail keluhan siswa disembunyikan sementara untuk menjaga privasi saat layar tidak dipakai.</div>' +
+      '<div class="klinik-idle-count">' + pendingCount + ' izin menunggu ditinjau</div>' +
+      '<button type="button" id="klinikWakeBtn" class="klinik-idle-wake">Ketuk untuk Membuka</button>' +
+    '</div>';
+  }
+
+  function renderKlinikDashboard() {
+    var pendingCount = S.requests.filter(function (r) { return r.type === 'IZIN_KLINIK' && r.status !== 'selesai'; }).length;
+    var idleOverlayHtml = S.klinikIdle ? renderKlinikIdleOverlay(pendingCount) : '';
+    return '' +
+      idleOverlayHtml +
+      '<div class="top-row"><span class="eyebrow">Layar Klinik</span><button class="btn-text" id="klinikLogoutBtn3" style="width:auto;padding:0;">Keluar</button></div>' +
+      '<h2>Dashboard Izin Klinik</h2>' +
+      '<p class="hint">Layar ini bisa dibiarkan menyala terus di meja klinik.</p>' +
+      renderKlinikDashboardBody();
+  }
+
+  function attachKlinikDashboard() {
+    document.getElementById('klinikLogoutBtn3').addEventListener('click', klinikLogoutHandler());
+    var wakeBtn = document.getElementById('klinikWakeBtn');
+    if (wakeBtn) wakeBtn.addEventListener('click', function () { S.klinikIdle = false; render(); });
+    if (!S.klinikIdle) attachKlinikDashboardBody();
+    resetKlinikIdleTimer();
+  }
+
   function renderAdminDetail() {
     var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
     var t = LETTER_TYPES[req.type];
@@ -1690,6 +1980,9 @@
       case 'adminResetPassword': attachAdminResetPassword(); break;
       case 'adminDashboard': attachAdminDashboard(); break;
       case 'guruDashboard': attachGuruDashboard(); break;
+      case 'klinikForm': attachKlinikForm(); break;
+      case 'klinikSlip': attachKlinikSlip(); break;
+      case 'klinikDashboard': attachKlinikDashboard(); break;
       case 'adminDetail': attachAdminDetail(); break;
     }
   }
@@ -1885,6 +2178,10 @@
       attachRekomendasiBody();
       return;
     }
+    if (S.adminTab === 'klinik') {
+      attachKlinikDashboardBody();
+      return;
+    }
 
     document.getElementById('filterType').addEventListener('change', function (e) { S.adminFilterType = e.target.value; render(); });
     document.getElementById('filterStatus').addEventListener('change', function (e) { S.adminFilterStatus = e.target.value; render(); });
@@ -1898,7 +2195,7 @@
       btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
     });
     document.getElementById('exportBtn').addEventListener('click', async function () {
-      var csv = buildCsv(S.requests.filter(function (r) { return r.type !== 'REKOMENDASI'; }));
+      var csv = buildCsv(S.requests.filter(function (r) { return !isDedicatedTabType(r.type); }));
       try { await navigator.clipboard.writeText(csv); alert('CSV disalin ke clipboard. Paste ke Excel/Sheets.'); }
       catch (e) { alert('Gagal menyalin otomatis.'); console.log(csv); }
     });
@@ -2049,6 +2346,12 @@
       go(dashboardViewFor(S.userRole));
     });
   }
+
+  ['mousemove', 'click', 'keydown', 'touchstart'].forEach(function (evt) {
+    document.addEventListener(evt, function () {
+      if (S.view === 'klinikDashboard' && !S.klinikIdle) resetKlinikIdleTimer();
+    });
+  });
 
   async function init() {
     S.settings = await getSettings();
