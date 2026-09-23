@@ -37,6 +37,10 @@ insert into settings (id) values (1) on conflict (id) do nothing;
 -- diminta (sampai 3) punya status & catatan SENDIRI-SENDIRI -- diekspos
 -- lewat kolom guruN_* di bawah, supaya siswa bisa lihat progres per guru
 -- secara terpisah (guru A sudah selesai, guru B belum, dst).
+-- nama_siswa/nama_pengaju/kelas_asrama khusus Izin Klinik -- sengaja TIDAK
+-- memakai nama_lengkap (yang dipakai pencarian nama di Cek Status), supaya
+-- baris Izin Klinik hanya bisa ditemukan lewat kode persis, bukan lewat
+-- pencarian nama siswa.
 drop view if exists requests_public;
 create view requests_public as
   select
@@ -57,7 +61,10 @@ create view requests_public as
     data->>'namaGuru3' as guru3_nama,
     coalesce(data->>'guruStatus3', status) as guru3_status,
     data->>'guruCatatan3' as guru3_catatan,
-    data->>'guruCompletedAt3' as guru3_completed_at
+    data->>'guruCompletedAt3' as guru3_completed_at,
+    case when type = 'IZIN_KLINIK' then data->>'namaSiswa' end as klinik_nama_siswa,
+    case when type = 'IZIN_KLINIK' then data->>'namaPengaju' end as klinik_nama_pengaju,
+    case when type = 'IZIN_KLINIK' then data->>'kelasAsrama' end as klinik_kelas_asrama
   from requests;
 
 -- Fungsi khusus: siswa (anon, tanpa login) bisa perbaiki link form Rekomendasi

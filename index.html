@@ -730,6 +730,10 @@
       pengambilanInfo: '📍 Dokumen sudah selesai dan siap diambil di Teacher Lounge (TL), temui Pak Danny.',
       klinikBaruInfo: '✅ Izin ke klinik sudah diberikan — silakan langsung menuju klinik.',
       klinikSelesaiInfo: '✅ Kunjungan ke klinik sudah selesai dicatat.',
+      klinikNamaSiswa: 'Nama Siswa',
+      klinikKelasAsrama: 'Kelas / Asrama',
+      klinikDiizinkanOleh: 'Diizinkan Oleh',
+      klinikPernyataan: 'Siswa ini telah mendapat persetujuan dari Dorm Parent/SPV untuk pergi ke klinik. Keterangan ini mohon digunakan dengan sebaik-baiknya dan hanya berlaku untuk tanggal pengajuan di atas.',
       catatanGuruLabel: 'Catatan guru:',
       catatanAdminLabel: 'Catatan:',
       rekomendasiSelesaiInfo: function (waktu) { return '✅ Surat selesai pada ' + waktu + '. Silakan cek email yang kamu daftarkan saat mengajukan — guru sudah mengirimkan surat rekomendasi ke email tersebut. Kalau belum ada dalam waktu 1x24 jam, silakan hubungi guru yang bersangkutan secara langsung.'; },
@@ -785,6 +789,10 @@
       pengambilanInfo: '📍 Your document is ready — pick it up at the Teacher Lounge (TL), see Mr. Danny.',
       klinikBaruInfo: '✅ Clinic permission has been granted — please head to the clinic now.',
       klinikSelesaiInfo: '✅ The clinic visit has been recorded as completed.',
+      klinikNamaSiswa: 'Student Name',
+      klinikKelasAsrama: 'Class / Dorm',
+      klinikDiizinkanOleh: 'Approved By',
+      klinikPernyataan: 'This student has received approval from a Dorm Parent/SPV to visit the clinic. Please use this notice responsibly — it is valid only for the submission date above.',
       catatanGuruLabel: "Teacher's note:",
       catatanAdminLabel: 'Note:',
       rekomendasiSelesaiInfo: function (waktu) { return '✅ Completed on ' + waktu + '. Please check the email you registered when submitting — the teacher has sent the recommendation letter to that address. If it hasn’t arrived within 24 hours, please contact the teacher directly.'; },
@@ -998,7 +1006,10 @@
     var guruSlots = [1, 2, 3].map(function (n) {
       return { n: n, name: row['guru' + n + '_nama'], status: row['guru' + n + '_status'], note: row['guru' + n + '_catatan'], completedAt: row['guru' + n + '_completed_at'] };
     }).filter(function (g) { return g.name; });
-    return { id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status, adminNote: row.admin_note, guruSlots: guruSlots, data: { namaLengkap: row.nama_lengkap } };
+    return {
+      id: row.id, type: row.type, submittedAt: row.submitted_at, status: row.status, adminNote: row.admin_note, guruSlots: guruSlots,
+      data: { namaLengkap: row.nama_lengkap, namaSiswa: row.klinik_nama_siswa, namaPengaju: row.klinik_nama_pengaju, kelasAsrama: row.klinik_kelas_asrama }
+    };
   }
   function mapFullRow(row) {
     return {
@@ -1315,6 +1326,11 @@
           var isKlinik = r.type === 'IZIN_KLINIK';
           var pickupHtml = (r.status === 'selesai' && !isRekom && !isKlinik) ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
           var klinikInfoHtml = isKlinik ? '<div class="pickup-card">' + escapeHtml(r.status === 'selesai' ? tt('klinikSelesaiInfo') : tt('klinikBaruInfo')) + '</div>' : '';
+          var klinikDetailHtml = isKlinik ? '<div class="card" style="margin-top:8px;">' +
+            '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikNamaSiswa')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.namaSiswa) || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikKelasAsrama')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.kelasAsrama) || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikDiizinkanOleh')) + '</span><span class="detail-value">' + escapeHtml((r.data && r.data.namaPengaju) || '-') + '</span></div>' +
+          '</div><p class="hint" style="margin-top:8px;">' + escapeHtml(tt('klinikPernyataan')) + '</p>' : '';
           var noteHtml = '';
           var guruBreakdownHtml = '';
           var anyLinkBermasalah = false;
@@ -1358,6 +1374,7 @@
             noteHtml +
             guruBreakdownHtml +
             pickupHtml +
+            klinikDetailHtml +
             klinikInfoHtml +
             fixLinkHtml +
           '</div>';
