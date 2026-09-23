@@ -1756,6 +1756,12 @@
       '<div class="stat"><span class="stat-num">' + selesaiSemua.length + '</span><span class="stat-label">Sudah Ditandai Klinik</span></div>' +
     '</div>';
 
+    var byPengaju = tallyBy(klinikRequests, function (r) { return r.data && r.data.namaPengaju; });
+    var bySiswaKlinik = tallyBy(klinikRequests, function (r) { return r.data && r.data.namaSiswa; });
+    var recapHtml = '' +
+      '<div class="stat-block"><p class="stat-block-title">Rekap Dorm Parent / SPV</p>' + renderRecapList(byPengaju) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswaKlinik) + '</div>';
+
     var petugasInputHtml = opts.readOnly ? '' : ('<div class="card">' +
       '<label class="field"><span class="field-label">Petugas Bertugas</span>' +
       '<input class="field-input" id="klinikPetugasInput" type="text" placeholder="Nama petugas klinik saat ini" value="' + escapeHtml(S.klinikPetugas) + '"></label>' +
@@ -1794,6 +1800,7 @@
 
     return '' +
       statsHtml +
+      recapHtml +
       petugasInputHtml +
       '<div class="section-label">Izin Menunggu</div>' +
       '<div class="stack">' + pendingHtml + '</div>' +
