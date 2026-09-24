@@ -886,7 +886,8 @@
     klinikPetugas: '',
     klinikIdle: false,
     klinikErrors: {},
-    dormparentTab: 'form'
+    dormparentTab: 'form',
+    klinikStatFilter: null
   };
 
   function escapeHtml(str) {
@@ -1828,9 +1829,44 @@
 
     var statsHtml = '<div class="stats-grid">' +
       '<div class="stat"><span class="stat-num">' + klinikRequests.length + '</span><span class="stat-label">Total Pengajuan</span></div>' +
-      '<div class="stat"><span class="stat-num">' + pending.length + '</span><span class="stat-label">Menunggu</span></div>' +
-      '<div class="stat"><span class="stat-num">' + selesaiSemua.length + '</span><span class="stat-label">Sudah Ditandai Klinik</span></div>' +
+      '<button class="stat stat-clickable' + (S.klinikStatFilter === 'menunggu' ? ' active' : '') + '" data-klinikstatfilter="menunggu"><span class="stat-num">' + pending.length + '</span><span class="stat-label">Menunggu</span></button>' +
+      '<button class="stat stat-clickable' + (S.klinikStatFilter === 'selesai' ? ' active' : '') + '" data-klinikstatfilter="selesai"><span class="stat-num">' + selesaiSemua.length + '</span><span class="stat-label">Sudah Ditandai Klinik</span></button>' +
     '</div>';
+
+    function klinikTreatmentSummary(d) {
+      if (!(d.diagnosa || d.lamaIstirahat || d.jenisObat || d.catatanKlinik)) return '';
+      return '<div class="hint" style="margin-top:6px;line-height:1.6;">' +
+        (d.diagnosa ? '<strong>Diagnosa:</strong> ' + escapeHtml(d.diagnosa) + '<br>' : '') +
+        (d.lamaIstirahat ? '<strong>Lama Istirahat:</strong> ' + escapeHtml(d.lamaIstirahat) + '<br>' : '') +
+        (d.jenisObat ? '<strong>Obat:</strong> ' + escapeHtml(d.jenisObat) + '<br>' : '') +
+        (d.catatanKlinik ? '<strong>Catatan Klinik:</strong> ' + escapeHtml(d.catatanKlinik) : '') +
+      '</div>';
+    }
+
+    var statDetailHtml = '';
+    if (S.klinikStatFilter === 'menunggu' || S.klinikStatFilter === 'selesai') {
+      var matching = S.klinikStatFilter === 'menunggu' ? pending : selesaiSemua.slice().sort(function (a, b) {
+        return new Date((b.data && b.data.completedAt) || b.submittedAt) - new Date((a.data && a.data.completedAt) || a.submittedAt);
+      });
+      var statLabel = S.klinikStatFilter === 'menunggu' ? 'Menunggu' : 'Sudah Ditandai Klinik';
+      var detailRowsHtml = matching.length === 0 ? '<p class="hint">Belum ada.</p>' : matching.map(function (r) {
+        var d = r.data || {};
+        var timingHtml;
+        if (r.status === 'selesai' && d.completedAt) {
+          var deltaMs = new Date(d.completedAt).getTime() - new Date(r.submittedAt).getTime();
+          timingHtml = 'Diajukan ' + escapeHtml(formatDateShort(r.submittedAt)) + ' &rarr; Selesai ' + escapeHtml(formatDateTimeFull(d.completedAt)) + (deltaMs >= 0 ? ' (' + escapeHtml(formatDuration(deltaMs)) + ')' : '') + (d.petugasKlinik ? ' &middot; ' + escapeHtml(d.petugasKlinik) : '');
+        } else {
+          timingHtml = 'Diajukan ' + escapeHtml(formatDateTimeFull(r.submittedAt));
+        }
+        return '<div class="card list-item">' +
+          '<div class="list-item-top"><span>' + escapeHtml(d.namaSiswa || '-') + '</span><span class="req-id-small" title="Klik untuk salin kode">' + escapeHtml(r.id) + '</span></div>' +
+          '<div class="list-item-bottom"><span>' + escapeHtml(klinikKelasAsramaText(d)) + ' &middot; ' + escapeHtml(d.namaPengaju || '-') + '</span></div>' +
+          '<div class="hint" style="margin-top:4px;">' + timingHtml + '</div>' +
+          klinikTreatmentSummary(d) +
+        '</div>';
+      }).join('');
+      statDetailHtml = '<div class="stat-block"><p class="stat-block-title">Detail ' + escapeHtml(statLabel) + '</p>' + detailRowsHtml + '</div>';
+    }
 
     var byPengaju = tallyBy(klinikRequests, function (r) { return r.data && r.data.namaPengaju; });
     var bySiswaKlinik = tallyBy(klinikRequests, function (r) { return r.data && r.data.namaSiswa; });
@@ -1854,7 +1890,9 @@
             '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Lama Istirahat</span>' +
               '<input class="field-input" id="klinikLamaIstirahatInput-' + r.id + '" type="text" placeholder="Contoh: 1 hari, istirahat di kamar"></label>' +
             '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Jenis Obat yang Diberikan</span>' +
-              '<input class="field-input" id="klinikObatInput-' + r.id + '" type="text" placeholder="Contoh: Paracetamol"></label>'
+              '<input class="field-input" id="klinikObatInput-' + r.id + '" type="text" placeholder="Contoh: Paracetamol"></label>' +
+            '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Catatan Klinik (opsional)</span>' +
+              '<textarea class="field-input" id="klinikCatatanInput-' + r.id + '" rows="2" placeholder="Contoh: perlu dirujuk ke dokter / observasi lebih lanjut"></textarea></label>'
           );
           return '<div class="card klinik-alert-card">' +
             '<div class="klinik-alert-top">' +
@@ -1877,22 +1915,17 @@
       ? '<p class="hint">Belum ada riwayat hari ini.</p>'
       : historyToday.map(function (r) {
           var d = r.data || {};
-          var treatmentSummaryHtml = (d.diagnosa || d.lamaIstirahat || d.jenisObat) ? (
-            '<div class="hint" style="margin-top:6px;line-height:1.6;">' +
-              (d.diagnosa ? '<strong>Diagnosa:</strong> ' + escapeHtml(d.diagnosa) + '<br>' : '') +
-              (d.lamaIstirahat ? '<strong>Lama Istirahat:</strong> ' + escapeHtml(d.lamaIstirahat) + '<br>' : '') +
-              (d.jenisObat ? '<strong>Obat:</strong> ' + escapeHtml(d.jenisObat) : '') +
-            '</div>'
-          ) : '';
           return '<div class="card list-item">' +
             '<div class="list-item-top"><span>' + escapeHtml(d.namaSiswa || '-') + '</span><span class="stamp selesai">Selesai</span></div>' +
             '<div class="list-item-bottom"><span>' + escapeHtml(klinikKelasAsramaText(d)) + '</span><span>' + escapeHtml(formatDateShort(d.completedAt)) + (d.petugasKlinik ? ' · ' + escapeHtml(d.petugasKlinik) : '') + '</span></div>' +
-            treatmentSummaryHtml +
+            klinikTreatmentSummary(d) +
           '</div>';
         }).join('');
 
     return '' +
       statsHtml +
+      '<p class="hint" style="margin-top:-8px;">Klik salah satu angka di atas untuk lihat rinciannya.</p>' +
+      statDetailHtml +
       recapHtml +
       petugasInputHtml +
       '<div class="section-label">Izin Menunggu</div>' +
@@ -1904,6 +1937,13 @@
   function attachKlinikDashboardBody() {
     var petugasInput = document.getElementById('klinikPetugasInput');
     if (petugasInput) petugasInput.addEventListener('input', function () { S.klinikPetugas = petugasInput.value; });
+    document.querySelectorAll('[data-klinikstatfilter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var key = btn.getAttribute('data-klinikstatfilter');
+        S.klinikStatFilter = (S.klinikStatFilter === key) ? null : key;
+        render();
+      });
+    });
     document.querySelectorAll('[data-klinik-selesai]').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         var id = btn.getAttribute('data-klinik-selesai');
@@ -1918,6 +1958,7 @@
         var diagnosaEl = document.getElementById('klinikDiagnosaInput-' + id);
         var lamaIstirahatEl = document.getElementById('klinikLamaIstirahatInput-' + id);
         var obatEl = document.getElementById('klinikObatInput-' + id);
+        var catatanEl = document.getElementById('klinikCatatanInput-' + id);
         btn.disabled = true; btn.textContent = 'Menyimpan...';
         var prevStatus = req.status;
         var prevData = req.data;
@@ -1927,7 +1968,8 @@
           completedAt: new Date().toISOString(),
           diagnosa: diagnosaEl ? diagnosaEl.value.trim() : '',
           lamaIstirahat: lamaIstirahatEl ? lamaIstirahatEl.value.trim() : '',
-          jenisObat: obatEl ? obatEl.value.trim() : ''
+          jenisObat: obatEl ? obatEl.value.trim() : '',
+          catatanKlinik: catatanEl ? catatanEl.value.trim() : ''
         });
         var result = await updateRequest(req);
         if (!result.ok) {
