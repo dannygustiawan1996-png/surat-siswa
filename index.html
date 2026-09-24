@@ -86,6 +86,7 @@
   .klinik-alert-card .field-input::placeholder { color: rgba(255,255,255,0.55); }
   .klinik-alert-card .field-input:focus { border-bottom-color: #FFFFFF; }
   .klinik-alert-card .req-id-small { color: #FFFFFF; font-weight: 600; }
+  .klinik-alert-card .field-error, .klinik-alert-card .req { color: #FFD1CC; }
 
   #klinikIdleOverlay {
     position: fixed; inset: 0; background: var(--color-navy); color: #FFFFFF; z-index: 999;
@@ -887,7 +888,10 @@
     klinikIdle: false,
     klinikErrors: {},
     dormparentTab: 'form',
-    klinikStatFilter: null
+    klinikStatFilter: null,
+    klinikTandaiErrors: {},
+    klinikPetugasError: false,
+    klinikTreatmentDraft: {}
   };
 
   function escapeHtml(str) {
@@ -1874,9 +1878,10 @@
       '<div class="stat-block"><p class="stat-block-title">Rekap Dorm Parent / SPV / RA</p>' + renderRecapList(byPengaju) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswaKlinik) + '</div>';
 
+    var petugasErrHtml = S.klinikPetugasError ? '<span class="field-error">Wajib diisi</span>' : '';
     var petugasInputHtml = opts.readOnly ? '' : ('<div class="card">' +
-      '<label class="field"><span class="field-label">Petugas Bertugas</span>' +
-      '<input class="field-input" id="klinikPetugasInput" type="text" placeholder="Nama petugas klinik saat ini" value="' + escapeHtml(S.klinikPetugas) + '"></label>' +
+      '<label class="field"><span class="field-label">Petugas Bertugas <span class="req">*</span></span>' +
+      '<input class="field-input" id="klinikPetugasInput" type="text" placeholder="Nama petugas klinik saat ini" value="' + escapeHtml(S.klinikPetugas) + '">' + petugasErrHtml + '</label>' +
       '<p class="hint">Diisi sekali per shift — tiap "Tandai Selesai" akan tercatat atas nama ini.</p>' +
     '</div>');
 
@@ -1884,15 +1889,18 @@
       ? '<p class="hint">Tidak ada izin yang menunggu.</p>'
       : pending.map(function (r) {
           var d = r.data || {};
+          var errs = S.klinikTandaiErrors[r.id] || {};
+          var draft = S.klinikTreatmentDraft[r.id] || {};
+          function treatmentErr(key) { return errs[key] ? '<span class="field-error">Wajib diisi</span>' : ''; }
           var treatmentInputsHtml = opts.readOnly ? '' : (
-            '<label class="field" style="margin-top:10px;"><span class="field-label" style="color:rgba(255,255,255,0.8);">Diagnosa</span>' +
-              '<textarea class="field-input" id="klinikDiagnosaInput-' + r.id + '" rows="2" placeholder="Diagnosa dari klinik"></textarea></label>' +
-            '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Lama Istirahat</span>' +
-              '<input class="field-input" id="klinikLamaIstirahatInput-' + r.id + '" type="text" placeholder="Contoh: 1 hari, istirahat di kamar"></label>' +
-            '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Jenis Obat yang Diberikan</span>' +
-              '<input class="field-input" id="klinikObatInput-' + r.id + '" type="text" placeholder="Contoh: Paracetamol"></label>' +
-            '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Catatan Klinik (opsional)</span>' +
-              '<textarea class="field-input" id="klinikCatatanInput-' + r.id + '" rows="2" placeholder="Contoh: perlu dirujuk ke dokter / observasi lebih lanjut"></textarea></label>'
+            '<label class="field" style="margin-top:10px;"><span class="field-label" style="color:rgba(255,255,255,0.8);">Diagnosa <span class="req">*</span></span>' +
+              '<textarea class="field-input" id="klinikDiagnosaInput-' + r.id + '" data-treatment-field="diagnosa" data-req-id="' + r.id + '" rows="2" placeholder="Diagnosa dari klinik">' + escapeHtml(draft.diagnosa || '') + '</textarea>' + treatmentErr('diagnosa') + '</label>' +
+            '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Lama Istirahat <span class="req">*</span></span>' +
+              '<input class="field-input" id="klinikLamaIstirahatInput-' + r.id + '" data-treatment-field="lamaIstirahat" data-req-id="' + r.id + '" type="text" placeholder="Contoh: 1 hari, istirahat di kamar" value="' + escapeHtml(draft.lamaIstirahat || '') + '">' + treatmentErr('lamaIstirahat') + '</label>' +
+            '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Jenis Obat yang Diberikan <span class="req">*</span></span>' +
+              '<input class="field-input" id="klinikObatInput-' + r.id + '" data-treatment-field="jenisObat" data-req-id="' + r.id + '" type="text" placeholder="Contoh: Paracetamol" value="' + escapeHtml(draft.jenisObat || '') + '">' + treatmentErr('jenisObat') + '</label>' +
+            '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Catatan Klinik <span class="req">*</span></span>' +
+              '<textarea class="field-input" id="klinikCatatanInput-' + r.id + '" data-treatment-field="catatanKlinik" data-req-id="' + r.id + '" rows="2" placeholder="Contoh: perlu dirujuk ke dokter / observasi lebih lanjut">' + escapeHtml(draft.catatanKlinik || '') + '</textarea>' + treatmentErr('catatanKlinik') + '</label>'
           );
           return '<div class="card klinik-alert-card">' +
             '<div class="klinik-alert-top">' +
@@ -1944,32 +1952,61 @@
         render();
       });
     });
+    document.querySelectorAll('[data-treatment-field]').forEach(function (inp) {
+      var handler = function () {
+        var reqId = inp.getAttribute('data-req-id');
+        var field = inp.getAttribute('data-treatment-field');
+        if (!S.klinikTreatmentDraft[reqId]) S.klinikTreatmentDraft[reqId] = {};
+        S.klinikTreatmentDraft[reqId][field] = inp.value;
+      };
+      inp.addEventListener('input', handler);
+      inp.addEventListener('change', handler);
+    });
     document.querySelectorAll('[data-klinik-selesai]').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         var id = btn.getAttribute('data-klinik-selesai');
-        if (!S.klinikPetugas || !S.klinikPetugas.trim()) {
-          alert('Isi dulu nama Petugas Bertugas di atas sebelum menandai selesai.');
-          var el = document.getElementById('klinikPetugasInput');
-          if (el) el.focus();
-          return;
-        }
         var req = S.requests.find(function (r) { return r.id === id; });
         if (!req) return;
         var diagnosaEl = document.getElementById('klinikDiagnosaInput-' + id);
         var lamaIstirahatEl = document.getElementById('klinikLamaIstirahatInput-' + id);
         var obatEl = document.getElementById('klinikObatInput-' + id);
         var catatanEl = document.getElementById('klinikCatatanInput-' + id);
+
+        var petugasVal = (S.klinikPetugas || '').trim();
+        var diagnosaVal = diagnosaEl ? diagnosaEl.value.trim() : '';
+        var lamaIstirahatVal = lamaIstirahatEl ? lamaIstirahatEl.value.trim() : '';
+        var obatVal = obatEl ? obatEl.value.trim() : '';
+        var catatanVal = catatanEl ? catatanEl.value.trim() : '';
+
+        S.klinikPetugasError = !petugasVal;
+        var fieldErrors = {
+          diagnosa: !diagnosaVal,
+          lamaIstirahat: !lamaIstirahatVal,
+          jenisObat: !obatVal,
+          catatanKlinik: !catatanVal
+        };
+        var hasFieldError = fieldErrors.diagnosa || fieldErrors.lamaIstirahat || fieldErrors.jenisObat || fieldErrors.catatanKlinik;
+        S.klinikTandaiErrors[id] = fieldErrors;
+        if (S.klinikPetugasError || hasFieldError) {
+          render();
+          if (S.klinikPetugasError) {
+            var el = document.getElementById('klinikPetugasInput');
+            if (el) el.focus();
+          }
+          return;
+        }
+
         btn.disabled = true; btn.textContent = 'Menyimpan...';
         var prevStatus = req.status;
         var prevData = req.data;
         req.status = 'selesai';
         req.data = Object.assign({}, req.data, {
-          petugasKlinik: S.klinikPetugas.trim(),
+          petugasKlinik: petugasVal,
           completedAt: new Date().toISOString(),
-          diagnosa: diagnosaEl ? diagnosaEl.value.trim() : '',
-          lamaIstirahat: lamaIstirahatEl ? lamaIstirahatEl.value.trim() : '',
-          jenisObat: obatEl ? obatEl.value.trim() : '',
-          catatanKlinik: catatanEl ? catatanEl.value.trim() : ''
+          diagnosa: diagnosaVal,
+          lamaIstirahat: lamaIstirahatVal,
+          jenisObat: obatVal,
+          catatanKlinik: catatanVal
         });
         var result = await updateRequest(req);
         if (!result.ok) {
@@ -1978,6 +2015,8 @@
           btn.disabled = false; btn.textContent = 'Tandai Selesai';
           return;
         }
+        delete S.klinikTreatmentDraft[id];
+        delete S.klinikTandaiErrors[id];
         render();
       });
     });
