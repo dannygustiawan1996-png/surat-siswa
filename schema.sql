@@ -68,7 +68,10 @@ create view requests_public as
       coalesce(nullif(concat_ws(' · ', data->>'kelas', data->>'asrama'), ''), data->>'kelasAsrama')
     end as klinik_kelas_asrama,
     case when type = 'IZIN_KLINIK' then data->>'keluhan' end as klinik_keluhan,
-    case when type = 'IZIN_KLINIK' then data->>'peranPengaju' end as klinik_peran_pengaju
+    case when type = 'IZIN_KLINIK' then data->>'peranPengaju' end as klinik_peran_pengaju,
+    case when type = 'IZIN_KLINIK' then data->>'diagnosa' end as klinik_diagnosa,
+    case when type = 'IZIN_KLINIK' then data->>'lamaIstirahat' end as klinik_lama_istirahat,
+    case when type = 'IZIN_KLINIK' then data->>'jenisObat' end as klinik_jenis_obat
   from requests;
 
 -- Fungsi khusus: siswa (anon, tanpa login) bisa perbaiki link form Rekomendasi
