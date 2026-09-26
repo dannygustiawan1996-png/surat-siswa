@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Latihan TKA — UPH College</title>
+  <link rel="stylesheet" href="/tka/tka.css">
+</head>
+<body class="tka-page">
+  <header class="tka-header">
+    <div>
+      <a href="/" class="tka-kembali">← Layanan Surat</a>
+      <h1>Latihan TKA</h1>
+    </div>
+    <div class="tka-header-info">
+      <span id="info-streak" class="tka-chip">Streak 0 hari</span>
+      <a href="/tka/leaderboard.html" class="tka-btn">Leaderboard</a>
+    </div>
+  </header>
+
+  <main class="tka-latihan">
+    <aside class="tka-panel">
+      <label class="tka-label" for="pilih-mapel">Mapel</label>
+      <select id="pilih-mapel" class="tka-input"></select>
+
+      <label class="tka-label" for="pilih-topik">Topik</label>
+      <select id="pilih-topik" class="tka-input"><option value="">Semua topik</option></select>
+
+      <label class="tka-label" for="pilih-kesulitan">Kesulitan</label>
+      <select id="pilih-kesulitan" class="tka-input">
+        <option value="">Campur</option><option value="mudah">Mudah</option><option value="sedang">Sedang</option><option value="sulit">Sulit</option>
+      </select>
+
+      <label class="tka-label" for="pilih-jumlah">Jumlah soal</label>
+      <select id="pilih-jumlah" class="tka-input"><option>5</option><option selected>10</option><option>15</option><option>20</option></select>
+
+      <button id="btn-mulai" class="tka-btn tka-btn-utama tka-full">Mulai Latihan</button>
+      <button id="btn-tryout" class="tka-btn tka-full">Lihat Tryout</button>
+      <button id="btn-pilihan" class="tka-btn tka-full">Atur 2 Mapel Pilihan</button>
+    </aside>
+
+    <section class="tka-chat">
+      <div id="chat-log" class="tka-chat-log" aria-live="polite"></div>
+      <form id="chat-form" class="tka-chat-form">
+        <input id="chat-input" class="tka-input" autocomplete="off"
+               placeholder='Tanya apa saja, mis. "jelaskan konsep peluang" atau "latihan fisika 5 soal"'>
+        <button class="tka-btn tka-btn-utama" type="submit">Kirim</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/tka/tka-config.js"></script>
+  <script src="/tka/tka-api.js"></script>
+  <script src="/tka/tka-soal.js"></script>
+  <script src="/tka/latihan.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "tka-chatbot-module",
+  "private": true,
+  "type": "module",
+  "description": "Modul Latihan TKA (chatbot AI + leaderboard + pop-up) untuk web Layanan Surat Siswa UPH College",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin TKA — UPH College</title>
+  <link rel="stylesheet" href="/tka/tka.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body class="tka-page">
+  <header class="tka-header">
+    <div><a href="/" class="tka-kembali">← Layanan Surat</a><h1>Admin Latihan TKA</h1></div>
+  </header>
+
+  <main class="tka-admin">
+    <nav class="tka-tabs" id="tabs">
+      <button data-tab="dashboard" class="aktif">Dashboard</button>
+      <button data-tab="soal">Bank Soal</button>
+      <button data-tab="generate">Buat Soal dengan AI</button>
+      <button data-tab="popup">Pop-up</button>
+      <button data-tab="laporan">Laporan Soal</button>
+      <button data-tab="tryout">Tryout &amp; Periode</button>
+    </nav>
+
+    <!-- DASHBOARD -->
+    <section data-panel="dashboard">
+      <div id="dash-kartu" class="tka-kartu-grid"></div>
+      <h3>Topik dengan persentase benar terendah</h3>
+      <table class="tka-tabel"><thead><tr><th>Mapel</th><th>Topik</th><th class="kanan">Dijawab</th><th class="kanan">% benar</th><th class="kanan">Siswa</th></tr></thead><tbody id="dash-topik"></tbody></table>
+      <h3>Pop-up 14 hari terakhir</h3>
+      <table class="tka-tabel"><thead><tr><th>Tanggal</th><th class="kanan">Tampil</th><th class="kanan">Dijawab</th><th class="kanan">Mulai latihan</th><th class="kanan">Ditutup</th></tr></thead><tbody id="dash-popup"></tbody></table>
+    </section>
+
+    <!-- BANK SOAL -->
+    <section data-panel="soal" hidden>
+      <div class="tka-lb-filter">
+        <select id="f-mapel" class="tka-input"></select>
+        <select id="f-status" class="tka-input"><option value="draf">Draf</option><option value="valid">Valid</option><option value="arsip">Arsip</option><option value="">Semua</option></select>
+        <input id="f-q" class="tka-input" placeholder="Cari teks soal">
+        <button id="btn-cari" class="tka-btn">Cari</button>
+        <button id="btn-soal-baru" class="tka-btn tka-btn-utama">+ Soal baru</button>
+      </div>
+      <div class="tka-baris-tombol">
+        <button id="btn-valid-terpilih" class="tka-btn">Validasi terpilih</button>
+        <button id="btn-arsip-terpilih" class="tka-btn">Arsipkan terpilih</button>
+        <button id="btn-tryout-terpilih" class="tka-btn">Buat tryout dari terpilih</button>
+      </div>
+      <div id="daftar-soal"></div>
+      <div id="paging" class="tka-baris-tombol"></div>
+    </section>
+
+    <!-- GENERATE -->
+    <section data-panel="generate" hidden>
+      <p class="tka-catatan">AI membuat <strong>draf</strong>. Semua soal hasil AI wajib diperiksa dan divalidasi sebelum tayang ke siswa.</p>
+      <div class="tka-form-grid">
+        <label class="tka-label">Mapel <select id="g-mapel" class="tka-input"></select></label>
+        <label class="tka-label">Topik (sesuai kisi-kisi) <input id="g-topik" class="tka-input" placeholder="mis. Peluang kejadian majemuk"></label>
+        <label class="tka-label">Kesulitan <select id="g-kesulitan" class="tka-input"><option>mudah</option><option selected>sedang</option><option>sulit</option></select></label>
+        <label class="tka-label">Bentuk <select id="g-bentuk" class="tka-input"><option value="pg">Pilihan ganda</option><option value="pg_kompleks">PG kompleks</option><option value="kategori">Benar/Salah (kategori)</option></select></label>
+        <label class="tka-label">Jumlah (maks 10) <input id="g-jumlah" type="number" min="1" max="10" value="5" class="tka-input"></label>
+        <label class="tka-label">Catatan tambahan <input id="g-catatan" class="tka-input" placeholder="opsional"></label>
+      </div>
+      <button id="btn-generate" class="tka-btn tka-btn-utama">Buat draf soal</button>
+      <div id="g-hasil" class="tka-catatan"></div>
+    </section>
+
+    <!-- POPUP -->
+    <section data-panel="popup" hidden>
+      <div class="tka-form-grid">
+        <label><input type="checkbox" id="p-aktif"> Pop-up aktif</label>
+        <label class="tka-label">Judul <input id="p-judul" class="tka-input"></label>
+        <label class="tka-label">Tanggal mulai <input id="p-mulai" type="date" class="tka-input"></label>
+        <label class="tka-label">Tanggal selesai <input id="p-selesai" type="date" class="tka-input"></label>
+        <label class="tka-label">Tanggal TKA (hitung mundur) <input id="p-tka" type="date" class="tka-input"></label>
+        <label class="tka-label">Target angkatan (pisah koma, kosong = semua) <input id="p-angkatan" class="tka-input" placeholder="2027"></label>
+        <label class="tka-label">Mapel soal harian <select id="p-mapel" class="tka-input"></select></label>
+      </div>
+      <label class="tka-label">Variasi pesan (satu per baris). Placeholder: {nama} {hari} {streak} {peringkat} {mapel}
+        <textarea id="p-pesan" class="tka-input" rows="5"></textarea></label>
+      <button id="btn-simpan-popup" class="tka-btn tka-btn-utama">Simpan pengaturan</button>
+      <span id="p-status" class="tka-catatan"></span>
+    </section>
+
+    <!-- LAPORAN -->
+    <section data-panel="laporan" hidden>
+      <table class="tka-tabel"><thead><tr><th>Waktu</th><th>Siswa</th><th>Soal</th><th>Alasan</th><th>Status</th><th></th></tr></thead><tbody id="daftar-laporan"></tbody></table>
+    </section>
+
+    <!-- TRYOUT & PERIODE -->
+    <section data-panel="tryout" hidden>
+      <h3>Tryout</h3>
+      <table class="tka-tabel"><thead><tr><th>Judul</th><th>Mapel</th><th>Durasi</th><th>Dibuka</th><th>Ditutup</th></tr></thead><tbody id="daftar-tryout"></tbody></table>
+      <p class="tka-catatan">Buat tryout: pilih soal valid di tab Bank Soal lalu tekan "Buat tryout dari terpilih".</p>
+      <h3>Periode leaderboard</h3>
+      <table class="tka-tabel"><thead><tr><th>Nama</th><th>Mulai</th><th>Selesai</th><th>Aktif</th></tr></thead><tbody id="daftar-periode"></tbody></table>
+      <div class="tka-form-grid">
+        <label class="tka-label">Nama periode <input id="pr-nama" class="tka-input"></label>
+        <label class="tka-label">Mulai <input id="pr-mulai" type="date" class="tka-input"></label>
+        <label class="tka-label">Selesai <input id="pr-selesai" type="date" class="tka-input"></label>
+        <label><input type="checkbox" id="pr-aktif" checked> Jadikan periode aktif</label>
+      </div>
+      <button id="btn-periode" class="tka-btn">Tambah periode</button>
+    </section>
+  </main>
+
+  <!-- Editor soal -->
+  <div id="editor" class="tka-overlay" hidden>
+    <div class="tka-modal tka-modal-lebar">
+      <button type="button" class="tka-tutup" data-tutup-editor aria-label="Tutup">×</button>
+      <h2 id="ed-judul">Soal</h2>
+      <div class="tka-form-grid">
+        <label class="tka-label">Mapel <select id="ed-mapel" class="tka-input"></select></label>
+        <label class="tka-label">Topik <input id="ed-topik" class="tka-input"></label>
+        <label class="tka-label">Subtopik <input id="ed-subtopik" class="tka-input"></label>
+        <label class="tka-label">Kesulitan <select id="ed-kesulitan" class="tka-input"><option>mudah</option><option>sedang</option><option>sulit</option></select></label>
+        <label class="tka-label">Bentuk <select id="ed-bentuk" class="tka-input"><option value="pg">Pilihan ganda</option><option value="pg_kompleks">PG kompleks</option><option value="kategori">Benar/Salah</option></select></label>
+        <label class="tka-label">Status <select id="ed-status" class="tka-input"><option>draf</option><option>valid</option><option>arsip</option></select></label>
+      </div>
+      <label class="tka-label">Stimulus (opsional) <textarea id="ed-stimulus" class="tka-input" rows="3"></textarea></label>
+      <label class="tka-label">Pertanyaan <textarea id="ed-pertanyaan" class="tka-input" rows="3"></textarea></label>
+      <label class="tka-label">Opsi (JSON) <textarea id="ed-opsi" class="tka-input tka-mono" rows="5"></textarea></label>
+      <label class="tka-label">Kunci (JSON) — PG: ["C"] · PG kompleks: ["A","C"] · Kategori: {"1":true,"2":false}
+        <input id="ed-kunci" class="tka-input tka-mono"></label>
+      <label class="tka-label">Pembahasan <textarea id="ed-pembahasan" class="tka-input" rows="3"></textarea></label>
+      <label><input type="checkbox" id="ed-harian"> Boleh tampil sebagai soal harian (pop-up)</label>
+      <div class="tka-baris-tombol"><button id="btn-simpan-soal" class="tka-btn tka-btn-utama">Simpan</button><span id="ed-status-msg" class="tka-catatan"></span></div>
+    </div>
+  </div>
+
+  <script src="/tka/tka-config.js"></script>
+  <script src="/tka/tka-api.js"></script>
+  <script src="/tka/admin.js"></script>
+</body>
+</html>

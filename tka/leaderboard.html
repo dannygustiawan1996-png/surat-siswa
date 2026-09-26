@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaderboard TKA — UPH College</title>
+  <link rel="stylesheet" href="/tka/tka.css">
+</head>
+<body class="tka-page">
+  <header class="tka-header">
+    <div>
+      <a href="/tka/latihan.html" class="tka-kembali">← Latihan TKA</a>
+      <h1>Leaderboard TKA</h1>
+    </div>
+    <div class="tka-header-info"><span id="info-streak" class="tka-chip">Streak 0 hari</span></div>
+  </header>
+
+  <main class="tka-lb">
+    <nav id="tab-mapel" class="tka-tabs" aria-label="Mapel"></nav>
+    <div class="tka-lb-filter">
+      <div class="tka-seg" id="seg-rentang">
+        <button data-v="minggu" class="aktif">Minggu ini</button>
+        <button data-v="bulan">Bulan ini</button>
+        <button data-v="periode">Sepanjang periode</button>
+      </div>
+      <label><input type="checkbox" id="cek-kelas"> Hanya kelasku</label>
+    </div>
+    <div id="lb-saya" class="tka-lb-saya"></div>
+    <table class="tka-tabel">
+      <thead><tr><th>#</th><th>Nama</th><th>Kelas</th><th class="kanan">Soal benar</th><th class="kanan">Poin</th></tr></thead>
+      <tbody id="lb-body"></tbody>
+    </table>
+    <details class="tka-pengaturan">
+      <summary>Pengaturan tampilan namaku</summary>
+      <label class="tka-label">Nama tampilan <input id="nama-tampilan" class="tka-input" maxlength="40"></label>
+      <label><input type="checkbox" id="cek-anonim"> Sembunyikan namaku (anonim)</label>
+      <button id="btn-simpan-tampilan" class="tka-btn">Simpan</button>
+    </details>
+  </main>
+
+  <script src="/tka/tka-config.js"></script>
+  <script src="/tka/tka-api.js"></script>
+  <script>
+  (async function () {
+    const T = window.TKA, $ = (s) => document.querySelector(s);
+    const st = { mapel_id: '', rentang: 'minggu', profil: null };
+    await T.pastikanProfil();
+    try { st.profil = await T.get('profil'); } catch (e) {
+      $('#lb-body').innerHTML = `<tr><td colspan="5">${T.esc(e.message)}</td></tr>`; return;
+    }
+    const p = st.profil;
+    $('#nama-tampilan').value = p.pengguna.nama_tampilan || '';
+    $('#cek-anonim').checked = p.pengguna.anonim;
+
+    const mapelSaya = p.mapel.filter((m) => m.kelompok === 'wajib' || p.pilihan_mapel.includes(m.id));
+    const tabs = [{ id: '', nama: 'Total' }, ...mapelSaya];
+    $('#tab-mapel').innerHTML = tabs.map((m) => `<button data-id="${m.id}" class="${m.id === '' ? 'aktif' : ''}">${T.esc(m.nama)}</button>`).join('');
+    $('#tab-mapel').onclick = (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      $('#tab-mapel').querySelectorAll('button').forEach((x) => x.classList.toggle('aktif', x === b));
+      st.mapel_id = b.dataset.id; muat();
+    };
+    $('#seg-rentang').onclick = (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      $('#seg-rentang').querySelectorAll('button').forEach((x) => x.classList.toggle('aktif', x === b));
+      st.rentang = b.dataset.v; muat();
+    };
+    $('#cek-kelas').onchange = muat;
+    $('#btn-simpan-tampilan').onclick = async () => {
+      await T.put('tampilan', { nama_tampilan: $('#nama-tampilan').value.trim(), anonim: $('#cek-anonim').checked });
+      muat();
+    };
+
+    async function muat() {
+      $('#lb-body').innerHTML = '<tr><td colspan="5">Memuat...</td></tr>';
+      try {
+        const d = await T.get('leaderboard', { mapel_id: st.mapel_id, rentang: st.rentang, kelas: $('#cek-kelas').checked ? p.pengguna.kelas : '' });
+        $('#info-streak').textContent = `Streak ${d.streak} hari`;
+        $('#lb-saya').textContent = d.saya ? `Posisimu: #${d.saya.peringkat}` : 'Kamu belum punya poin di rentang ini — yuk latihan!';
+        $('#lb-body').innerHTML = d.peringkat.length
+          ? d.peringkat.map((r) => `<tr class="${r.saya ? 'saya' : ''}${r.peringkat <= 3 ? ' top' : ''}">
+              <td>${r.peringkat}</td><td>${T.esc(r.nama)}${r.saya ? ' (kamu)' : ''}</td><td>${T.esc(r.kelas || '')}</td>
+              <td class="kanan">${r.soal_benar}</td><td class="kanan"><strong>${r.total_poin}</strong></td></tr>`).join('')
+          : '<tr><td colspan="5">Belum ada data.</td></tr>';
+      } catch (e) { $('#lb-body').innerHTML = `<tr><td colspan="5">${T.esc(e.message)}</td></tr>`; }
+    }
+    muat();
+  })();
+  </script>
+</body>
+</html>
