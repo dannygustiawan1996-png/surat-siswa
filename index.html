@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="/tka/tka.css">
 <style>
   :root {
     --color-navy: #1B2A4A;
@@ -207,10 +206,7 @@
 </head>
 <body>
 <div id="app"></div>
-<script src="/tka/tka-config.js"></script>
-<script src="/tka/tka-api.js"></script>
-<script src="/tka/tka-soal.js"></script>
-<script src="/tka/tka-popup.js"></script>
+<!-- Modul Latihan TKA dinonaktifkan sementara (lihat /tka, /api/tka, /lib/tka) -->
 <script>
   // ============================================================
   // KONFIGURASI SUPABASE — isi 2 nilai ini dari Project Settings > API
@@ -1220,8 +1216,6 @@
         '<button class="btn-primary" data-go="pilihJenis">' + escapeHtml(tt('ajukanSurat')) + '</button>' +
         '<button class="btn-outline" id="rekomendasiBtn">' + escapeHtml(tt('rekomendasiBtn')) + '</button>' +
         '<button class="btn-outline" data-go="cekStatus">' + escapeHtml(tt('cekStatusBtn')) + '</button>' +
-        '<a class="btn-outline" href="/tka/latihan.html" style="text-align:center;text-decoration:none;">Latihan TKA</a>' +
-        '<a class="btn-outline" href="/tka/leaderboard.html" style="text-align:center;text-decoration:none;">Leaderboard TKA</a>' +
       '</div>' +
       '<div class="footer-link"><a href="#" id="adminLink">Admin</a></div>';
   }
@@ -1528,7 +1522,6 @@
         '</div>' +
         '<div class="stack">' + rows + '</div>' +
         '<button class="btn-outline" id="exportBtn">Salin Semua sebagai CSV</button>' +
-        '<a class="btn-outline" href="/tka/admin.html" style="display:block;text-align:center;text-decoration:none;margin-top:8px;">Admin TKA (Latihan &amp; Leaderboard)</a>' +
         '<button class="btn-text" id="editSettingsBtn">Pengaturan (Rekening & Nomor Surat)</button>' +
         (S.adminEditingSettings ? renderSettingsEditor() : '');
     }
@@ -2615,7 +2608,6 @@
     if (S.adminAuthed) { S.userRole = await getCurrentRole(); S.requests = await getRequestsAdmin(); }
     S.loading = false;
     render();
-    if (!S.adminAuthed && window.TKA) TKA.tampilkanPopup();
     sb.auth.onAuthStateChange(function (event) {
       if (event === 'PASSWORD_RECOVERY') go('adminResetPassword');
     });
