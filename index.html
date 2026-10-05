@@ -87,6 +87,8 @@
   .klinik-alert-card .field-input::placeholder { color: rgba(255,255,255,0.55); }
   .klinik-alert-card .field-input:focus { border-bottom-color: #FFFFFF; }
   .klinik-alert-card .req-id-small { color: #FFFFFF; font-weight: 600; }
+  .klinik-alert-card .btn-outline { color: #FFFFFF; border-color: rgba(255,255,255,0.6); background: transparent; }
+  .klinik-alert-card .btn-outline.active { background: #FFFFFF; color: var(--color-navy); border-color: #FFFFFF; }
   .klinik-alert-card .field-error, .klinik-alert-card .req { color: #FFD1CC; }
 
   #klinikIdleOverlay {
@@ -703,6 +705,15 @@
   }
   // Gabungkan field kelas + asrama yang terpisah; fallback ke kelasAsrama lama
   // untuk data Izin Klinik yang sudah terlanjur tersimpan sebelum field dipisah.
+  var KLINIK_KEPUTUSAN = [
+    { value: 'kelas', label: 'Boleh Mengikuti Kelas', short: 'Boleh Kelas', color: '#3F6F4C' },
+    { value: 'istirahat', label: 'Istirahat', short: 'Istirahat', color: '#A6803D' },
+    { value: 'pulang', label: 'Pulang', short: 'Pulang', color: '#B4453A' }
+  ];
+  function keputusanLabel(v) {
+    var found = KLINIK_KEPUTUSAN.filter(function (k) { return k.value === v; })[0];
+    return found ? found.label : '';
+  }
   function klinikKelasAsramaText(d) {
     var joined = [d.kelas, d.asrama].filter(Boolean).join(' · ');
     return joined || d.kelasAsrama || '-';
@@ -896,7 +907,8 @@
     klinikStatFilter: null,
     klinikTandaiErrors: {},
     klinikPetugasError: false,
-    klinikTreatmentDraft: {}
+    klinikTreatmentDraft: {},
+    guruTab: 'rekomendasi'
   };
 
   function escapeHtml(str) {
@@ -1663,10 +1675,18 @@
   }
 
   function renderGuruDashboard() {
+    var tabsHtml = '<div class="filter-row">' +
+      '<button class="btn-outline' + (S.guruTab !== 'klinik' ? ' active' : '') + '" data-gurutab="rekomendasi" style="flex:1">Surat Rekomendasi</button>' +
+      '<button class="btn-outline' + (S.guruTab === 'klinik' ? ' active' : '') + '" data-gurutab="klinik" style="flex:1">Rekap Kesehatan Siswa</button>' +
+    '</div>';
+    var body = S.guruTab === 'klinik'
+      ? '<p class="hint">Daftar siswa yang diperiksa klinik hari ini: boleh tetap mengikuti kelas, istirahat, atau pulang. Detail medis tidak ditampilkan.</p>' + renderKlinikKeputusanRecap()
+      : renderRekomendasiBody();
     return '' +
       '<div class="top-row">' + backBar('home', 'Beranda') + '<button class="btn-text" id="adminLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
-      '<h2>Dashboard Surat Rekomendasi</h2>' +
-      renderRekomendasiBody();
+      '<h2>' + (S.guruTab === 'klinik' ? 'Rekap Kesehatan Siswa' : 'Dashboard Surat Rekomendasi') + '</h2>' +
+      tabsHtml +
+      body;
   }
 
   function attachGuruDashboard() {
@@ -1675,7 +1695,10 @@
       S.adminAuthed = false; S.userRole = null; S.requests = [];
       go('home');
     });
-    attachRekomendasiBody();
+    document.querySelectorAll('[data-gurutab]').forEach(function (btn) {
+      btn.addEventListener('click', function () { S.guruTab = btn.getAttribute('data-gurutab'); render(); });
+    });
+    if (S.guruTab !== 'klinik') attachRekomendasiBody();
   }
 
   // ============================================================
@@ -1828,6 +1851,47 @@
     if (logout) logout.addEventListener('click', klinikLogoutHandler());
   }
 
+  function renderKlinikKeputusanRecap() {
+    var klinikRequests = S.requests.filter(function (r) { return r.type === 'IZIN_KLINIK'; });
+    var todayStr = todayISO();
+    var groups = { kelas: [], istirahat: [], pulang: [] };
+    klinikRequests.forEach(function (r) {
+      var d = r.data || {};
+      if (r.status === 'selesai' && groups[d.keputusan] && d.completedAt && String(d.completedAt).slice(0, 10) === todayStr) {
+        groups[d.keputusan].push(r);
+      }
+    });
+    var menunggu = klinikRequests.filter(function (r) { return r.status !== 'selesai'; });
+
+    var countsHtml = '<div class="stats-grid">' +
+      KLINIK_KEPUTUSAN.map(function (k) {
+        return '<div class="stat"><span class="stat-num">' + groups[k.value].length + '</span><span class="stat-label">' + escapeHtml(k.short) + '</span></div>';
+      }).join('') +
+      '<div class="stat"><span class="stat-num">' + menunggu.length + '</span><span class="stat-label">Belum Diperiksa</span></div>' +
+    '</div>';
+
+    function rowsFor(list, color, showRest) {
+      if (list.length === 0) return '<p class="hint">Tidak ada.</p>';
+      return '<div class="recap-list">' + list.map(function (r) {
+        var d = r.data || {};
+        return '<div class="recap-row">' +
+          '<span class="recap-dot" style="background:' + color + '"></span>' +
+          '<span class="recap-label" style="white-space:normal;">' + escapeHtml(d.namaSiswa || '-') + ' &middot; ' + escapeHtml(klinikKelasAsramaText(d)) +
+            (showRest && d.lamaIstirahat ? ' &mdash; ' + escapeHtml(d.lamaIstirahat) : '') + '</span>' +
+        '</div>';
+      }).join('') + '</div>';
+    }
+
+    var blocks = KLINIK_KEPUTUSAN.map(function (k) {
+      return '<div class="stat-block"><p class="stat-block-title">' + escapeHtml(k.label) + ' (' + groups[k.value].length + ')</p>' +
+        rowsFor(groups[k.value], k.color, k.value !== 'kelas') + '</div>';
+    }).join('');
+    blocks += '<div class="stat-block"><p class="stat-block-title">Belum Diperiksa / Menunggu (' + menunggu.length + ')</p>' +
+      rowsFor(menunggu, '#6B6560', false) + '</div>';
+
+    return '<div class="section-label">Rekap Keputusan Klinik &mdash; Hari Ini</div>' + countsHtml + blocks;
+  }
+
   function renderKlinikDashboardBody(opts) {
     opts = opts || {};
     var klinikRequests = S.requests.filter(function (r) { return r.type === 'IZIN_KLINIK'; });
@@ -1846,9 +1910,10 @@
     '</div>';
 
     function klinikTreatmentSummary(d) {
-      if (!(d.diagnosa || d.lamaIstirahat || d.jenisObat || d.catatanKlinik)) return '';
+      if (!(d.keputusan || d.diagnosa || d.lamaIstirahat || d.jenisObat || d.catatanKlinik)) return '';
       return '<div class="hint" style="margin-top:6px;line-height:1.6;">' +
-        (d.diagnosa ? '<strong>Diagnosa:</strong> ' + escapeHtml(d.diagnosa) + '<br>' : '') +
+        (d.keputusan ? '<strong>Keputusan:</strong> ' + escapeHtml(keputusanLabel(d.keputusan)) + '<br>' : '') +
+        (d.diagnosa ?'<strong>Diagnosa:</strong> ' + escapeHtml(d.diagnosa) + '<br>' : '') +
         (d.lamaIstirahat ? '<strong>Lama Istirahat:</strong> ' + escapeHtml(d.lamaIstirahat) + '<br>' : '') +
         (d.jenisObat ? '<strong>Obat:</strong> ' + escapeHtml(d.jenisObat) + '<br>' : '') +
         (d.catatanKlinik ? '<strong>Catatan Klinik:</strong> ' + escapeHtml(d.catatanKlinik) : '') +
@@ -1901,6 +1966,10 @@
           var draft = S.klinikTreatmentDraft[r.id] || {};
           function treatmentErr(key) { return errs[key] ? '<span class="field-error">Wajib diisi</span>' : ''; }
           var treatmentInputsHtml = opts.readOnly ? '' : (
+            '<div class="field" style="margin-top:10px;"><span class="field-label" style="color:rgba(255,255,255,0.8);">Keputusan <span class="req">*</span></span>' +
+              '<div class="filter-row" style="margin:6px 0 0;">' + KLINIK_KEPUTUSAN.map(function (k) {
+                return '<button type="button" class="btn-outline' + (draft.keputusan === k.value ? ' active' : '') + '" data-keputusan-req="' + r.id + '" data-keputusan-value="' + k.value + '" style="flex:1;padding:10px 4px;font-size:13px;">' + escapeHtml(k.label) + '</button>';
+              }).join('') + '</div>' + treatmentErr('keputusan') + '</div>' +
             '<label class="field" style="margin-top:10px;"><span class="field-label" style="color:rgba(255,255,255,0.8);">Diagnosa <span class="req">*</span></span>' +
               '<textarea class="field-input" id="klinikDiagnosaInput-' + r.id + '" data-treatment-field="diagnosa" data-req-id="' + r.id + '" rows="2" placeholder="Diagnosa dari klinik">' + escapeHtml(draft.diagnosa || '') + '</textarea>' + treatmentErr('diagnosa') + '</label>' +
             '<label class="field"><span class="field-label" style="color:rgba(255,255,255,0.8);">Lama Istirahat <span class="req">*</span></span>' +
@@ -1942,6 +2011,7 @@
       statsHtml +
       '<p class="hint" style="margin-top:-8px;">Klik salah satu angka di atas untuk lihat rinciannya.</p>' +
       statDetailHtml +
+      renderKlinikKeputusanRecap() +
       recapHtml +
       petugasInputHtml +
       '<div class="section-label">Izin Menunggu</div>' +
@@ -1970,11 +2040,21 @@
       inp.addEventListener('input', handler);
       inp.addEventListener('change', handler);
     });
+    document.querySelectorAll('[data-keputusan-req]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var reqId = btn.getAttribute('data-keputusan-req');
+        if (!S.klinikTreatmentDraft[reqId]) S.klinikTreatmentDraft[reqId] = {};
+        S.klinikTreatmentDraft[reqId].keputusan = btn.getAttribute('data-keputusan-value');
+        if (S.klinikTandaiErrors[reqId]) S.klinikTandaiErrors[reqId].keputusan = false;
+        render();
+      });
+    });
     document.querySelectorAll('[data-klinik-selesai]').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         var id = btn.getAttribute('data-klinik-selesai');
         var req = S.requests.find(function (r) { return r.id === id; });
         if (!req) return;
+        var keputusanVal = (S.klinikTreatmentDraft[id] || {}).keputusan || '';
         var diagnosaEl = document.getElementById('klinikDiagnosaInput-' + id);
         var lamaIstirahatEl = document.getElementById('klinikLamaIstirahatInput-' + id);
         var obatEl = document.getElementById('klinikObatInput-' + id);
@@ -1988,12 +2068,13 @@
 
         S.klinikPetugasError = !petugasVal;
         var fieldErrors = {
+          keputusan: !keputusanVal,
           diagnosa: !diagnosaVal,
           lamaIstirahat: !lamaIstirahatVal,
           jenisObat: !obatVal,
           catatanKlinik: !catatanVal
         };
-        var hasFieldError = fieldErrors.diagnosa || fieldErrors.lamaIstirahat || fieldErrors.jenisObat || fieldErrors.catatanKlinik;
+        var hasFieldError = fieldErrors.keputusan || fieldErrors.diagnosa || fieldErrors.lamaIstirahat || fieldErrors.jenisObat || fieldErrors.catatanKlinik;
         S.klinikTandaiErrors[id] = fieldErrors;
         if (S.klinikPetugasError || hasFieldError) {
           render();
@@ -2011,6 +2092,7 @@
         req.data = Object.assign({}, req.data, {
           petugasKlinik: petugasVal,
           completedAt: new Date().toISOString(),
+          keputusan: keputusanVal,
           diagnosa: diagnosaVal,
           lamaIstirahat: lamaIstirahatVal,
           jenisObat: obatVal,
