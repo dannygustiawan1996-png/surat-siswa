@@ -71,7 +71,8 @@ create view requests_public as
     case when type = 'IZIN_KLINIK' then data->>'peranPengaju' end as klinik_peran_pengaju,
     case when type = 'IZIN_KLINIK' then data->>'diagnosa' end as klinik_diagnosa,
     case when type = 'IZIN_KLINIK' then data->>'lamaIstirahat' end as klinik_lama_istirahat,
-    case when type = 'IZIN_KLINIK' then data->>'jenisObat' end as klinik_jenis_obat
+    case when type = 'IZIN_KLINIK' then data->>'jenisObat' end as klinik_jenis_obat,
+    data->>'feedbackAt' as feedback_at
   from requests;
 -- Catatan: catatanKlinik SENGAJA TIDAK diekspos di sini -- itu bisa berisi
 -- catatan sensitif klinik (mis. "perlu dirujuk", "diduga pura-pura sakit")
@@ -136,6 +137,56 @@ end;
 $$;
 
 grant execute on function public.fix_rekomendasi_link(text, text) to anon;
+
+-- Feedback / ucapan terima kasih dari siswa (anon) setelah surat selesai.
+-- Aman karena: hanya bisa 1x per permintaan, hanya kalau surat sudah selesai
+-- (untuk Rekomendasi: minimal satu guru sudah selesai), bukan Izin Klinik,
+-- dan hanya menulis field feedbackRating/feedbackMessage/feedbackAt.
+create or replace function public.submit_feedback(request_id text, rating int, message text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  d jsonb;
+  t text;
+  st text;
+  eligible boolean;
+  msg text := nullif(btrim(coalesce(message, '')), '');
+begin
+  select data, type, status into d, t, st from requests where id = request_id;
+  if d is null or t = 'IZIN_KLINIK' then
+    raise exception 'Permintaan tidak ditemukan';
+  end if;
+  if d ? 'feedbackAt' then
+    raise exception 'Feedback sudah pernah dikirim';
+  end if;
+  eligible := st = 'selesai'
+    or (t = 'REKOMENDASI' and (d->>'guruStatus1' = 'selesai' or d->>'guruStatus2' = 'selesai' or d->>'guruStatus3' = 'selesai'));
+  if not eligible then
+    raise exception 'Feedback baru bisa dikirim setelah surat selesai';
+  end if;
+  if rating is not null and (rating < 1 or rating > 5) then
+    raise exception 'Rating harus 1-5';
+  end if;
+  if rating is null and msg is null then
+    raise exception 'Isi rating atau pesan dulu';
+  end if;
+  if msg is not null and length(msg) > 1000 then
+    raise exception 'Pesan terlalu panjang (maks 1000 karakter)';
+  end if;
+  update requests
+  set data = data || jsonb_build_object(
+    'feedbackRating', rating,
+    'feedbackMessage', msg,
+    'feedbackAt', now()
+  )
+  where id = request_id;
+end;
+$$;
+
+grant execute on function public.submit_feedback(text, int, text) to anon;
 
 alter table requests enable row level security;
 alter table settings enable row level security;

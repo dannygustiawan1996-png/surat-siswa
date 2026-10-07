@@ -778,6 +778,14 @@
       linkBermasalahHint: '⚠️ Guru menandai link form kamu bermasalah (tidak bisa dibuka). Perbaiki dulu setting share-nya (pastikan "Anyone with the link" bisa lihat), lalu tempel link baru di bawah ini.',
       linkBaruPlaceholder: 'Link baru (OneDrive/Google Drive)',
       kirimLinkBaru: 'Kirim Link Baru',
+      feedbackTitle: 'Feedback & Ucapan Terima Kasih',
+      feedbackHintLetter: 'Surat kamu sudah selesai. Boleh kasih penilaian atau pesan untuk pelayanan ini (opsional, tidak wajib dua-duanya).',
+      feedbackHintRekom: 'Ada guru yang sudah menyelesaikan rekomendasi kamu. Boleh kirim ucapan terima kasih atau feedback (opsional).',
+      feedbackPlaceholder: 'Tulis ucapan terima kasih, saran, atau kesan kamu...',
+      feedbackKirim: 'Kirim Feedback',
+      feedbackTerkirim: 'Terima kasih! Feedback kamu sudah terkirim.',
+      feedbackKosong: 'Pilih rating atau tulis pesan dulu, ya.',
+      feedbackGagal: function (err) { return 'Gagal mengirim feedback: ' + err; },
       mengirimLinkBaru: 'Mengirim...',
       linkBaruKosong: 'Link tidak boleh kosong.',
       linkBaruBerhasil: 'Link baru terkirim! Status diubah jadi Menunggu Diproses.',
@@ -841,6 +849,14 @@
       linkBermasalahHint: '⚠️ The teacher flagged your form link as inaccessible. Please fix its sharing settings first (make sure "Anyone with the link" can view it), then paste the new link below.',
       linkBaruPlaceholder: 'New link (OneDrive/Google Drive)',
       kirimLinkBaru: 'Submit New Link',
+      feedbackTitle: 'Feedback & Thank-You Note',
+      feedbackHintLetter: 'Your letter is ready. Feel free to leave a rating or a message about this service (optional — either one is fine).',
+      feedbackHintRekom: 'A teacher has completed your recommendation. Feel free to send a thank-you note or feedback (optional).',
+      feedbackPlaceholder: 'Write a thank-you note, suggestion, or comment...',
+      feedbackKirim: 'Send Feedback',
+      feedbackTerkirim: 'Thank you! Your feedback has been sent.',
+      feedbackKosong: 'Please pick a rating or write a message first.',
+      feedbackGagal: function (err) { return 'Failed to send feedback: ' + err; },
       mengirimLinkBaru: 'Sending...',
       linkBaruKosong: 'Link cannot be empty.',
       linkBaruBerhasil: 'New link submitted! Status changed back to Awaiting Review.',
@@ -900,6 +916,9 @@
     statusQuery: '',
     statusResults: null,
     fixLinkMessages: {},
+    feedbackDraft: {},
+    feedbackMessages: {},
+    feedbackDone: {},
     klinikPetugas: '',
     klinikIdle: false,
     klinikErrors: {},
@@ -1058,7 +1077,8 @@
       data: {
         namaLengkap: row.nama_lengkap, namaSiswa: row.klinik_nama_siswa, namaPengaju: row.klinik_nama_pengaju,
         kelasAsrama: row.klinik_kelas_asrama, keluhan: row.klinik_keluhan, peranPengaju: row.klinik_peran_pengaju,
-        diagnosa: row.klinik_diagnosa, lamaIstirahat: row.klinik_lama_istirahat, jenisObat: row.klinik_jenis_obat
+        diagnosa: row.klinik_diagnosa, lamaIstirahat: row.klinik_lama_istirahat, jenisObat: row.klinik_jenis_obat,
+        feedbackAt: row.feedback_at
       }
     };
   }
@@ -1136,6 +1156,13 @@
   async function sendPasswordReset(email) {
     try {
       var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+      if (res.error) return { ok: false, error: res.error.message };
+      return { ok: true };
+    } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
+  }
+  async function submitFeedback(id, rating, message) {
+    try {
+      var res = await sb.rpc('submit_feedback', { request_id: id, rating: rating || null, message: message || '' });
       if (res.error) return { ok: false, error: res.error.message };
       return { ok: true };
     } catch (e) { return { ok: false, error: (e && e.message) ? e.message : String(e) }; }
@@ -1422,6 +1449,26 @@
               (fixMsg ? '<p class="hint" style="margin-top:8px;">' + escapeHtml(fixMsg) + '</p>' : '') +
             '</div>';
           }
+          var feedbackHtml = '';
+          var feedbackEligible = !isKlinik && (r.status === 'selesai' || (isRekom && (r.guruSlots || []).some(function (g) { return g.status === 'selesai'; })));
+          if (feedbackEligible) {
+            if ((r.data && r.data.feedbackAt) || S.feedbackDone[r.id]) {
+              feedbackHtml = '<div class="pickup-card">' + escapeHtml(tt('feedbackTerkirim')) + '</div>';
+            } else {
+              var fbDraft = S.feedbackDraft[r.id] || {};
+              var fbMsg = S.feedbackMessages[r.id];
+              feedbackHtml = '<div class="info-card">' +
+                '<p style="margin:0 0 4px;"><strong>' + escapeHtml(tt('feedbackTitle')) + '</strong></p>' +
+                '<p style="margin:0 0 8px;">' + escapeHtml(tt(isRekom ? 'feedbackHintRekom' : 'feedbackHintLetter')) + '</p>' +
+                '<div class="filter-row" style="margin:0 0 8px;">' + [1, 2, 3, 4, 5].map(function (n) {
+                  return '<button type="button" class="btn-outline' + (fbDraft.rating === n ? ' active' : '') + '" data-fb-rating="' + r.id + '" data-fb-value="' + n + '" style="flex:1;padding:8px 0;">' + (n <= (fbDraft.rating || 0) ? '&#9733;' : '&#9734;') + ' ' + n + '</button>';
+                }).join('') + '</div>' +
+                '<textarea class="field-input" id="fbMsg-' + r.id + '" data-fb-msg="' + r.id + '" rows="3" placeholder="' + escapeHtml(tt('feedbackPlaceholder')) + '">' + escapeHtml(fbDraft.message || '') + '</textarea>' +
+                '<button class="btn-primary" data-fb-send="' + r.id + '" style="margin-top:8px">' + escapeHtml(tt('feedbackKirim')) + '</button>' +
+                (fbMsg ? '<p class="hint" style="margin-top:8px;">' + escapeHtml(fbMsg) + '</p>' : '') +
+              '</div>';
+            }
+          }
           return '<div class="card list-item">' +
             '<div class="list-item-top">' +
               '<span class="req-id-small" title="Klik untuk salin kode">' + escapeHtml(r.id) + '</span>' +
@@ -1437,6 +1484,7 @@
             klinikDetailHtml +
             klinikInfoHtml +
             fixLinkHtml +
+            feedbackHtml +
           '</div>';
         }).join('');
       }
@@ -1469,6 +1517,20 @@
       '<label class="field"><span class="field-label">Ulangi Password Baru</span><input class="field-input" id="newPasswordConfirm" type="password" placeholder="Ulangi password baru"></label>' +
       '<span class="field-error" id="resetPasswordError"></span>' +
       '<button class="btn-primary" id="savePasswordBtn" style="margin-top:12px">Simpan Password Baru</button>';
+  }
+
+  function feedbackSummaryHtml(list) {
+    var withFb = list.filter(function (r) { return r.data && r.data.feedbackAt; });
+    if (withFb.length === 0) return '';
+    var rated = withFb.filter(function (r) { return r.data.feedbackRating; });
+    var avg = rated.length ? (rated.reduce(function (s, r) { return s + Number(r.data.feedbackRating); }, 0) / rated.length).toFixed(1) : null;
+    var msgs = withFb.filter(function (r) { return r.data.feedbackMessage; });
+    return '<div class="stat-block"><p class="stat-block-title">Feedback Siswa (' + withFb.length + ')' + (avg ? ' &mdash; rata-rata &#9733; ' + avg + '/5' : '') + '</p>' +
+      (msgs.length === 0 ? '<p class="hint">Belum ada pesan tertulis.</p>' : msgs.slice().sort(function (a, b) { return new Date(b.data.feedbackAt) - new Date(a.data.feedbackAt); }).slice(0, 8).map(function (r) {
+        return '<div class="recap-row" style="align-items:flex-start;"><span class="recap-dot" style="background:#A6803D;margin-top:6px;"></span>' +
+          '<span class="recap-label" style="white-space:normal;">' + escapeHtml(r.data.feedbackMessage) + ' <span class="hint">&mdash; ' + escapeHtml(r.data.namaLengkap || r.id) + (r.data.feedbackRating ? ' &#9733;' + r.data.feedbackRating : '') + '</span></span></div>';
+      }).join('')) +
+    '</div>';
   }
 
   function isDedicatedTabType(type) {
@@ -1528,6 +1590,7 @@
         '</div>' +
         '<p class="hint" style="margin-top:-8px;">Klik salah satu angka di atas untuk filter daftar di bawah.</p>' +
         '<p class="hint">Estimasi pendapatan terverifikasi: <strong>' + formatRupiah(pendapatan) + '</strong></p>' +
+        feedbackSummaryHtml(umumRequests) +
         '<div class="filter-row">' +
           '<select id="filterType" class="field-input"><option value="all"' + (S.adminFilterType === 'all' ? ' selected' : '') + '>Semua Jenis</option>' + typeOptions + '</select>' +
           '<select id="filterStatus" class="field-input">' +
@@ -1636,6 +1699,7 @@
         '<button class="stat stat-clickable' + (S.guruStatFilter === 'selesai' ? ' active' : '') + '" data-statfilter="selesai"><span class="stat-num">' + selesai + '</span><span class="stat-label">Guru Selesai</span></button>' +
       '</div>' +
       '<p class="hint" style="margin-top:-8px;">Klik salah satu angka guru di atas untuk lihat rinciannya.</p>' +
+      feedbackSummaryHtml(rekomRequests) +
       statDetailHtml +
       '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' + renderRecapList(byGuru) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswa) + '</div>' +
@@ -2248,6 +2312,11 @@
         '<label class="field"><span class="field-label">Catatan Admin</span><textarea class="field-input" id="adminNoteInput" rows="2">' + escapeHtml(req.adminNote || '') + '</textarea></label>'
       )) +
       actionCardHtml +
+      (req.data.feedbackAt ? '<div class="card"><p class="field-label">Feedback Siswa</p>' +
+        '<div class="detail-row"><span class="detail-label">Rating</span><span class="detail-value">' + (req.data.feedbackRating ? '&#9733;'.repeat(req.data.feedbackRating) + '&#9734;'.repeat(5 - req.data.feedbackRating) + ' (' + req.data.feedbackRating + '/5)' : '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Pesan</span><span class="detail-value">' + escapeHtml(req.data.feedbackMessage || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Dikirim</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.data.feedbackAt)) + '</span></div>' +
+      '</div>' : '') +
       historyHtml +
       '<div class="stack">' +
         '<button class="btn-primary" id="saveDetailBtn">Simpan Perubahan</button>' +
@@ -2408,6 +2477,41 @@
       await runStatusSearch();
       btn.disabled = false; btn.textContent = tt('cari');
       render();
+    });
+    document.querySelectorAll('[data-fb-rating]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-fb-rating');
+        var val = parseInt(btn.getAttribute('data-fb-value'), 10);
+        if (!S.feedbackDraft[id]) S.feedbackDraft[id] = {};
+        S.feedbackDraft[id].rating = (S.feedbackDraft[id].rating === val) ? null : val;
+        render();
+      });
+    });
+    document.querySelectorAll('[data-fb-msg]').forEach(function (ta) {
+      ta.addEventListener('input', function () {
+        var id = ta.getAttribute('data-fb-msg');
+        if (!S.feedbackDraft[id]) S.feedbackDraft[id] = {};
+        S.feedbackDraft[id].message = ta.value;
+      });
+    });
+    document.querySelectorAll('[data-fb-send]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var id = btn.getAttribute('data-fb-send');
+        var draft = S.feedbackDraft[id] || {};
+        var message = (draft.message || '').trim();
+        if (!draft.rating && !message) { S.feedbackMessages[id] = tt('feedbackKosong'); render(); return; }
+        btn.disabled = true;
+        var result = await submitFeedback(id, draft.rating, message);
+        if (result.ok) {
+          S.feedbackDone[id] = true;
+          delete S.feedbackDraft[id];
+          delete S.feedbackMessages[id];
+          await runStatusSearch();
+        } else {
+          S.feedbackMessages[id] = tt('feedbackGagal')(result.error);
+        }
+        render();
+      });
     });
     document.querySelectorAll('[data-fixlink]').forEach(function (btn) {
       btn.addEventListener('click', async function () {
