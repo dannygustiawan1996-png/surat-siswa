@@ -190,6 +190,10 @@
   .recap-list { display: flex; flex-direction: column; }
   .recap-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #EEE8DA; }
   .recap-row:last-child { border-bottom: none; }
+  button.recap-click { width: 100%; background: none; border: none; border-bottom: 1px solid #EEE8DA; text-align: left; font: inherit; cursor: pointer; }
+  button.recap-click:last-child { border-bottom: none; }
+  button.recap-click:hover .recap-label, button.recap-click.active .recap-label { text-decoration: underline; font-weight: 600; }
+  button.recap-click.active { background: #F6F2E9; }
   .recap-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .recap-label { flex: 1; font-size: 13px; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .recap-count { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--color-navy); flex-shrink: 0; }
@@ -911,6 +915,7 @@
     adminFilterStatus: 'all',
     guruFilterStatus: 'all',
     guruStatFilter: null,
+    guruRekapSelected: null,
     adminSelectedId: null,
     adminEditingSettings: false,
     statusQuery: '',
@@ -1688,6 +1693,24 @@
     }
 
     var byGuru = tallyByMulti(rekomRequests, function (r) { return guruNamesFor(r.data); });
+    var guruRekapDetailHtml = '';
+    if (S.guruRekapSelected) {
+      var selName = String(S.guruRekapSelected).trim();
+      var asked = rekomRequests.filter(function (r) {
+        return guruNamesFor(r.data).some(function (n) { return String(n).trim() === selName; });
+      }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
+      guruRekapDetailHtml = '<p class="stat-block-title" style="margin-top:14px;">Siswa yang meminta ' + escapeHtml(selName) + ' (' + asked.length + ')</p>' + asked.map(function (r) {
+        var d = r.data || {};
+        var slot = guruSlotsFor(d).filter(function (n) { return String(guruNameAt(d, n)).trim() === selName; })[0];
+        var st = guruStatusAt(d, slot, r.status);
+        var extra = guruSlotsFor(d).length > 1 ? 'Guru lain: ' + guruSlotsFor(d).filter(function (n) { return n !== slot; }).map(function (n) { return guruNameAt(d, n); }).join(', ') : '';
+        return '<button class="card list-item" data-detail="' + r.id + '">' +
+          '<div class="list-item-top"><span>' + escapeHtml(d.namaLengkap || '-') + (d.kelas ? ' &middot; ' + escapeHtml(d.kelas) : '') + '</span><span class="stamp ' + st + '">' + escapeHtml(statusLabelFor('REKOMENDASI', st)) + '</span></div>' +
+          '<div class="list-item-bottom"><span>' + escapeHtml(d.keperluan || '-') + '</span><span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span></div>' +
+          (extra ? '<div class="hint" style="margin-top:4px;">' + escapeHtml(extra) + '</div>' : '') +
+        '</button>';
+      }).join('');
+    }
     var bySiswa = tallyBy(rekomRequests, function (r) { return r.data.namaLengkap; });
     var byUniv = tallyBy(rekomRequests, function (r) { return r.data.keperluan; });
 
@@ -1723,7 +1746,14 @@
       '<p class="hint" style="margin-top:-8px;">Klik salah satu angka guru di atas untuk lihat rinciannya.</p>' +
       feedbackSummaryHtml(rekomRequests) +
       statDetailHtml +
-      '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' + renderRecapList(byGuru) + '</div>' +
+      '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' +
+        (byGuru.length === 0 ? '<p class="hint">Belum ada data.</p>' : '<p class="hint" style="margin-top:-6px;">Klik nama guru untuk lihat siswa yang memintanya.</p><div class="recap-list">' + byGuru.map(function (item, idx) {
+          return '<button type="button" class="recap-row recap-click' + (S.guruRekapSelected === item.label ? ' active' : '') + '" data-gururecap="' + escapeHtml(item.label) + '">' +
+            '<span class="recap-dot" style="background:' + CHART_COLORS[idx % CHART_COLORS.length] + '"></span>' +
+            '<span class="recap-label" title="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</span>' +
+            '<span class="recap-count">' + item.count + '</span></button>';
+        }).join('') + '</div>') + guruRekapDetailHtml +
+      '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswa) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Univ</p>' + renderRecapList(byUniv) + '</div>' +
       '<div class="filter-row">' +
@@ -1747,6 +1777,13 @@
       btn.addEventListener('click', function () {
         var key = btn.getAttribute('data-statfilter');
         S.guruStatFilter = (S.guruStatFilter === key) ? null : key;
+        render();
+      });
+    });
+    document.querySelectorAll('[data-gururecap]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var name = btn.getAttribute('data-gururecap');
+        S.guruRekapSelected = (S.guruRekapSelected === name) ? null : name;
         render();
       });
     });
