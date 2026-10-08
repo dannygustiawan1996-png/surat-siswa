@@ -1624,6 +1624,7 @@
         '</div>' +
         '<div class="stack">' + rows + '</div>' +
         '<button class="btn-outline" id="exportBtn">Salin Semua sebagai CSV</button>' +
+        '<button class="btn-outline" id="exportPenyelesaianBtn" style="margin-top:8px">Unduh Rekap Waktu Penyelesaian (Excel)</button>' +
         '<a class="btn-outline" href="/tka/admin.html" style="display:block;text-align:center;text-decoration:none;margin-top:8px;">Admin TKA (Latihan &amp; Leaderboard)</a>' +
         '<button class="btn-text" id="editSettingsBtn">Pengaturan (Rekening & Nomor Surat)</button>' +
         (S.adminEditingSettings ? renderSettingsEditor() : '');
@@ -2638,6 +2639,10 @@
     document.querySelectorAll('[data-detail]').forEach(function (btn) {
       btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
     });
+    document.getElementById('exportPenyelesaianBtn').addEventListener('click', function () {
+      var list = S.requests.filter(function (r) { return !isDedicatedTabType(r.type); });
+      downloadCsv('rekap-waktu-penyelesaian-surat-' + todayISO() + '.csv', buildPenyelesaianCsv(list));
+    });
     document.getElementById('exportBtn').addEventListener('click', async function () {
       var csv = buildCsv(S.requests.filter(function (r) { return !isDedicatedTabType(r.type); }));
       try { await navigator.clipboard.writeText(csv); alert('CSV disalin ke clipboard. Paste ke Excel/Sheets.'); }
@@ -2666,6 +2671,36 @@
       var nama = r.data.namaLengkap || '';
       var rest = JSON.stringify(r.data).replace(/"/g, '""');
       lines.push([r.id, r.type, r.submittedAt, r.status, '"' + nama + '"', r.amount || '', r.nomorSurat || '', '"' + rest + '"'].join(','));
+    });
+    return lines.join('\n');
+  }
+  function ymdHm(iso) {
+    var d = new Date(iso);
+    var p = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function buildPenyelesaianCsv(requests) {
+    var headers = ['Kode', 'Jenis Surat', 'Nama', 'Status', 'Tanggal Pengajuan', 'Waktu Selesai', 'Sumber Data', 'Lama (hari)', 'Lama (teks)'];
+    var lines = [headers.map(csvField).join(',')];
+    var rows = requests.slice().sort(function (a, b) { return new Date(a.submittedAt) - new Date(b.submittedAt); });
+    rows.forEach(function (r) {
+      var d = r.data || {};
+      var selesai = '', sumber = '', hari = '', teks = '';
+      if (r.status === 'selesai') {
+        if (d.completedAt) {
+          selesai = ymdHm(d.completedAt); sumber = 'Aktual (waktu klik Selesai)';
+          var ms = new Date(d.completedAt) - new Date(r.submittedAt);
+          hari = (ms / 86400000).toFixed(2); teks = formatDurationLong(ms);
+        } else if (r.tanggalSurat) {
+          var s = new Date(r.submittedAt); s.setHours(0, 0, 0, 0);
+          var days = Math.max(0, Math.round((new Date(r.tanggalSurat + 'T00:00:00') - s) / 86400000));
+          selesai = r.tanggalSurat; sumber = 'Perkiraan (dari Tanggal Surat)';
+          hari = String(days); teks = days === 0 ? '± di hari yang sama' : '± ' + days + ' hari';
+        } else {
+          sumber = 'Tidak tercatat';
+        }
+      }
+      lines.push([r.id, LETTER_TYPES[r.type] ? LETTER_TYPES[r.type].shortLabel : r.type, d.namaLengkap || '', statusLabelFor(r.type, r.status), ymdHm(r.submittedAt), selesai, sumber, hari, teks].map(csvField).join(','));
     });
     return lines.join('\n');
   }
