@@ -1030,6 +1030,12 @@
     if (hours < 24) return Math.max(1, Math.round(hours)) + ' jam';
     return (Math.round((hours / 24) * 10) / 10) + ' hari';
   }
+  function estimateDays(submittedIso, tanggalSurat) {
+    var start = new Date(submittedIso); start.setHours(0, 0, 0, 0);
+    var end = new Date(tanggalSurat + 'T00:00:00');
+    var days = Math.round((end - start) / 86400000);
+    return days <= 0 ? '± di hari yang sama' : '± ' + days + ' hari';
+  }
   function formatDurationLong(ms) {
     if (!(ms >= 0)) return '';
     var minutes = Math.round(ms / 60000);
@@ -1591,7 +1597,8 @@
             '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' · ' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span>' +
             '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
           '</div>' +
-          (r.status === 'selesai' && r.data.completedAt ? '<div class="hint" style="margin-top:4px;">Selesai ' + escapeHtml(formatDateShortAdmin(r.data.completedAt)) + ' &middot; lama: ' + escapeHtml(formatDurationLong(new Date(r.data.completedAt) - new Date(r.submittedAt)) || '-') + '</div>' : '') +
+          (r.status === 'selesai' && r.data.completedAt ? '<div class="hint" style="margin-top:4px;">Selesai ' + escapeHtml(formatDateShortAdmin(r.data.completedAt)) + ' &middot; lama: ' + escapeHtml(formatDurationLong(new Date(r.data.completedAt) - new Date(r.submittedAt)) || '-') + '</div>'
+            : (r.status === 'selesai' && r.tanggalSurat ? '<div class="hint" style="margin-top:4px;">Perkiraan selesai ' + escapeHtml(formatDateShort(r.tanggalSurat)) + ' &middot; lama ' + escapeHtml(estimateDays(r.submittedAt, r.tanggalSurat)) + ' (dari Tanggal Surat)</div>' : '')) +
         '</button>';
       }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
 
@@ -2318,7 +2325,10 @@
         '<div class="detail-row"><span class="detail-label">Waktu Pengajuan</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
         (req.data.completedAt ? '<div class="detail-row"><span class="detail-label">Waktu Selesai</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.data.completedAt)) + '</span></div>' +
           '<div class="detail-row"><span class="detail-label">Lama Penyelesaian</span><span class="detail-value"><strong>' + escapeHtml(formatDurationLong(new Date(req.data.completedAt) - new Date(req.submittedAt)) || '-') + '</strong></span></div>'
-          : ((req.status === 'selesai' && !isRekomendasi) ? '<div class="detail-row"><span class="detail-label">Waktu Selesai</span><span class="detail-value">Tidak tercatat (diselesaikan sebelum fitur ini ada)</span></div>' : '')) +
+          : ((req.status === 'selesai' && !isRekomendasi) ? (req.tanggalSurat
+            ? '<div class="detail-row"><span class="detail-label">Perkiraan Selesai</span><span class="detail-value">' + escapeHtml(formatDateShort(req.tanggalSurat)) + ' <span class="hint">(dari Tanggal Surat, bukan waktu klik asli)</span></span></div>' +
+              '<div class="detail-row"><span class="detail-label">Perkiraan Lama</span><span class="detail-value">' + escapeHtml(estimateDays(req.submittedAt, req.tanggalSurat)) + '</span></div>'
+            : '<div class="detail-row"><span class="detail-label">Waktu Selesai</span><span class="detail-value">Tidak tercatat (diselesaikan sebelum fitur ini ada)</span></div>') : '')) +
       '</div>' +
       paymentCardHtml +
       (isRekomendasi ? guruBlocksHtml : (
