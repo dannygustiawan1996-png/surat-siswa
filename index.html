@@ -1251,6 +1251,7 @@
       case 'adminResetPassword': html = renderAdminResetPassword(); break;
       case 'adminDashboard': html = renderAdminDashboard(); break;
       case 'guruDashboard': html = renderGuruDashboard(); break;
+      case 'guruSiswa': html = renderGuruSiswa(); break;
       case 'klinikForm': html = renderKlinikForm(); break;
       case 'klinikSlip': html = renderKlinikSlip(); break;
       case 'klinikDashboard': html = renderKlinikDashboard(); break;
@@ -1693,24 +1694,6 @@
     }
 
     var byGuru = tallyByMulti(rekomRequests, function (r) { return guruNamesFor(r.data); });
-    var guruRekapDetailHtml = '';
-    if (S.guruRekapSelected) {
-      var selName = String(S.guruRekapSelected).trim();
-      var asked = rekomRequests.filter(function (r) {
-        return guruNamesFor(r.data).some(function (n) { return String(n).trim() === selName; });
-      }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
-      guruRekapDetailHtml = '<p class="stat-block-title" style="margin-top:14px;">Siswa yang meminta ' + escapeHtml(selName) + ' (' + asked.length + ')</p>' + asked.map(function (r) {
-        var d = r.data || {};
-        var slot = guruSlotsFor(d).filter(function (n) { return String(guruNameAt(d, n)).trim() === selName; })[0];
-        var st = guruStatusAt(d, slot, r.status);
-        var extra = guruSlotsFor(d).length > 1 ? 'Guru lain: ' + guruSlotsFor(d).filter(function (n) { return n !== slot; }).map(function (n) { return guruNameAt(d, n); }).join(', ') : '';
-        return '<button class="card list-item" data-detail="' + r.id + '">' +
-          '<div class="list-item-top"><span>' + escapeHtml(d.namaLengkap || '-') + (d.kelas ? ' &middot; ' + escapeHtml(d.kelas) : '') + '</span><span class="stamp ' + st + '">' + escapeHtml(statusLabelFor('REKOMENDASI', st)) + '</span></div>' +
-          '<div class="list-item-bottom"><span>' + escapeHtml(d.keperluan || '-') + '</span><span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span></div>' +
-          (extra ? '<div class="hint" style="margin-top:4px;">' + escapeHtml(extra) + '</div>' : '') +
-        '</button>';
-      }).join('');
-    }
     var bySiswa = tallyBy(rekomRequests, function (r) { return r.data.namaLengkap; });
     var byUniv = tallyBy(rekomRequests, function (r) { return r.data.keperluan; });
 
@@ -1748,11 +1731,11 @@
       statDetailHtml +
       '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' +
         (byGuru.length === 0 ? '<p class="hint">Belum ada data.</p>' : '<p class="hint" style="margin-top:-6px;">Klik nama guru untuk lihat siswa yang memintanya.</p><div class="recap-list">' + byGuru.map(function (item, idx) {
-          return '<button type="button" class="recap-row recap-click' + (S.guruRekapSelected === item.label ? ' active' : '') + '" data-gururecap="' + escapeHtml(item.label) + '">' +
+          return '<button type="button" class="recap-row recap-click" data-gururecap="' + escapeHtml(item.label) + '">' +
             '<span class="recap-dot" style="background:' + CHART_COLORS[idx % CHART_COLORS.length] + '"></span>' +
             '<span class="recap-label" title="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</span>' +
             '<span class="recap-count">' + item.count + '</span></button>';
-        }).join('') + '</div>') + guruRekapDetailHtml +
+        }).join('') + '</div>') +
       '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Siswa</p>' + renderRecapList(bySiswa) + '</div>' +
       '<div class="stat-block"><p class="stat-block-title">Rekap Univ</p>' + renderRecapList(byUniv) + '</div>' +
@@ -1782,9 +1765,8 @@
     });
     document.querySelectorAll('[data-gururecap]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var name = btn.getAttribute('data-gururecap');
-        S.guruRekapSelected = (S.guruRekapSelected === name) ? null : name;
-        render();
+        S.guruRekapSelected = btn.getAttribute('data-gururecap');
+        go('guruSiswa');
       });
     });
     document.querySelectorAll('[data-detail]').forEach(function (btn) {
@@ -1794,6 +1776,48 @@
       var rekomRequests = S.requests.filter(function (r) { return r.type === 'REKOMENDASI'; });
       var csv = buildRekomendasiCsv(rekomRequests);
       downloadCsv('rekap-surat-rekomendasi-' + todayISO() + '.csv', csv);
+    });
+  }
+
+  function renderGuruSiswa() {
+    var selName = String(S.guruRekapSelected || '').trim();
+    var rekomRequests = S.requests.filter(function (r) { return r.type === 'REKOMENDASI'; });
+    var asked = rekomRequests.filter(function (r) {
+      return guruNamesFor(r.data).some(function (n) { return String(n).trim() === selName; });
+    }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
+    function statusOf(r) {
+      var d = r.data || {};
+      var slot = guruSlotsFor(d).filter(function (n) { return String(guruNameAt(d, n)).trim() === selName; })[0];
+      return { slot: slot, st: guruStatusAt(d, slot, r.status) };
+    }
+    var menunggu = asked.filter(function (r) { return guruStatBucket(statusOf(r).st) === 'menunggu'; }).length;
+    var diproses = asked.filter(function (r) { return guruStatBucket(statusOf(r).st) === 'diproses'; }).length;
+    var selesai = asked.filter(function (r) { return guruStatBucket(statusOf(r).st) === 'selesai'; }).length;
+    var rows = asked.map(function (r) {
+      var d = r.data || {};
+      var info = statusOf(r);
+      var others = guruSlotsFor(d).filter(function (n) { return n !== info.slot; }).map(function (n) { return guruNameAt(d, n); });
+      return '<button class="card list-item" data-detail="' + r.id + '">' +
+        '<div class="list-item-top"><span>' + escapeHtml(d.namaLengkap || '-') + (d.kelas ? ' &middot; ' + escapeHtml(d.kelas) : '') + '</span><span class="stamp ' + info.st + '">' + escapeHtml(statusLabelFor('REKOMENDASI', info.st)) + '</span></div>' +
+        '<div class="list-item-bottom"><span>' + escapeHtml(d.keperluan || '-') + '</span><span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span></div>' +
+        (others.length ? '<div class="hint" style="margin-top:4px;">Guru lain: ' + escapeHtml(others.join(', ')) + '</div>' : '') +
+      '</button>';
+    }).join('') || '<p class="hint">Belum ada siswa yang meminta guru ini.</p>';
+    return backBar(dashboardViewFor(S.userRole), 'Dashboard') +
+      '<h2>' + escapeHtml(selName) + '</h2>' +
+      '<p class="hint">Siswa yang meminta rekomendasi dari guru ini (' + asked.length + ').</p>' +
+      '<div class="stats-grid">' +
+        '<div class="stat"><span class="stat-num">' + asked.length + '</span><span class="stat-label">Total Diminta</span></div>' +
+        '<div class="stat"><span class="stat-num">' + menunggu + '</span><span class="stat-label">Menunggu</span></div>' +
+        '<div class="stat"><span class="stat-num">' + diproses + '</span><span class="stat-label">Diproses</span></div>' +
+        '<div class="stat"><span class="stat-num">' + selesai + '</span><span class="stat-label">Selesai</span></div>' +
+      '</div>' +
+      '<div class="stack">' + rows + '</div>';
+  }
+
+  function attachGuruSiswa() {
+    document.querySelectorAll('[data-detail]').forEach(function (btn) {
+      btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
     });
   }
 
@@ -2427,6 +2451,7 @@
       case 'adminResetPassword': attachAdminResetPassword(); break;
       case 'adminDashboard': attachAdminDashboard(); break;
       case 'guruDashboard': attachGuruDashboard(); break;
+      case 'guruSiswa': attachGuruSiswa(); break;
       case 'klinikForm': attachKlinikForm(); break;
       case 'klinikSlip': attachKlinikSlip(); break;
       case 'klinikDashboard': attachKlinikDashboard(); break;
