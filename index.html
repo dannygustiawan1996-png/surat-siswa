@@ -1030,6 +1030,19 @@
     if (hours < 24) return Math.max(1, Math.round(hours)) + ' jam';
     return (Math.round((hours / 24) * 10) / 10) + ' hari';
   }
+  function formatDurationLong(ms) {
+    if (!(ms >= 0)) return '';
+    var minutes = Math.round(ms / 60000);
+    if (minutes < 1) return 'kurang dari 1 menit';
+    var days = Math.floor(minutes / 1440);
+    var hours = Math.floor((minutes % 1440) / 60);
+    var mins = minutes % 60;
+    var parts = [];
+    if (days) parts.push(days + ' hari');
+    if (hours) parts.push(hours + ' jam');
+    if (mins && days === 0) parts.push(mins + ' menit');
+    return parts.join(' ');
+  }
   function tallyByMulti(items, namesFn) {
     var counts = {};
     items.forEach(function (item) {
@@ -1578,6 +1591,7 @@
             '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' · ' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span>' +
             '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
           '</div>' +
+          (r.status === 'selesai' && r.data.completedAt ? '<div class="hint" style="margin-top:4px;">Selesai ' + escapeHtml(formatDateShortAdmin(r.data.completedAt)) + ' &middot; lama: ' + escapeHtml(formatDurationLong(new Date(r.data.completedAt) - new Date(r.submittedAt)) || '-') + '</div>' : '') +
         '</button>';
       }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
 
@@ -2302,7 +2316,9 @@
       '<div class="card">' + fieldsHtml + '</div>' +
       '<div class="card">' +
         '<div class="detail-row"><span class="detail-label">Waktu Pengajuan</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
-        (req.data.completedAt ? '<div class="detail-row"><span class="detail-label">Waktu Selesai</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.data.completedAt)) + '</span></div>' : '') +
+        (req.data.completedAt ? '<div class="detail-row"><span class="detail-label">Waktu Selesai</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.data.completedAt)) + '</span></div>' +
+          '<div class="detail-row"><span class="detail-label">Lama Penyelesaian</span><span class="detail-value"><strong>' + escapeHtml(formatDurationLong(new Date(req.data.completedAt) - new Date(req.submittedAt)) || '-') + '</strong></span></div>'
+          : ((req.status === 'selesai' && !isRekomendasi) ? '<div class="detail-row"><span class="detail-label">Waktu Selesai</span><span class="detail-value">Tidak tercatat (diselesaikan sebelum fitur ini ada)</span></div>' : '')) +
       '</div>' +
       paymentCardHtml +
       (isRekomendasi ? guruBlocksHtml : (
@@ -2716,6 +2732,13 @@
         req.status = computeOverallGuruStatus(req.data, prevStatus);
       } else {
         req.status = document.getElementById('statusSelect').value;
+        if (req.status === 'selesai' && prevStatus !== 'selesai') {
+          req.data = Object.assign({}, req.data, { completedAt: new Date().toISOString() });
+        } else if (req.status !== 'selesai' && prevStatus === 'selesai') {
+          var dataNoDone = Object.assign({}, req.data);
+          delete dataNoDone.completedAt;
+          req.data = dataNoDone;
+        }
         req.adminNote = document.getElementById('adminNoteInput').value;
         var genArea = document.getElementById('generatedTextArea');
         if (genArea) req.generatedText = genArea.value;
