@@ -72,7 +72,8 @@ create view requests_public as
     case when type = 'IZIN_KLINIK' then data->>'diagnosa' end as klinik_diagnosa,
     case when type = 'IZIN_KLINIK' then data->>'lamaIstirahat' end as klinik_lama_istirahat,
     case when type = 'IZIN_KLINIK' then data->>'jenisObat' end as klinik_jenis_obat,
-    data->>'feedbackAt' as feedback_at
+    data->>'feedbackAt' as feedback_at,
+    case when type <> 'IZIN_KLINIK' then data->>'completedAt' end as completed_at
   from requests;
 -- Catatan: catatanKlinik SENGAJA TIDAK diekspos di sini -- itu bisa berisi
 -- catatan sensitif klinik (mis. "perlu dirujuk", "diduga pura-pura sakit")

@@ -782,6 +782,8 @@
       linkBermasalahHint: '⚠️ Guru menandai link form kamu bermasalah (tidak bisa dibuka). Perbaiki dulu setting share-nya (pastikan "Anyone with the link" bisa lihat), lalu tempel link baru di bawah ini.',
       linkBaruPlaceholder: 'Link baru (OneDrive/Google Drive)',
       kirimLinkBaru: 'Kirim Link Baru',
+      suratSelesaiInfo: function (waktu, durasi) { return '✅ Surat selesai pada ' + waktu + (durasi ? '. Lama proses: ' + durasi + ' sejak pengajuan.' : '.'); },
+      durasiRekom: function (durasi) { return 'Lama proses: ' + durasi + ' sejak pengajuan.'; },
       feedbackTitle: 'Feedback & Ucapan Terima Kasih',
       feedbackHintLetter: 'Surat kamu sudah selesai. Boleh kasih penilaian atau pesan untuk pelayanan ini (opsional, tidak wajib dua-duanya).',
       feedbackHintRekom: 'Ada guru yang sudah menyelesaikan rekomendasi kamu. Boleh kirim ucapan terima kasih atau feedback (opsional).',
@@ -853,6 +855,8 @@
       linkBermasalahHint: '⚠️ The teacher flagged your form link as inaccessible. Please fix its sharing settings first (make sure "Anyone with the link" can view it), then paste the new link below.',
       linkBaruPlaceholder: 'New link (OneDrive/Google Drive)',
       kirimLinkBaru: 'Submit New Link',
+      suratSelesaiInfo: function (waktu, durasi) { return '✅ Completed on ' + waktu + (durasi ? '. Processing time: ' + durasi + ' since submission.' : '.'); },
+      durasiRekom: function (durasi) { return 'Processing time: ' + durasi + ' since submission.'; },
       feedbackTitle: 'Feedback & Thank-You Note',
       feedbackHintLetter: 'Your letter is ready. Feel free to leave a rating or a message about this service (optional — either one is fine).',
       feedbackHintRekom: 'A teacher has completed your recommendation. Feel free to send a thank-you note or feedback (optional).',
@@ -1042,18 +1046,21 @@
     var days = Math.round((end - start) / 86400000);
     return days <= 0 ? '± di hari yang sama' : '± ' + days + ' hari';
   }
-  function formatDurationLong(ms) {
+  function formatDurationLong(ms, en) {
     if (!(ms >= 0)) return '';
     var minutes = Math.round(ms / 60000);
-    if (minutes < 1) return 'kurang dari 1 menit';
+    if (minutes < 1) return en ? 'less than 1 minute' : 'kurang dari 1 menit';
     var days = Math.floor(minutes / 1440);
     var hours = Math.floor((minutes % 1440) / 60);
     var mins = minutes % 60;
     var parts = [];
-    if (days) parts.push(days + ' hari');
-    if (hours) parts.push(hours + ' jam');
-    if (mins && days === 0) parts.push(mins + ' menit');
+    if (days) parts.push(days + (en ? (days > 1 ? ' days' : ' day') : ' hari'));
+    if (hours) parts.push(hours + (en ? (hours > 1 ? ' hours' : ' hour') : ' jam'));
+    if (mins && days === 0) parts.push(mins + (en ? (mins > 1 ? ' minutes' : ' minute') : ' menit'));
     return parts.join(' ');
+  }
+  function durasiSejakPengajuan(startIso, endIso) {
+    return formatDurationLong(new Date(endIso) - new Date(startIso), S.lang === 'en');
   }
   function tallyByMulti(items, namesFn) {
     var counts = {};
@@ -1103,7 +1110,7 @@
         namaLengkap: row.nama_lengkap, namaSiswa: row.klinik_nama_siswa, namaPengaju: row.klinik_nama_pengaju,
         kelasAsrama: row.klinik_kelas_asrama, keluhan: row.klinik_keluhan, peranPengaju: row.klinik_peran_pengaju,
         diagnosa: row.klinik_diagnosa, lamaIstirahat: row.klinik_lama_istirahat, jenisObat: row.klinik_jenis_obat,
-        feedbackAt: row.feedback_at
+        feedbackAt: row.feedback_at, completedAt: row.completed_at
       }
     };
   }
@@ -1431,7 +1438,10 @@
         resultsHtml = results.map(function (r) {
           var isRekom = r.type === 'REKOMENDASI';
           var isKlinik = r.type === 'IZIN_KLINIK';
-          var pickupHtml = (r.status === 'selesai' && !isRekom && !isKlinik) ? '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' : '';
+          var pickupHtml = (r.status === 'selesai' && !isRekom && !isKlinik)
+            ? ((r.data && r.data.completedAt) ? '<div class="pickup-card">' + escapeHtml(tt('suratSelesaiInfo')(formatDateTimeFull(r.data.completedAt), durasiSejakPengajuan(r.submittedAt, r.data.completedAt))) + '</div>' : '') +
+              '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>'
+            : '';
           var klinikInfoHtml = isKlinik ? '<div class="pickup-card">' + escapeHtml(r.status === 'selesai' ? tt('klinikSelesaiInfo') : tt('klinikBaruInfo')) + '</div>' : '';
           var klinikTreatmentRowsHtml = isKlinik && r.status === 'selesai' ? (
             ((r.data && r.data.diagnosa) ? '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikDiagnosa')) + '</span><span class="detail-value">' + escapeHtml(r.data.diagnosa) + '</span></div>' : '') +
@@ -1452,7 +1462,7 @@
             anyLinkBermasalah = (r.guruSlots || []).some(function (g) { return g.status === 'link_bermasalah'; });
             guruBreakdownHtml = (r.guruSlots || []).map(function (g) {
               var st = g.status || 'baru';
-              var selesaiInfoHtml = (st === 'selesai' && g.completedAt) ? '<div class="pickup-card" style="margin-top:6px;">' + escapeHtml(tt('rekomendasiSelesaiInfo')(formatDateTimeFull(g.completedAt))) + '</div>' : '';
+              var selesaiInfoHtml = (st === 'selesai' && g.completedAt) ? '<div class="pickup-card" style="margin-top:6px;">' + escapeHtml(tt('rekomendasiSelesaiInfo')(formatDateTimeFull(g.completedAt)) + ' ' + tt('durasiRekom')(durasiSejakPengajuan(r.submittedAt, g.completedAt))) + '</div>' : '';
               var noteLineHtml = g.note ? '<div class="hint" style="margin-top:4px;"><strong>' + escapeHtml(tt('catatanGuruLabel')) + '</strong> ' + escapeHtml(g.note) + '</div>' : '';
               return '<div style="padding:8px 0;border-top:1px solid var(--border, #e5e5e5)">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
