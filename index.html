@@ -916,6 +916,7 @@
     guruFilterStatus: 'all',
     guruStatFilter: null,
     guruRekapSelected: null,
+    feedbackScope: 'umum',
     adminSelectedId: null,
     adminEditingSettings: false,
     statusQuery: '',
@@ -1252,6 +1253,7 @@
       case 'adminDashboard': html = renderAdminDashboard(); break;
       case 'guruDashboard': html = renderGuruDashboard(); break;
       case 'guruSiswa': html = renderGuruSiswa(); break;
+      case 'feedbackList': html = renderFeedbackList(); break;
       case 'klinikForm': html = renderKlinikForm(); break;
       case 'klinikSlip': html = renderKlinikSlip(); break;
       case 'klinikDashboard': html = renderKlinikDashboard(); break;
@@ -1544,7 +1546,51 @@
       '<button class="btn-primary" id="savePasswordBtn" style="margin-top:12px">Simpan Password Baru</button>';
   }
 
-  function feedbackSummaryHtml(list) {
+  function feedbackListFor(scope) {
+    return S.requests.filter(function (r) {
+      if (!(r.data && r.data.feedbackAt)) return false;
+      return scope === 'rekom' ? r.type === 'REKOMENDASI' : !isDedicatedTabType(r.type);
+    }).sort(function (a, b) { return new Date(b.data.feedbackAt) - new Date(a.data.feedbackAt); });
+  }
+  function renderFeedbackList() {
+    var scope = (S.feedbackScope === 'rekom' || S.userRole === 'guru') ? 'rekom' : 'umum';
+    var list = feedbackListFor(scope);
+    var rated = list.filter(function (r) { return r.data.feedbackRating; });
+    var avg = rated.length ? (rated.reduce(function (s, r) { return s + Number(r.data.feedbackRating); }, 0) / rated.length).toFixed(1) : '-';
+    var withMsg = list.filter(function (r) { return r.data.feedbackMessage; }).length;
+    var rows = list.map(function (r) {
+      var d = r.data;
+      var stars = d.feedbackRating ? '&#9733;'.repeat(d.feedbackRating) + '&#9734;'.repeat(5 - d.feedbackRating) + ' (' + d.feedbackRating + '/5)' : 'Tanpa rating';
+      var teachers = r.type === 'REKOMENDASI' ? guruNamesFor(d).join(', ') : '';
+      return '<button class="card list-item" data-detail="' + r.id + '">' +
+        '<div class="list-item-top"><span><strong>' + escapeHtml(d.namaLengkap || '-') + '</strong> &middot; ' + escapeHtml(LETTER_TYPES[r.type] ? LETTER_TYPES[r.type].shortLabel : r.type) + '</span><span class="req-id-small" title="Klik untuk salin kode">' + escapeHtml(r.id) + '</span></div>' +
+        '<div class="hint" style="margin-top:4px;">' + stars + ' &middot; ' + escapeHtml(formatDateTimeFull(d.feedbackAt)) + (teachers ? ' &middot; Guru: ' + escapeHtml(teachers) : '') + '</div>' +
+        '<div style="margin-top:6px;line-height:1.55;">' + (d.feedbackMessage ? escapeHtml(d.feedbackMessage) : '<span class="hint">(tidak menulis pesan)</span>') + '</div>' +
+      '</button>';
+    }).join('') || '<p class="hint">Belum ada feedback.</p>';
+    return backBar(dashboardViewFor(S.userRole), 'Dashboard') +
+      '<h2>Feedback Siswa &mdash; ' + (scope === 'rekom' ? 'Surat Rekomendasi' : 'Surat Umum') + '</h2>' +
+      '<div class="stats-grid">' +
+        '<div class="stat"><span class="stat-num">' + list.length + '</span><span class="stat-label">Feedback</span></div>' +
+        '<div class="stat"><span class="stat-num">' + avg + '</span><span class="stat-label">Rata-rata</span></div>' +
+        '<div class="stat"><span class="stat-num">' + withMsg + '</span><span class="stat-label">Ada Pesan</span></div>' +
+      '</div>' +
+      '<div class="stack">' + rows + '</div>';
+  }
+  function attachFeedbackList() {
+    document.querySelectorAll('[data-detail]').forEach(function (btn) {
+      btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
+    });
+  }
+  function attachFeedbackLinks() {
+    document.querySelectorAll('[data-feedbacklist]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        S.feedbackScope = btn.getAttribute('data-feedbacklist');
+        go('feedbackList');
+      });
+    });
+  }
+  function feedbackSummaryHtml(list, scope) {
     var withFb = list.filter(function (r) { return r.data && r.data.feedbackAt; });
     if (withFb.length === 0) return '';
     var rated = withFb.filter(function (r) { return r.data.feedbackRating; });
@@ -1555,6 +1601,7 @@
         return '<div class="recap-row" style="align-items:flex-start;"><span class="recap-dot" style="background:#A6803D;margin-top:6px;"></span>' +
           '<span class="recap-label" style="white-space:normal;">' + escapeHtml(r.data.feedbackMessage) + ' <span class="hint">&mdash; ' + escapeHtml(r.data.namaLengkap || r.id) + (r.data.feedbackRating ? ' &#9733;' + r.data.feedbackRating : '') + '</span></span></div>';
       }).join('')) +
+      '<button type="button" class="btn-outline" data-feedbacklist="' + (scope || 'umum') + '" style="margin-top:10px;">Lihat Semua Feedback (' + withFb.length + ')</button>' +
     '</div>';
   }
 
@@ -1617,7 +1664,7 @@
         '</div>' +
         '<p class="hint" style="margin-top:-8px;">Klik salah satu angka di atas untuk filter daftar di bawah.</p>' +
         '<p class="hint">Estimasi pendapatan terverifikasi: <strong>' + formatRupiah(pendapatan) + '</strong></p>' +
-        feedbackSummaryHtml(umumRequests) +
+        feedbackSummaryHtml(umumRequests, 'umum') +
         '<div class="filter-row">' +
           '<select id="filterType" class="field-input"><option value="all"' + (S.adminFilterType === 'all' ? ' selected' : '') + '>Semua Jenis</option>' + typeOptions + '</select>' +
           '<select id="filterStatus" class="field-input">' +
@@ -1727,7 +1774,7 @@
         '<button class="stat stat-clickable' + (S.guruStatFilter === 'selesai' ? ' active' : '') + '" data-statfilter="selesai"><span class="stat-num">' + selesai + '</span><span class="stat-label">Guru Selesai</span></button>' +
       '</div>' +
       '<p class="hint" style="margin-top:-8px;">Klik salah satu angka guru di atas untuk lihat rinciannya.</p>' +
-      feedbackSummaryHtml(rekomRequests) +
+      feedbackSummaryHtml(rekomRequests, 'rekom') +
       statDetailHtml +
       '<div class="stat-block"><p class="stat-block-title">Rekap Guru</p>' +
         (byGuru.length === 0 ? '<p class="hint">Belum ada data.</p>' : '<p class="hint" style="margin-top:-6px;">Klik nama guru untuk lihat siswa yang memintanya.</p><div class="recap-list">' + byGuru.map(function (item, idx) {
@@ -1763,6 +1810,7 @@
         render();
       });
     });
+    attachFeedbackLinks();
     document.querySelectorAll('[data-gururecap]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         S.guruRekapSelected = btn.getAttribute('data-gururecap');
@@ -2452,6 +2500,7 @@
       case 'adminDashboard': attachAdminDashboard(); break;
       case 'guruDashboard': attachGuruDashboard(); break;
       case 'guruSiswa': attachGuruSiswa(); break;
+      case 'feedbackList': attachFeedbackList(); break;
       case 'klinikForm': attachKlinikForm(); break;
       case 'klinikSlip': attachKlinikSlip(); break;
       case 'klinikDashboard': attachKlinikDashboard(); break;
@@ -2692,6 +2741,7 @@
 
     document.getElementById('filterType').addEventListener('change', function (e) { S.adminFilterType = e.target.value; render(); });
     document.getElementById('filterStatus').addEventListener('change', function (e) { S.adminFilterStatus = e.target.value; render(); });
+    attachFeedbackLinks();
     document.querySelectorAll('[data-adminstatfilter]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         S.adminFilterStatus = btn.getAttribute('data-adminstatfilter');
