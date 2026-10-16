@@ -1060,7 +1060,11 @@
     return parts.join(' ');
   }
   function durasiSejakPengajuan(startIso, endIso) {
-    return formatDurationLong(new Date(endIso) - new Date(startIso), S.lang === 'en');
+    var ms = new Date(endIso) - new Date(startIso);
+    var en = S.lang === 'en';
+    var text = formatDurationLong(ms, en);
+    if (ms >= 86400000) text += ' (' + Math.round(ms / 3600000) + (en ? ' hours' : ' jam') + ')';
+    return text;
   }
   function tallyByMulti(items, namesFn) {
     var counts = {};
