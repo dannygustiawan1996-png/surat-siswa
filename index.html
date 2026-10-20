@@ -2282,10 +2282,16 @@
       '<div class="section-label">Izin Menunggu</div>' +
       '<div class="stack">' + pendingHtml + '</div>' +
       '<div class="section-label" style="margin-top:18px;">Riwayat Hari Ini</div>' +
-      '<div class="stack">' + historyHtml + '</div>';
+      '<div class="stack">' + historyHtml + '</div>' +
+      '<button class="btn-outline" id="exportKlinikBtn" style="margin-top:12px">Unduh Rekap Izin Klinik (Excel)</button>';
   }
 
   function attachKlinikDashboardBody() {
+    var exportKlinikBtn = document.getElementById('exportKlinikBtn');
+    if (exportKlinikBtn) exportKlinikBtn.addEventListener('click', function () {
+      var list = S.requests.filter(function (r) { return r.type === 'IZIN_KLINIK'; });
+      downloadCsv('rekap-izin-klinik-' + todayISO() + '.csv', buildKlinikCsv(list));
+    });
     var petugasInput = document.getElementById('klinikPetugasInput');
     if (petugasInput) petugasInput.addEventListener('input', function () { S.klinikPetugas = petugasInput.value; });
     document.querySelectorAll('[data-klinikstatfilter]').forEach(function (btn) {
@@ -2861,6 +2867,24 @@
     var d = new Date(iso);
     var p = function (n) { return String(n).padStart(2, '0'); };
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function buildKlinikCsv(requests) {
+    var headers = ['Kode', 'Tanggal Pengajuan', 'Nama Siswa', 'Kelas', 'Asrama', 'Keluhan', 'Peran Pengaju', 'Nama Pengaju (Dorm/SPV/RA)',
+      'Status', 'Petugas Klinik', 'Waktu Selesai', 'Lama Penanganan (menit)', 'Lama Penanganan', 'Keputusan', 'Diagnosa', 'Lama Istirahat', 'Jenis Obat', 'Catatan Klinik'];
+    var lines = [headers.map(csvField).join(',')];
+    requests.slice().sort(function (a, b) { return new Date(a.submittedAt) - new Date(b.submittedAt); }).forEach(function (r) {
+      var d = r.data || {};
+      var done = r.status === 'selesai' && d.completedAt;
+      var ms = done ? new Date(d.completedAt) - new Date(r.submittedAt) : null;
+      var kelas = d.kelas || (d.kelasAsrama && !d.asrama ? d.kelasAsrama : '');
+      lines.push([
+        r.id, ymdHm(r.submittedAt), d.namaSiswa || '', kelas, d.asrama || '', d.keluhan || '', d.peranPengaju || '', d.namaPengaju || '',
+        statusLabelFor('IZIN_KLINIK', r.status), d.petugasKlinik || '', done ? ymdHm(d.completedAt) : '',
+        ms != null && ms >= 0 ? Math.round(ms / 60000) : '', ms != null ? formatDurationLong(ms) : '',
+        keputusanLabel(d.keputusan), d.diagnosa || '', d.lamaIstirahat || '', d.jenisObat || '', d.catatanKlinik || ''
+      ].map(csvField).join(','));
+    });
+    return lines.join('\n');
   }
   function buildPenyelesaianCsv(requests) {
     var headers = ['Kode', 'Jenis Surat', 'Nama', 'Status', 'Tanggal Pengajuan', 'Waktu Selesai', 'Sumber Data', 'Lama (hari)', 'Lama (teks)'];
