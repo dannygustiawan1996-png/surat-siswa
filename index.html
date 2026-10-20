@@ -2003,6 +2003,7 @@
       '<button class="btn-outline' + (S.dormparentTab === 'stats' ? ' active' : '') + '" data-dormparenttab="stats" style="flex:1">Statistik</button>' +
     '</div>';
     var bodyHtml = S.dormparentTab === 'stats' ? renderKlinikDashboardBody({ readOnly: true }) : (
+      '<button class="btn-outline" id="exportKlinikBtn" style="margin-bottom:8px">Unduh Rekap Izin Klinik (Excel)</button>' +
       '<div class="info-card">Diisi oleh <strong>Dorm Parent / SPV / RA</strong> yang sedang bertugas saat siswa mengeluh sakit.</div>' +
       '<form id="klinikDataForm" class="stack">' +
         t.fields.map(field).join('') +
@@ -2024,6 +2025,8 @@
         render();
       });
     });
+    var dpExportBtn = document.getElementById('exportKlinikBtn');
+    if (dpExportBtn && S.dormparentTab !== 'stats') dpExportBtn.addEventListener('click', downloadKlinikExcel);
     if (S.dormparentTab === 'stats') {
       attachKlinikDashboardBody();
       return;
@@ -2275,6 +2278,7 @@
     return '' +
       statsHtml +
       '<p class="hint" style="margin-top:-8px;">Klik salah satu angka di atas untuk lihat rinciannya.</p>' +
+      '<button class="btn-outline" id="exportKlinikBtn" style="margin-bottom:12px">Unduh Rekap Izin Klinik (Excel)</button>' +
       statDetailHtml +
       renderKlinikKeputusanRecap() +
       recapHtml +
@@ -2282,16 +2286,17 @@
       '<div class="section-label">Izin Menunggu</div>' +
       '<div class="stack">' + pendingHtml + '</div>' +
       '<div class="section-label" style="margin-top:18px;">Riwayat Hari Ini</div>' +
-      '<div class="stack">' + historyHtml + '</div>' +
-      '<button class="btn-outline" id="exportKlinikBtn" style="margin-top:12px">Unduh Rekap Izin Klinik (Excel)</button>';
+      '<div class="stack">' + historyHtml + '</div>';
+  }
+
+  function downloadKlinikExcel() {
+    var list = S.requests.filter(function (r) { return r.type === 'IZIN_KLINIK'; });
+    downloadCsv('rekap-izin-klinik-' + todayISO() + '.csv', buildKlinikCsv(list));
   }
 
   function attachKlinikDashboardBody() {
     var exportKlinikBtn = document.getElementById('exportKlinikBtn');
-    if (exportKlinikBtn) exportKlinikBtn.addEventListener('click', function () {
-      var list = S.requests.filter(function (r) { return r.type === 'IZIN_KLINIK'; });
-      downloadCsv('rekap-izin-klinik-' + todayISO() + '.csv', buildKlinikCsv(list));
-    });
+    if (exportKlinikBtn) exportKlinikBtn.addEventListener('click', downloadKlinikExcel);
     var petugasInput = document.getElementById('klinikPetugasInput');
     if (petugasInput) petugasInput.addEventListener('input', function () { S.klinikPetugas = petugasInput.value; });
     document.querySelectorAll('[data-klinikstatfilter]').forEach(function (btn) {
