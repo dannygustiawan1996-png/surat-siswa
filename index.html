@@ -68,6 +68,21 @@
   .card.center { text-align: center; }
 
   .notice-card { background: #FBEDEA; border-left: 3px solid var(--color-red); border-radius: 4px; padding: 14px 16px; margin: 14px 0; font-size: 13.5px; line-height: 1.55; color: var(--color-ink); }
+  .cek-status-pita { background: #FFF4CC; border: 1.5px solid #E0B43C; border-radius: 4px; padding: 10px 14px; font-size: 13px; line-height: 1.5; color: var(--color-ink); text-align: center; margin-top: 6px; }
+  .btn-cek-status { border-width: 2px; background: #FFFBEA; animation: cek-denyut 2.4s ease-in-out infinite, cek-goyang 6s ease-in-out infinite; }
+  @keyframes cek-denyut { 0%, 100% { box-shadow: 0 0 0 0 rgba(224, 180, 60, 0.55); } 50% { box-shadow: 0 0 0 7px rgba(224, 180, 60, 0); } }
+  @keyframes cek-goyang { 0%, 88%, 100% { transform: translateX(0); } 90% { transform: translateX(-4px) rotate(-1deg); } 92% { transform: translateX(4px) rotate(1deg); } 94% { transform: translateX(-3px); } 96% { transform: translateX(3px); } 98% { transform: translateX(-1px); } }
+  .jangan-ulang-card { background: #FFF4CC; border: 2px solid #E0B43C; border-radius: 6px; padding: 16px 18px; margin: 16px 0; font-size: 14px; line-height: 1.55; color: var(--color-ink); animation: cek-goyang 6s ease-in-out 1; animation-delay: .6s; }
+  .jangan-ulang-card p { margin: 0 0 10px; }
+  .jangan-ulang-judul { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--color-red); }
+  .jangan-ulang-aksi { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .dobel-overlay { position: fixed; inset: 0; background: rgba(27, 42, 74, 0.55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 1000; }
+  .dobel-box { background: var(--color-card); border-radius: 8px; border-top: 5px solid #E0B43C; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.25); animation: cek-goyang 1.2s ease-in-out 1; }
+  .dobel-box h3 { font-family: var(--font-display); color: var(--color-navy); margin: 0 0 8px; font-size: 18px; }
+  .dobel-box p { font-size: 13.5px; line-height: 1.5; margin: 0 0 10px; color: var(--color-ink); }
+  .dobel-item { border-left: 3px solid var(--color-brass); background: var(--color-paper); padding: 8px 12px; margin: 8px 0; font-size: 13px; line-height: 1.5; }
+  .dobel-box .stack { margin-top: 14px; }
+  @media (prefers-reduced-motion: reduce) { .btn-cek-status, .jangan-ulang-card, .dobel-box { animation: none; } }
   .pickup-card { background: #EAF3EC; border-left: 3px solid var(--color-green); border-radius: 4px; padding: 10px 14px; margin-top: 8px; font-size: 12.5px; line-height: 1.5; color: var(--color-ink); }
   .info-card { background: #FBF3E4; border-left: 3px solid var(--color-brass); border-radius: 4px; padding: 14px 16px; margin: 12px 0; font-size: 13px; line-height: 1.55; color: var(--color-ink); }
 
@@ -755,6 +770,19 @@
       prosesHint: 'Surat biasanya selesai 2-3 hari kerja setelah pembayaran diverifikasi admin.',
       prosesHintRekomendasi: 'Guru akan meninjau permintaan ini dan mengirimkan surat rekomendasi langsung ke email kamu setelah selesai diproses.',
       followUpHint: 'Kalau butuh update, jangan sungkan cek status secara berkala sendiri lewat tombol "Cek Status Permintaan" di Beranda, pakai kode di atas.',
+      homeSudahAjukan: 'Sudah pernah mengajukan surat? Cek status dulu sebelum mengajukan lagi — bisa jadi suratmu sudah selesai dan siap diambil.',
+      janganUlangJudul: 'Jangan isi formulir lagi untuk surat ini!',
+      janganUlangIsi: 'Permintaanmu SUDAH TERCATAT. Mengisi ulang hanya membuat permintaan dobel. Untuk tahu progresnya, cukup cek status pakai kode di atas — screenshot halaman ini supaya kodenya tidak hilang.',
+      cekStatusSekarang: 'Cek Status Sekarang',
+      salinKode: 'Salin Kode',
+      kodeDisalin: 'Kode disalin!',
+      memeriksa: 'Memeriksa...',
+      dobelJudul: 'Kamu sudah pernah mengajukan surat ini',
+      dobelIsi: function (n) { return 'Kami menemukan ' + n + ' permintaan dengan nama dan jenis surat yang sama. Cek dulu statusnya — jangan sampai mengajukan dua kali:'; },
+      dobelSiapAmbil: 'Sudah selesai — siap diambil di Teacher Lounge (TL), temui Pak Danny.',
+      dobelLihat: 'Lihat Status Permintaan Lama',
+      dobelTetap: 'Tetap Ajukan Baru',
+      dobelTetapHint: 'Pilih "Tetap Ajukan Baru" hanya kalau kamu memang butuh surat tambahan.',
       rekomendasiBtn: 'Surat Rekomendasi',
       ajukanLain: 'Ajukan Surat Lain',
       kembaliBeranda: 'Kembali ke Beranda',
@@ -828,6 +856,19 @@
       prosesHint: 'Letters are usually ready 2-3 business days after payment is verified by the admin.',
       prosesHintRekomendasi: 'The teacher will review this request and send the recommendation letter directly to your email once it is ready.',
       followUpHint: 'If you’d like an update, feel free to check your status yourself anytime using the "Check Request Status" button on the Home page, with the code above.',
+      homeSudahAjukan: 'Already submitted a request? Check its status before submitting again — your letter may already be ready for pickup.',
+      janganUlangJudul: 'Do not fill in the form again for this letter!',
+      janganUlangIsi: 'Your request HAS BEEN RECORDED. Submitting again only creates a duplicate. To see its progress, just check the status with the code above — take a screenshot of this page so you don’t lose the code.',
+      cekStatusSekarang: 'Check Status Now',
+      salinKode: 'Copy Code',
+      kodeDisalin: 'Code copied!',
+      memeriksa: 'Checking...',
+      dobelJudul: 'You have already requested this letter',
+      dobelIsi: function (n) { return 'We found ' + n + ' request(s) with the same name and letter type. Please check the status first — don’t submit twice:'; },
+      dobelSiapAmbil: 'Completed — ready for pickup at the Teacher Lounge (TL), see Mr. Danny.',
+      dobelLihat: 'View Previous Request Status',
+      dobelTetap: 'Submit New Request Anyway',
+      dobelTetapHint: 'Choose "Submit New Request Anyway" only if you really need an additional letter.',
       rekomendasiBtn: 'Recommendation Letter',
       ajukanLain: 'Submit Another Letter',
       kembaliBeranda: 'Back to Home',
@@ -1298,7 +1339,8 @@
       '<div class="stack">' +
         '<button class="btn-primary" data-go="pilihJenis">' + escapeHtml(tt('ajukanSurat')) + '</button>' +
         '<button class="btn-outline" id="rekomendasiBtn">' + escapeHtml(tt('rekomendasiBtn')) + '</button>' +
-        '<button class="btn-outline" data-go="cekStatus">' + escapeHtml(tt('cekStatusBtn')) + '</button>' +
+        '<div class="cek-status-pita">&#9888;&#65039; ' + escapeHtml(tt('homeSudahAjukan')) + '</div>' +
+        '<button class="btn-outline btn-cek-status" data-go="cekStatus">&#128269; ' + escapeHtml(tt('cekStatusBtn')) + '</button>' +
         '<a class="btn-outline" href="/tka/latihan.html" style="text-align:center;text-decoration:none;">Latihan TKA</a>' +
         '<a class="btn-outline" href="/tka/leaderboard.html" style="text-align:center;text-decoration:none;">Leaderboard TKA</a>' +
       '</div>' +
@@ -1425,9 +1467,16 @@
         jumlahHtml +
         '<div class="stamp ' + req.status + '">' + escapeHtml(studentStatusLabel(req.type, req.status)) + '</div>' +
       '</div>' +
+      '<div class="jangan-ulang-card">' +
+        '<p class="jangan-ulang-judul">&#9888;&#65039; ' + escapeHtml(tt('janganUlangJudul')) + '</p>' +
+        '<p>' + escapeHtml(tt('janganUlangIsi')) + '</p>' +
+        '<div class="jangan-ulang-aksi">' +
+          '<button class="btn-primary" id="cekStatusSekarangBtn">&#128269; ' + escapeHtml(tt('cekStatusSekarang')) + '</button>' +
+          '<button class="btn-outline" id="salinKodeBtn">' + escapeHtml(tt('salinKode')) + '</button>' +
+        '</div>' +
+      '</div>' +
       noticeHtml +
       '<p class="hint center">' + escapeHtml(hintText) + '</p>' +
-      '<p class="hint center">' + escapeHtml(tt('followUpHint')) + '</p>' +
       '<div class="stack">' +
         '<button class="btn-outline" data-go="pilihJenis">' + escapeHtml(tt('ajukanLain')) + '</button>' +
         '<button class="btn-text" data-go="home">' + escapeHtml(tt('kembaliBeranda')) + '</button>' +
@@ -2575,6 +2624,7 @@
       case 'pilihJenis': attachPilihJenis(); break;
       case 'form': attachForm(); break;
       case 'pembayaran': attachPembayaran(); break;
+      case 'konfirmasi': attachKonfirmasi(); break;
       case 'cekStatus': attachCekStatus(); break;
       case 'adminGate': attachAdminGate(); break;
       case 'adminResetPassword': attachAdminResetPassword(); break;
@@ -2594,7 +2644,7 @@
     document.querySelectorAll('.type-card').forEach(function (card) {
       card.addEventListener('click', function () {
         S.selectedType = card.getAttribute('data-type');
-        S.formDraft = {}; S.formErrors = {};
+        S.formDraft = {}; S.formErrors = {}; S.dobelDikonfirmasi = false;
         go('form');
       });
     });
@@ -2619,6 +2669,18 @@
       });
       S.formErrors = errors;
       if (Object.keys(errors).length > 0) { render(); return; }
+      if (!S.dobelDikonfirmasi) {
+        var cekBtn = formEl.querySelector('button[type="submit"]');
+        var labelAsli = cekBtn.textContent;
+        cekBtn.disabled = true; cekBtn.textContent = tt('memeriksa');
+        var dobel = await cariPermintaanSerupa(S.selectedType, S.formDraft);
+        cekBtn.disabled = false; cekBtn.textContent = labelAsli;
+        if (dobel.length) {
+          tampilkanPeringatanDobel(dobel, function () { S.dobelDikonfirmasi = true; formEl.requestSubmit(); });
+          return;
+        }
+      }
+      S.dobelDikonfirmasi = false;
       var id = generateId(S.selectedType);
       S.pendingId = id;
       if (t.noPayment) {
@@ -2677,6 +2739,73 @@
       S.lastRequest = newReq;
       S.paymentChecked = false; S.paymentNote = ''; S.paymentDate = ''; S.pendingId = null;
       go('konfirmasi');
+    });
+  }
+
+  // Cegah permintaan dobel: nama sama + jenis surat sama, belum ditolak. Surat yang sudah selesai
+  // hanya dihitung bila diajukan <= 60 hari lalu (belum ada status "sudah diambil").
+  // Surat Rekomendasi dianggap dobel hanya bila ada guru yang sama.
+  var BATAS_HARI_DOBEL = 60;
+  function normNama(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+  async function cariPermintaanSerupa(type, draft) {
+    var nama = normNama(draft.namaLengkap);
+    if (!nama || type === 'IZIN_KLINIK') return [];
+    var guruBaru = [draft.namaGuru, draft.namaGuru2, draft.namaGuru3].filter(Boolean).map(normNama);
+    var batas = Date.now() - BATAS_HARI_DOBEL * 86400000;
+    var all = await getRequestsPublic(); // gagal memuat → [] (tidak menghalangi pengajuan)
+    return all.filter(function (r) {
+      if (r.type !== type || r.status === 'ditolak' || normNama(r.data.namaLengkap) !== nama) return false;
+      if (r.status === 'selesai' && new Date(r.submittedAt).getTime() < batas) return false;
+      if (type === 'REKOMENDASI') {
+        return (r.guruSlots || []).some(function (g) { return g.status !== 'ditolak' && guruBaru.indexOf(normNama(g.name)) !== -1; });
+      }
+      return true;
+    }).sort(function (a, b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
+  }
+  function tampilkanPeringatanDobel(daftar, lanjut) {
+    var label = function (r) { return S.lang === 'en' ? statusLabelForEn(r.type, r.status) : statusLabelFor(r.type, r.status); };
+    var item = daftar.slice(0, 3).map(function (r) {
+      var siap = r.status === 'selesai' && r.type !== 'REKOMENDASI';
+      return '<div class="dobel-item"><b class="req-id-small">' + escapeHtml(r.id) + '</b><br>' +
+        escapeHtml(formatDateTimeFull(r.submittedAt)) + ' · <b>' + escapeHtml(label(r)) + '</b>' +
+        (siap ? '<br>&#128205; ' + escapeHtml(tt('dobelSiapAmbil')) : '') + '</div>';
+    }).join('');
+    var ov = document.createElement('div');
+    ov.className = 'dobel-overlay';
+    ov.innerHTML = '<div class="dobel-box" role="dialog" aria-modal="true">' +
+      '<h3>&#9888;&#65039; ' + escapeHtml(tt('dobelJudul')) + '</h3>' +
+      '<p>' + escapeHtml(tt('dobelIsi')(daftar.length)) + '</p>' + item +
+      '<div class="stack">' +
+        '<button class="btn-primary" data-dobel="lihat">&#128269; ' + escapeHtml(tt('dobelLihat')) + '</button>' +
+        '<button class="btn-outline" data-dobel="tetap">' + escapeHtml(tt('dobelTetap')) + '</button>' +
+      '</div>' +
+      '<p class="hint center" style="margin-top:10px">' + escapeHtml(tt('dobelTetapHint')) + '</p>' +
+    '</div>';
+    document.body.appendChild(ov);
+    if (navigator.vibrate) { try { navigator.vibrate([120, 80, 120]); } catch (e) {} }
+    ov.addEventListener('click', function (e) {
+      var aksi = e.target.closest('[data-dobel]');
+      if (e.target === ov) { ov.remove(); return; }
+      if (!aksi) return;
+      ov.remove();
+      if (aksi.getAttribute('data-dobel') === 'lihat') bukaCekStatus(daftar[0].id);
+      else lanjut();
+    });
+  }
+  async function bukaCekStatus(kode) {
+    S.statusQuery = kode;
+    await runStatusSearch();
+    go('cekStatus');
+  }
+  function attachKonfirmasi() {
+    var req = S.lastRequest;
+    if (!req) return;
+    var cekBtn = document.getElementById('cekStatusSekarangBtn');
+    if (cekBtn) cekBtn.addEventListener('click', function () { bukaCekStatus(req.id); });
+    var salinBtn = document.getElementById('salinKodeBtn');
+    if (salinBtn) salinBtn.addEventListener('click', async function () {
+      try { await navigator.clipboard.writeText(req.id); salinBtn.textContent = tt('kodeDisalin'); } catch (e) { salinBtn.textContent = req.id; }
+      setTimeout(function () { if (salinBtn.isConnected) salinBtn.textContent = tt('salinKode'); }, 1500);
     });
   }
 
