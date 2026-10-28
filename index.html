@@ -69,20 +69,37 @@
 
   .notice-card { background: #FBEDEA; border-left: 3px solid var(--color-red); border-radius: 4px; padding: 14px 16px; margin: 14px 0; font-size: 13.5px; line-height: 1.55; color: var(--color-ink); }
   .cek-status-pita { background: #FFF4CC; border: 1.5px solid #E0B43C; border-radius: 4px; padding: 10px 14px; font-size: 13px; line-height: 1.5; color: var(--color-ink); text-align: center; margin-top: 6px; }
-  .btn-cek-status { border-width: 2px; background: #FFFBEA; animation: cek-denyut 2.4s ease-in-out infinite, cek-goyang 6s ease-in-out infinite; }
-  @keyframes cek-denyut { 0%, 100% { box-shadow: 0 0 0 0 rgba(224, 180, 60, 0.55); } 50% { box-shadow: 0 0 0 7px rgba(224, 180, 60, 0); } }
-  @keyframes cek-goyang { 0%, 88%, 100% { transform: translateX(0); } 90% { transform: translateX(-4px) rotate(-1deg); } 92% { transform: translateX(4px) rotate(1deg); } 94% { transform: translateX(-3px); } 96% { transform: translateX(3px); } 98% { transform: translateX(-1px); } }
-  .jangan-ulang-card { background: #FFF4CC; border: 2px solid #E0B43C; border-radius: 6px; padding: 16px 18px; margin: 16px 0; font-size: 14px; line-height: 1.55; color: var(--color-ink); animation: cek-goyang 6s ease-in-out 1; animation-delay: .6s; }
+  .btn-cek-status { border-width: 2px; background: #FFFBEA; animation: cek-denyut 1.6s ease-in-out infinite, cek-getar 3s ease-in-out infinite; }
+  .btn-cek-status:hover, .btn-cek-status:focus { animation: none; }
+  @keyframes cek-denyut { 0%, 100% { box-shadow: 0 0 0 0 rgba(224, 180, 60, 0.7); } 50% { box-shadow: 0 0 0 10px rgba(224, 180, 60, 0); } }
+  /* getar seperti HP berdering: diam ~2 detik, lalu bergetar kuat ~1 detik */
+  @keyframes cek-getar {
+    0%, 62%, 100% { transform: translateX(0) rotate(0); }
+    65% { transform: translateX(-8px) rotate(-2deg); } 68% { transform: translateX(8px) rotate(2deg); }
+    71% { transform: translateX(-8px) rotate(-2deg); } 74% { transform: translateX(8px) rotate(2deg); }
+    77% { transform: translateX(-6px) rotate(-1.5deg); } 80% { transform: translateX(6px) rotate(1.5deg); }
+    83% { transform: translateX(-4px) rotate(-1deg); } 86% { transform: translateX(4px) rotate(1deg); }
+    90% { transform: translateX(-2px); } 94% { transform: translateX(2px); }
+  }
+  @keyframes cek-goyang { 0%, 100% { transform: translateX(0); } 15%, 45%, 75% { transform: translateX(-8px) rotate(-1.5deg); } 30%, 60%, 90% { transform: translateX(8px) rotate(1.5deg); } }
+  .cek-status-pita { animation: cek-getar 3s ease-in-out infinite; animation-delay: 1.5s; }
+  .jangan-ulang-card { background: #FFF4CC; border: 2px solid #E0B43C; border-radius: 6px; padding: 16px 18px; margin: 16px 0; font-size: 14px; line-height: 1.55; color: var(--color-ink); animation: cek-getar 3s ease-in-out infinite, cek-denyut 1.6s ease-in-out infinite; }
+  .jangan-ulang-card:hover { animation: none; }
   .jangan-ulang-card p { margin: 0 0 10px; }
   .jangan-ulang-judul { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--color-red); }
   .jangan-ulang-aksi { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
   .dobel-overlay { position: fixed; inset: 0; background: rgba(27, 42, 74, 0.55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 1000; }
-  .dobel-box { background: var(--color-card); border-radius: 8px; border-top: 5px solid #E0B43C; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.25); animation: cek-goyang 1.2s ease-in-out 1; }
+  .dobel-box { background: var(--color-card); border-radius: 8px; border-top: 5px solid #E0B43C; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.25); animation: cek-goyang .7s ease-in-out 3; }
   .dobel-box h3 { font-family: var(--font-display); color: var(--color-navy); margin: 0 0 8px; font-size: 18px; }
   .dobel-box p { font-size: 13.5px; line-height: 1.5; margin: 0 0 10px; color: var(--color-ink); }
   .dobel-item { border-left: 3px solid var(--color-brass); background: var(--color-paper); padding: 8px 12px; margin: 8px 0; font-size: 13px; line-height: 1.5; }
   .dobel-box .stack { margin-top: 14px; }
-  @media (prefers-reduced-motion: reduce) { .btn-cek-status, .jangan-ulang-card, .dobel-box { animation: none; } }
+  /* Perangkat dengan animasi dikurangi (mis. Windows "Animation effects" off): tetap bergetar, tapi lebih halus */
+  @keyframes cek-getar-lembut { 0%, 70%, 100% { transform: translateX(0); } 74%, 82%, 90% { transform: translateX(-5px); } 78%, 86%, 94% { transform: translateX(5px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-cek-status, .cek-status-pita, .jangan-ulang-card { animation: cek-getar-lembut 3s ease-in-out infinite; }
+    .dobel-box { animation: cek-getar-lembut 1s ease-in-out 2; }
+  }
   .pickup-card { background: #EAF3EC; border-left: 3px solid var(--color-green); border-radius: 4px; padding: 10px 14px; margin-top: 8px; font-size: 12.5px; line-height: 1.5; color: var(--color-ink); }
   .info-card { background: #FBF3E4; border-left: 3px solid var(--color-brass); border-radius: 4px; padding: 14px 16px; margin: 12px 0; font-size: 13px; line-height: 1.55; color: var(--color-ink); }
 
