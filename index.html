@@ -642,6 +642,8 @@
       labelEn: 'Visa Support Letter',
       desc: 'Ditujukan ke kedutaan negara tujuan, sebagai dokumen pendukung pengajuan visa.',
       descEn: "Addressed to the destination country's embassy, as a supporting document for the visa application.",
+      notice: 'ℹ️ Penting: satu pengajuan = satu surat untuk SATU visa / SATU kedutaan. Tulis hanya negara tempat kamu akan mengajukan visa. Untuk negara Eropa anggota Schengen, cukup satu visa Schengen yang berlaku di seluruh negara Schengen, jadi tulis satu negara saja (negara tempat kamu mengajukan visa) — jangan menulis banyak negara Eropa sekaligus. Kalau mau mengajukan visa ke negara/kawasan yang berbeda (misalnya Eropa dan Australia), ajukan sebagai pengajuan BARU untuk masing-masing.',
+      noticeEn: 'ℹ️ Important: one request = one letter for ONE visa / ONE embassy. Enter only the country where you will apply for the visa. For European Schengen countries, a single Schengen visa is valid across the whole Schengen area, so enter just one country (the one where you apply for the visa) — do not list several European countries. If you want to apply for a visa to a different country/region (e.g. Europe and Australia), submit a NEW request for each one.',
       fields: [
         { key: 'namaLengkap', label: 'Nama Lengkap', labelEn: 'Full Name', type: 'text', required: true },
         { key: 'ttl', label: 'Tempat, Tanggal Lahir', labelEn: 'Place, Date of Birth', placeholder: 'Contoh: Tangerang, 12 Mei 2008', placeholderEn: 'e.g. Tangerang, May 12, 2008', type: 'text', required: true },
@@ -649,7 +651,7 @@
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'kelas', label: 'Kelas / Status Alumni', labelEn: 'Grade/Class or Alumni Status', type: 'select', options: KELAS_OPTIONS, required: true },
         { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
-        { key: 'negaraTujuan', label: 'Negara Tujuan', labelEn: 'Destination Country', placeholder: 'Contoh: Italy, Australia, Japan', placeholderEn: 'e.g. Italy, Australia, Japan', type: 'text', required: true },
+        { key: 'negaraTujuan', label: 'Negara Tujuan Visa (satu negara saja)', labelEn: 'Visa Destination Country (one country only)', placeholder: 'Contoh: Italy', placeholderEn: 'e.g. Italy', type: 'text', required: true, hint: 'Isi SATU negara saja. Untuk Eropa (Schengen) tulis negara tempat kamu mengajukan visa. Negara berbeda = pengajuan baru.', hintEn: 'Enter ONE country only. For Europe (Schengen), enter the country where you apply for the visa. A different country = a new request.' },
         { key: 'tanggalBerangkat', label: 'Tanggal Berangkat', labelEn: 'Departure Date', type: 'date', required: true },
         { key: 'tanggalKembali', label: 'Tanggal Kembali', labelEn: 'Return Date', type: 'date', required: true },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
