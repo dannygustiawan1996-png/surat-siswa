@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="/tka/tka.css">
 <style>
   :root {
     --color-navy: #1B2A4A;
@@ -105,6 +104,23 @@
 
   .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: var(--color-ink-soft); text-transform: uppercase; margin: 14px 0 8px; }
 
+  .prapen-overlay { position: fixed; inset: 0; background: rgba(27,42,74,0.55); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 14px; }
+  .prapen-modal { position: relative; background: var(--color-card); border-radius: 8px; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+  .prapen-body { padding: 22px 20px 20px; }
+  .prapen-close { position: absolute; top: 6px; right: 10px; background: none; border: none; font-size: 26px; line-height: 1; color: var(--color-ink-soft); }
+  .eyebrow-pp { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brass); margin: 0 0 6px; }
+  .prapen-block { margin: 16px 0; }
+  .prapen-q { margin: 0 0 8px; font-weight: 600; font-size: 14px; line-height: 1.45; }
+  .prapen-opt { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.45; padding: 5px 0; cursor: pointer; }
+  .prapen-opt input { margin-top: 3px; }
+  .prapen-scale { display: flex; gap: 6px; }
+  .prapen-scale label { flex: 1; cursor: pointer; }
+  .prapen-scale input { position: absolute; opacity: 0; pointer-events: none; }
+  .prapen-scale span { display: block; text-align: center; padding: 10px 0; border: 1.5px solid var(--color-navy); border-radius: 4px; font-weight: 600; color: var(--color-navy); }
+  .prapen-scale input:checked + span { background: var(--color-navy); color: var(--color-paper); }
+  .prapen-scale-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-ink-soft); margin-top: 4px; }
+  .prapen-thanks { text-align: center; padding: 20px 6px; }
+  body.prapen-noscroll { overflow: hidden; }
   .klinik-theme { --color-navy: #0E6B5C; }
   .klinik-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--color-ink-soft); text-transform: uppercase; }
   .klinik-alert-card { background: var(--color-navy); border-left: none; color: #FFFFFF; }
@@ -245,10 +261,6 @@
 </head>
 <body>
 <div id="app"></div>
-<script src="/tka/tka-config.js"></script>
-<script src="/tka/tka-api.js"></script>
-<script src="/tka/tka-soal.js"></script>
-<script src="/tka/tka-popup.js"></script>
 <script>
   // ============================================================
   // KONFIGURASI SUPABASE — isi 2 nilai ini dari Project Settings > API
@@ -1360,8 +1372,6 @@
         '<button class="btn-outline" id="rekomendasiBtn">' + escapeHtml(tt('rekomendasiBtn')) + '</button>' +
         '<div class="cek-status-pita">&#9888;&#65039; ' + escapeHtml(tt('homeSudahAjukan')) + '</div>' +
         '<button class="btn-outline btn-cek-status" data-go="cekStatus">&#128269; ' + escapeHtml(tt('cekStatusBtn')) + '</button>' +
-        '<a class="btn-outline" href="/tka/latihan.html" style="text-align:center;text-decoration:none;">Latihan TKA</a>' +
-        '<a class="btn-outline" href="/tka/leaderboard.html" style="text-align:center;text-decoration:none;">Leaderboard TKA</a>' +
       '</div>' +
       '<div class="footer-link"><a href="#" id="adminLink">Admin</a></div>';
   }
@@ -1694,10 +1704,11 @@
   }
 
   function renderAdminDashboard() {
-    var tabsHtml = '<div class="filter-row">' +
-      '<button class="btn-outline' + (S.adminTab === 'umum' ? ' active' : '') + '" data-admintab="umum" style="flex:1">Surat Umum (Berbayar)</button>' +
-      '<button class="btn-outline' + (S.adminTab === 'rekomendasi' ? ' active' : '') + '" data-admintab="rekomendasi" style="flex:1">Surat Rekomendasi</button>' +
-      '<button class="btn-outline' + (S.adminTab === 'klinik' ? ' active' : '') + '" data-admintab="klinik" style="flex:1">Izin Klinik</button>' +
+    var tabsHtml = '<div class="filter-row" style="flex-wrap:wrap;">' +
+      '<button class="btn-outline' + (S.adminTab === 'umum' ? ' active' : '') + '" data-admintab="umum" style="flex:1 1 45%">Surat Umum (Berbayar)</button>' +
+      '<button class="btn-outline' + (S.adminTab === 'rekomendasi' ? ' active' : '') + '" data-admintab="rekomendasi" style="flex:1 1 45%">Surat Rekomendasi</button>' +
+      '<button class="btn-outline' + (S.adminTab === 'klinik' ? ' active' : '') + '" data-admintab="klinik" style="flex:1 1 45%">Izin Klinik</button>' +
+      '<button class="btn-outline' + (S.adminTab === 'prapen' ? ' active' : '') + '" data-admintab="prapen" style="flex:1 1 45%">Pra-Penelitian</button>' +
     '</div>';
 
     var bodyHtml;
@@ -1705,6 +1716,8 @@
       bodyHtml = renderRekomendasiBody();
     } else if (S.adminTab === 'klinik') {
       bodyHtml = renderKlinikDashboardBody();
+    } else if (S.adminTab === 'prapen') {
+      bodyHtml = renderPrapenBody();
     } else {
       var umumRequests = S.requests.filter(function (r) { return !isDedicatedTabType(r.type); });
       var filtered = umumRequests.filter(function (r) {
@@ -2954,12 +2967,20 @@
       go('home');
     });
     document.querySelectorAll('[data-admintab]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', async function () {
         S.adminTab = btn.getAttribute('data-admintab');
         render();
+        if (S.adminTab === 'prapen') { await loadPrapenData(); if (S.adminTab === 'prapen' && S.view === 'adminDashboard') render(); }
       });
     });
 
+    if (S.adminTab === 'prapen') {
+      var prapenExport = document.getElementById('exportPrapenBtn');
+      if (prapenExport) prapenExport.addEventListener('click', function () { downloadCsv('pra-penelitian-' + todayISO() + '.csv', buildPrapenCsv(S.prapenData || [])); });
+      var prapenReload = document.getElementById('reloadPrapenBtn');
+      if (prapenReload) prapenReload.addEventListener('click', async function () { S.prapenData = null; render(); await loadPrapenData(); render(); });
+      return;
+    }
     if (S.adminTab === 'rekomendasi') {
       attachRekomendasiBody();
       return;
@@ -3223,13 +3244,198 @@
     }
   }, true);
 
+  // ============================================================
+  // POP-UP KUESIONER PRA-PENELITIAN (thesis)
+  // Ubah teks/pertanyaan di PRAPEN_PERTANYAAN. Naikkan PRAPEN_VERSI kalau
+  // kuesioner diganti total supaya pop-up muncul lagi di perangkat yang
+  // sudah pernah mengisi/menutup versi lama.
+  // type: radio | scale (1-5) | multi | text
+  // ============================================================
+  var PRAPEN_VERSI = '2026-11';
+  var PRAPEN_PERTANYAAN = [
+    { key: 'status_tka', type: 'radio', required: true, label: 'Apakah kamu mengikuti TKA (Tes Kemampuan Akademik)?', options: ['Sudah mengikuti', 'Akan mengikuti', 'Tidak mengikuti'] },
+    { key: 'kesiapan', type: 'scale', required: true, label: 'Seberapa siap kamu menghadapi TKA?', low: 'Belum siap', high: 'Sangat siap' },
+    { key: 'frekuensi_latihan', type: 'radio', required: true, label: 'Seberapa sering kamu latihan soal TKA secara mandiri?', options: ['Tidak pernah', 'Jarang (1-2 kali sebulan)', 'Kadang-kadang (sekitar seminggu sekali)', 'Sering (beberapa kali seminggu)', 'Hampir setiap hari'] },
+    { key: 'kendala', type: 'multi', required: true, label: 'Kendala utama saat mempersiapkan TKA (boleh lebih dari satu)', options: ['Kurang soal latihan yang sesuai format TKA', 'Pembahasan/umpan balik datang lambat', 'Kurang paham materi', 'Kurang waktu belajar', 'Sulit konsisten / kurang motivasi', 'Bingung harus mulai dari mana'] },
+    { key: 'pakai_ai', type: 'radio', required: true, label: 'Apakah kamu pernah memakai AI/chatbot untuk belajar?', options: ['Belum pernah', 'Pernah beberapa kali', 'Rutin memakainya'] },
+    { key: 'minat_chatbot', type: 'scale', required: true, label: 'Seberapa tertarik kamu memakai chatbot AI untuk latihan TKA?', low: 'Tidak tertarik', high: 'Sangat tertarik' },
+    { key: 'fitur', type: 'multi', required: false, label: 'Fitur chatbot yang paling kamu harapkan (boleh lebih dari satu)', options: ['Latihan soal sesuai format TKA', 'Pembahasan langkah demi langkah', 'Umpan balik instan', 'Rekomendasi materi sesuai kelemahan', 'Simulasi / try out', 'Pengingat & target belajar'] },
+    { key: 'saran', type: 'text', required: false, label: 'Saran atau harapan lain (opsional)' }
+  ];
+  var PRAPEN_KEY = 'prapen_selesai_' + PRAPEN_VERSI;
+
+  function prapenSudahSelesai() { try { return localStorage.getItem(PRAPEN_KEY) === '1'; } catch (e) { return false; } }
+  function prapenTandaiSelesai() { try { localStorage.setItem(PRAPEN_KEY, '1'); } catch (e) {} }
+  function prapenDeviceId() {
+    try {
+      var id = localStorage.getItem('prapen_device_id');
+      if (!id) { id = 'd-' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('prapen_device_id', id); }
+      return id;
+    } catch (e) { return 'd-' + Math.random().toString(36).slice(2); }
+  }
+
+  function showPrapenPopup() {
+    if (prapenSudahSelesai() || document.getElementById('prapenOverlay')) return;
+    var kelasOpts = {}; var kelasOrder = [];
+    KELAS_OPTIONS.forEach(function (o) { if (!kelasOpts[o.group]) { kelasOpts[o.group] = []; kelasOrder.push(o.group); } kelasOpts[o.group].push(o); });
+    var kelasHtml = '<option value="">Pilih kelas / status</option>' + kelasOrder.map(function (g) {
+      return '<optgroup label="' + escapeHtml(g) + '">' + kelasOpts[g].map(function (o) { return '<option value="' + escapeHtml(o.value) + '">' + escapeHtml(o.label) + '</option>'; }).join('') + '</optgroup>';
+    }).join('');
+
+    var qHtml = PRAPEN_PERTANYAAN.map(function (q, i) {
+      var head = '<p class="prapen-q">' + (i + 1) + '. ' + escapeHtml(q.label) + (q.required ? ' <span class="req">*</span>' : '') + '</p>';
+      var body = '';
+      if (q.type === 'radio') {
+        body = q.options.map(function (o) { return '<label class="prapen-opt"><input type="radio" name="' + q.key + '" value="' + escapeHtml(o) + '"> <span>' + escapeHtml(o) + '</span></label>'; }).join('');
+      } else if (q.type === 'multi') {
+        body = q.options.map(function (o) { return '<label class="prapen-opt"><input type="checkbox" name="' + q.key + '" value="' + escapeHtml(o) + '"> <span>' + escapeHtml(o) + '</span></label>'; }).join('');
+      } else if (q.type === 'scale') {
+        body = '<div class="prapen-scale">' + [1, 2, 3, 4, 5].map(function (n) { return '<label><input type="radio" name="' + q.key + '" value="' + n + '"><span>' + n + '</span></label>'; }).join('') + '</div>' +
+          '<div class="prapen-scale-ends"><span>1 = ' + escapeHtml(q.low) + '</span><span>5 = ' + escapeHtml(q.high) + '</span></div>';
+      } else {
+        body = '<textarea class="field-input" name="' + q.key + '" rows="2" maxlength="500"></textarea>';
+      }
+      return '<div class="prapen-block" data-q="' + q.key + '">' + head + body + '<span class="field-error" data-err="' + q.key + '"></span></div>';
+    }).join('');
+
+    var overlay = document.createElement('div');
+    overlay.id = 'prapenOverlay';
+    overlay.className = 'prapen-overlay';
+    overlay.innerHTML =
+      '<div class="prapen-modal" role="dialog" aria-modal="true">' +
+        '<button type="button" class="prapen-close" aria-label="Tutup" data-prapen-close>&times;</button>' +
+        '<div class="prapen-body" id="prapenBody">' +
+          '<p class="eyebrow-pp">Kuesioner Pra-Penelitian</p>' +
+          '<h2>Bantu penelitian kami, 2 menit saja</h2>' +
+          '<p class="hint">Kuesioner singkat tentang kesiapan menghadapi TKA dan kebutuhan latihan belajar. Dipakai untuk keperluan <strong>pra-penelitian thesis</strong>. Partisipasi bersifat sukarela, jawaban dijaga kerahasiaannya dan hanya dianalisis secara keseluruhan (bukan per individu).</p>' +
+          '<form id="prapenForm">' +
+            '<label class="field"><span class="field-label">Nama (opsional)</span><input class="field-input" name="nama" type="text" maxlength="100"></label>' +
+            '<div class="prapen-block" data-q="kelas"><label class="field"><span class="field-label">Kelas / Status <span class="req">*</span></span><select class="field-input" name="kelas">' + kelasHtml + '</select></label><span class="field-error" data-err="kelas"></span></div>' +
+            qHtml +
+            '<div class="prapen-block" data-q="consent"><label class="prapen-opt"><input type="checkbox" name="consent"> <span>Saya bersedia berpartisipasi dan mengizinkan jawaban saya dipakai untuk keperluan penelitian. <span class="req">*</span></span></label><span class="field-error" data-err="consent"></span></div>' +
+            '<span class="field-error" id="prapenFormErr"></span>' +
+            '<button type="submit" class="btn-primary" id="prapenSubmit">Kirim Jawaban</button>' +
+            '<button type="button" class="btn-text" data-prapen-close>Nanti saja</button>' +
+          '</form>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    document.body.classList.add('prapen-noscroll');
+
+    function tutup(tandai) {
+      if (tandai) prapenTandaiSelesai();
+      overlay.remove();
+      document.body.classList.remove('prapen-noscroll');
+    }
+    overlay.querySelectorAll('[data-prapen-close]').forEach(function (b) { b.addEventListener('click', function () { tutup(true); }); });
+
+    overlay.querySelector('#prapenForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var f = e.target;
+      overlay.querySelectorAll('[data-err]').forEach(function (el) { el.textContent = ''; });
+      var jawaban = {}; var ok = true;
+      var kelas = f.elements['kelas'].value;
+      if (!kelas) { overlay.querySelector('[data-err="kelas"]').textContent = 'Wajib diisi'; ok = false; }
+      PRAPEN_PERTANYAAN.forEach(function (q) {
+        var val;
+        if (q.type === 'multi') {
+          val = Array.prototype.slice.call(f.querySelectorAll('input[name="' + q.key + '"]:checked')).map(function (c) { return c.value; });
+          if (q.required && val.length === 0) { overlay.querySelector('[data-err="' + q.key + '"]').textContent = 'Pilih minimal satu'; ok = false; }
+        } else if (q.type === 'text') {
+          val = f.elements[q.key].value.trim();
+        } else {
+          var chk = f.querySelector('input[name="' + q.key + '"]:checked');
+          val = chk ? chk.value : '';
+          if (q.type === 'scale' && val) val = Number(val);
+          if (q.required && !val) { overlay.querySelector('[data-err="' + q.key + '"]').textContent = 'Wajib diisi'; ok = false; }
+        }
+        jawaban[q.key] = val;
+      });
+      if (!f.elements['consent'].checked) { overlay.querySelector('[data-err="consent"]').textContent = 'Centang persetujuan untuk melanjutkan'; ok = false; }
+      if (!ok) { var firstErr = overlay.querySelector('.field-error:not(:empty)'); if (firstErr) firstErr.scrollIntoView({ block: 'center' }); return; }
+
+      var btn = overlay.querySelector('#prapenSubmit');
+      btn.disabled = true; btn.textContent = 'Mengirim...';
+      var res;
+      try {
+        res = await sb.from('survey_pra').insert({ device_id: prapenDeviceId(), versi: PRAPEN_VERSI, nama: f.elements['nama'].value.trim() || null, kelas: kelas, jawaban: jawaban });
+      } catch (err) { res = { error: { message: String(err && err.message || err) } }; }
+      var duplikat = res.error && /duplicate|unique/i.test(res.error.message || '');
+      if (res.error && !duplikat) {
+        btn.disabled = false; btn.textContent = 'Kirim Jawaban';
+        overlay.querySelector('#prapenFormErr').textContent = 'Gagal mengirim: ' + res.error.message + '. Coba lagi sebentar.';
+        return;
+      }
+      prapenTandaiSelesai();
+      overlay.querySelector('#prapenBody').innerHTML = '<div class="prapen-thanks"><div class="seal">&#10003;</div><h2>Terima kasih!</h2><p class="hint">Jawabanmu sudah terkirim dan sangat membantu penelitian ini.</p><button type="button" class="btn-primary" data-prapen-done>Tutup</button></div>';
+      overlay.querySelector('[data-prapen-done]').addEventListener('click', function () { tutup(false); });
+    });
+  }
+
+  async function loadPrapenData() {
+    try {
+      var res = await sb.from('survey_pra').select('*').order('created_at', { ascending: false });
+      if (res.error) { S.prapenError = res.error.message; S.prapenData = []; return; }
+      S.prapenError = null; S.prapenData = res.data || [];
+    } catch (e) { S.prapenError = String(e && e.message || e); S.prapenData = []; }
+  }
+
+  function prapenJawabanText(v) { return Array.isArray(v) ? v.join('; ') : (v == null ? '' : String(v)); }
+
+  function buildPrapenCsv(rows) {
+    var headers = ['Waktu', 'Nama', 'Kelas'].concat(PRAPEN_PERTANYAAN.map(function (q) { return q.label; }));
+    var lines = [headers.map(csvField).join(',')];
+    rows.slice().sort(function (a, b) { return new Date(a.created_at) - new Date(b.created_at); }).forEach(function (r) {
+      var j = r.jawaban || {};
+      lines.push([ymdHm(r.created_at), r.nama || '', r.kelas || ''].concat(PRAPEN_PERTANYAAN.map(function (q) { return prapenJawabanText(j[q.key]); })).map(csvField).join(','));
+    });
+    return lines.join('\n');
+  }
+
+  function renderPrapenBody() {
+    var head = '<p class="hint">Hasil kuesioner pop-up pra-penelitian (versi ' + escapeHtml(PRAPEN_VERSI) + '). Hanya admin yang bisa melihat.</p>';
+    if (S.prapenData == null) return head + '<p class="hint">Memuat...</p>';
+    if (S.prapenError) {
+      return head + '<div class="notice-card">Gagal memuat data: ' + escapeHtml(S.prapenError) + '<br>Kalau pesannya menyebut tabel tidak ditemukan, jalankan ulang schema.sql di Supabase SQL Editor.</div>' +
+        '<button class="btn-outline" id="reloadPrapenBtn">Coba Muat Lagi</button>';
+    }
+    var rows = S.prapenData;
+    var html = head + '<div class="stats-grid"><div class="stat"><span class="stat-num">' + rows.length + '</span><span class="stat-label">Responden</span></div></div>' +
+      '<button class="btn-outline" id="exportPrapenBtn" style="margin-bottom:8px">Unduh Hasil Kuesioner (Excel)</button>' +
+      '<button class="btn-text" id="reloadPrapenBtn">Muat ulang data</button>';
+    if (rows.length === 0) return html + '<p class="hint">Belum ada jawaban masuk.</p>';
+
+    var byKelas = tallyBy(rows, function (r) { return r.kelas; });
+    html += '<div class="stat-block"><p class="stat-block-title">Responden per Kelas</p>' + renderRecapList(byKelas) + '</div>';
+    PRAPEN_PERTANYAAN.forEach(function (q, i) {
+      var vals = rows.map(function (r) { return (r.jawaban || {})[q.key]; });
+      var inner;
+      if (q.type === 'text') {
+        var texts = vals.filter(function (v) { return v && String(v).trim(); });
+        inner = texts.length === 0 ? '<p class="hint">Belum ada isian.</p>' : texts.map(function (t) { return '<div class="recap-row" style="align-items:flex-start;"><span class="recap-dot" style="background:#A6803D;margin-top:6px;"></span><span class="recap-label" style="white-space:normal;">' + escapeHtml(t) + '</span></div>'; }).join('');
+      } else if (q.type === 'scale') {
+        var nums = vals.filter(function (v) { return v; }).map(Number);
+        var avg = nums.length ? (nums.reduce(function (s, n) { return s + n; }, 0) / nums.length).toFixed(2) : '-';
+        var dist = [1, 2, 3, 4, 5].map(function (n) { return { label: n + (n === 1 ? ' (' + q.low + ')' : n === 5 ? ' (' + q.high + ')' : ''), count: nums.filter(function (x) { return x === n; }).length }; });
+        inner = '<p class="hint" style="margin-top:-6px;">Rata-rata: <strong>' + avg + '</strong> dari 5 (' + nums.length + ' jawaban)</p>' + renderRecapList(dist);
+      } else {
+        var counts = {};
+        vals.forEach(function (v) { (Array.isArray(v) ? v : [v]).forEach(function (o) { if (o) counts[o] = (counts[o] || 0) + 1; }); });
+        var items = Object.keys(counts).map(function (k) { return { label: k + ' (' + Math.round(counts[k] * 100 / rows.length) + '%)', count: counts[k] }; }).sort(function (a, b) { return b.count - a.count; });
+        inner = renderRecapList(items);
+      }
+      html += '<div class="stat-block"><p class="stat-block-title">' + (i + 1) + '. ' + escapeHtml(q.label) + '</p>' + inner + '</div>';
+    });
+    return html;
+  }
+
   async function init() {
     S.settings = await getSettings();
     S.adminAuthed = await hasAdminSession();
     if (S.adminAuthed) { S.userRole = await getCurrentRole(); S.requests = await getRequestsAdmin(); }
     S.loading = false;
     render();
-    if (!S.adminAuthed && window.TKA) TKA.tampilkanPopup();
+    if (!S.adminAuthed) showPrapenPopup();
     sb.auth.onAuthStateChange(function (event) {
       if (event === 'PASSWORD_RECOVERY') go('adminResetPassword');
     });

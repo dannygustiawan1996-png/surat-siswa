@@ -189,6 +189,35 @@ $$;
 
 grant execute on function public.submit_feedback(text, int, text) to anon;
 
+-- Kuesioner pra-penelitian (thesis). Siswa/pengunjung (anon) hanya boleh MENGIRIM
+-- jawaban; hanya admin yang login yang boleh MEMBACA. 1 perangkat = 1 jawaban
+-- per versi kuesioner (unique device_id + versi).
+create table if not exists survey_pra (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  device_id text not null,
+  versi text not null,
+  nama text,
+  kelas text,
+  jawaban jsonb not null default '{}'::jsonb,
+  unique (device_id, versi)
+);
+alter table survey_pra enable row level security;
+drop policy if exists "anon insert survey_pra" on survey_pra;
+create policy "anon insert survey_pra" on survey_pra
+  for insert to anon
+  with check (octet_length(jawaban::text) < 5000);
+drop policy if exists "admin read survey_pra" on survey_pra;
+create policy "admin read survey_pra" on survey_pra
+  for select to authenticated
+  using (true);
+grant insert on survey_pra to anon;
+grant select, insert, delete on survey_pra to authenticated;
+drop policy if exists "admin delete survey_pra" on survey_pra;
+create policy "admin delete survey_pra" on survey_pra
+  for delete to authenticated
+  using (true);
+
 alter table requests enable row level security;
 alter table settings enable row level security;
 
