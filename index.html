@@ -3246,10 +3246,11 @@
       setTimeout(revert, 1200);
     }
   }, true);
-
   // ============================================================
   // POP-UP SURVEI PRA-PENELITIAN (tesis Magister Manajemen)
   // Isi mengikuti Microsoft Forms "Survei Singkat: Aktivitas Usaha Pelajar".
+  // Alur: halaman 1 (kelas + pernah usaha). Kalau "Ya, pernah" -> halaman 2
+  // (kapan mulai, kondisi sekarang, jenis usaha). Kalau "Tidak pernah" -> kirim.
   // Bahasa mengikuti tombol ID/EN di web (satu bahasa per tampilan).
   // Naikkan PRAPEN_VERSI kalau kuesioner diganti total supaya pop-up muncul
   // lagi di perangkat yang sudah pernah mengisi/menutup versi lama.
@@ -3268,21 +3269,44 @@
     { value: 'ya', id: 'Ya, pernah', en: 'Yes, I have' },
     { value: 'tidak', id: 'Tidak pernah', en: 'No, never' }
   ];
+  var PRAPEN_MULAI = [
+    { value: 'sd_smp', id: 'Sebelum masuk SMA/SMK/MA (saat SD atau SMP)', en: 'Before senior high school (during elementary or junior high school)' },
+    { value: 'k10', id: 'Saat kelas 10', en: 'In Grade 10' },
+    { value: 'k11', id: 'Saat kelas 11', en: 'In Grade 11' },
+    { value: 'k12', id: 'Saat kelas 12', en: 'In Grade 12' },
+    { value: 'lulus', id: 'Setelah lulus', en: 'After graduating' }
+  ];
+  var PRAPEN_KONDISI = [
+    { value: 'berjalan', id: 'Masih berjalan, dalam 3 bulan terakhir masih ada penjualan atau pemasukan', en: 'Still running: there have been sales or income in the last 3 months' },
+    { value: 'tidak_aktif', id: 'Masih ada, tetapi sudah lebih dari 3 bulan tidak ada aktivitas', en: 'Still exists, but there has been no activity for more than 3 months' },
+    { value: 'berhenti', id: 'Sudah berhenti sama sekali', en: 'Has stopped completely' }
+  ];
+  var PRAPEN_JENIS = [
+    { value: 'barang', id: 'Berjualan barang (makanan, pakaian, aksesori, preloved, dan sejenisnya)', en: 'Selling goods (food, clothing, accessories, preloved items, and similar items)' },
+    { value: 'digital', id: 'Jasa atau karya digital (desain, edit video, fotografi, tulisan)', en: 'Digital services or creative work (design, video editing, photography, writing)' },
+    { value: 'konten', id: 'Penghasilan dari konten (endorse, afiliasi, monetisasi)', en: 'Income from content (endorsements, affiliate marketing, monetization)' },
+    { value: 'event', id: 'Penyelenggaraan event atau jasa lainnya', en: 'Organizing events or other services' },
+    { value: 'lainnya', id: 'Lainnya', en: 'Other' }
+  ];
   var PRAPEN_TEKS = {
     id: {
       eyebrow: 'Survei Singkat',
       judul: 'Survei Singkat: Aktivitas Usaha Pelajar',
       intro: [
         'Halo! Perkenalkan, saya Danny Gustiawan. Saat ini saya sedang menyiapkan penelitian tesis tentang pelajar yang menjalankan usaha sendiri semasa sekolah.',
-        'Survei ini hanya berisi 2 pertanyaan dan memakan waktu sekitar 2 menit. Tujuannya untuk mengetahui seberapa banyak pelajar yang pernah menjalankan kegiatan usaha sendiri.'
+        'Survei ini hanya berisi 2–5 pertanyaan dan memakan waktu sekitar 2 menit. Tujuannya untuk mengetahui seberapa banyak pelajar yang pernah menjalankan kegiatan usaha sendiri.'
       ],
       q1: '1. Saat ini kamu duduk di kelas berapa?',
       q2: '2. Apakah kamu PERNAH menjalankan kegiatan usaha sendiri untuk mendapatkan penghasilan?',
+      q3: '3. Kapan kamu PERTAMA KALI memulai kegiatan usaha itu?',
+      q4: '4. Bagaimana keadaan usaha itu sekarang?',
+      q5: '5. Kegiatan usahamu paling dekat dengan yang mana?',
       contohYa: 'Yang termasuk, misalnya:',
       ya: ['berjualan online (makanan, minuman, pakaian, aksesori, dan sejenisnya)', 'jasa titip (jastip) atau reseller/dropship', 'menjual barang preloved', 'jasa desain, edit video, joki tugas desain, fotografi', 'menerima endorse berbayar atau penghasilan dari konten', 'menerima pesanan kue, hampers, atau kerajinan', 'menyelenggarakan event berbayar'],
       contohTidak: 'Yang TIDAK termasuk:',
       tidak: ['membantu usaha milik orang tua atau keluarga', 'kerja paruh waktu dengan gaji dari orang lain (misalnya jaga toko, barista)', 'tugas sekolah atau projek P5 yang berjualan hanya satu kali'],
       wajib: 'Wajib diisi',
+      lanjut: 'Lanjut', kembali: '‹ Kembali', halaman: function (a, b) { return 'Halaman ' + a + ' dari ' + b; },
       kirim: 'Kirim Jawaban', mengirim: 'Mengirim...', nanti: 'Nanti saja',
       gagal: function (m) { return 'Gagal mengirim: ' + m + '. Coba lagi sebentar.'; },
       terimaKasih: 'Terima kasih!', terimaSub: 'Jawabanmu sudah terkirim dan sangat membantu penelitian ini.', tutup: 'Tutup',
@@ -3293,22 +3317,26 @@
       judul: 'Short Survey: Student Business Activities',
       intro: [
         'Hello! My name is Danny Gustiawan. I am currently preparing my thesis research on students who run their own businesses while still in school.',
-        'This survey contains only 2 questions and takes about 2 minutes. Its purpose is to find out how many students have ever run their own business activities.'
+        'This survey contains only 2–5 questions and takes about 2 minutes. Its purpose is to find out how many students have ever run their own business activities.'
       ],
       q1: '1. What grade are you currently in?',
       q2: '2. Have you EVER run your own business activity to earn income?',
+      q3: '3. When did you FIRST start that business activity?',
+      q4: '4. How is your business doing now?',
+      q5: '5. Which of the following is closest to your business activity?',
       contohYa: 'Examples that COUNT:',
       ya: ['selling online (food, drinks, clothing, accessories, and similar items)', 'personal shopping/proxy buying service (jastip), or reselling/dropshipping', 'selling preloved items', 'design services, video editing, design assignment services for others (joki), photography', 'receiving paid endorsements or income from content', 'taking orders for cakes, gift hampers, or handicrafts', 'organizing paid events'],
       contohTidak: 'Examples that do NOT count:',
       tidak: ['helping with a business owned by your parents or family', 'part-time work paid by someone else (for example, working at a shop or as a barista)', 'school assignments or P5 (Pancasila Student Profile Strengthening Project) projects where you sold something only once'],
       wajib: 'Required',
+      lanjut: 'Next', kembali: '‹ Back', halaman: function (a, b) { return 'Page ' + a + ' of ' + b; },
       kirim: 'Submit', mengirim: 'Submitting...', nanti: 'Maybe later',
       gagal: function (m) { return 'Failed to submit: ' + m + '. Please try again shortly.'; },
       terimaKasih: 'Thank you!', terimaSub: 'Your answers have been submitted and are a big help to this research.', tutup: 'Close',
       privasi: 'Your name and email are not recorded.'
     }
   };
-  var prapenState = { grade: '', usaha: '' };
+  var prapenState = { grade: '', usaha: '', mulai: '', kondisi: '', jenis: '', step: 1 };
 
   function prapenSudahSelesai() { try { return localStorage.getItem(PRAPEN_KEY) === '1'; } catch (e) { return false; } }
   function prapenTandaiSelesai() { try { localStorage.setItem(PRAPEN_KEY, '1'); } catch (e) {} }
@@ -3321,36 +3349,48 @@
   }
 
   function prapenFormHtml() {
-    var t = PRAPEN_TEKS[S.lang === 'en' ? 'en' : 'id'];
     var lang = S.lang === 'en' ? 'en' : 'id';
+    var t = PRAPEN_TEKS[lang];
+    var step = prapenState.step;
+    var adaHalaman2 = prapenState.usaha === 'ya';
     function radios(name, opts, selected) {
       return opts.map(function (o) {
         return '<label class="prapen-opt"><input type="radio" name="' + name + '" value="' + o.value + '"' + (selected === o.value ? ' checked' : '') + '> <span>' + escapeHtml(o[lang]) + '</span></label>';
       }).join('');
     }
     function list(items) { return '<ul class="prapen-list">' + items.map(function (x) { return '<li>' + escapeHtml(x) + '</li>'; }).join('') + '</ul>'; }
-    return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-        '<p class="eyebrow-pp" style="margin:0;">' + escapeHtml(t.eyebrow) + '</p>' +
+    function block(q, inner, name) { return '<div class="prapen-block"><p class="prapen-q">' + escapeHtml(q) + ' <span class="req">*</span></p>' + inner + '<span class="field-error" data-err="' + name + '"></span></div>'; }
+
+    var top = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+        '<p class="eyebrow-pp" style="margin:0;">' + escapeHtml(t.eyebrow) + (adaHalaman2 ? ' &middot; ' + escapeHtml(t.halaman(step, 2)) : '') + '</p>' +
         '<button type="button" id="prapenLang" class="prapen-lang">' + (lang === 'id' ? 'EN' : 'ID') + '</button>' +
-      '</div>' +
-      '<h2>' + escapeHtml(t.judul) + '</h2>' +
-      t.intro.map(function (p) { return '<p class="hint">' + escapeHtml(p) + '</p>'; }).join('') +
+      '</div>';
+    if (step === 1) {
+      return top + '<h2>' + escapeHtml(t.judul) + '</h2>' +
+        t.intro.map(function (p) { return '<p class="hint">' + escapeHtml(p) + '</p>'; }).join('') +
+        '<form id="prapenForm">' +
+          block(t.q1, radios('grade', PRAPEN_GRADE, prapenState.grade), 'grade') +
+          block(t.q2, '<p class="prapen-sub">' + escapeHtml(t.contohYa) + '</p>' + list(t.ya) + '<p class="prapen-sub">' + escapeHtml(t.contohTidak) + '</p>' + list(t.tidak) + radios('usaha', PRAPEN_USAHA, prapenState.usaha), 'usaha') +
+          '<span class="field-error" id="prapenFormErr"></span>' +
+          '<button type="submit" class="btn-primary" id="prapenSubmit">' + escapeHtml(adaHalaman2 ? t.lanjut : t.kirim) + '</button>' +
+          '<p class="hint" style="text-align:center;margin:8px 0 0;">' + escapeHtml(t.privasi) + '</p>' +
+          '<button type="button" class="btn-text" data-prapen-close>' + escapeHtml(t.nanti) + '</button>' +
+        '</form>';
+    }
+    return top + '<h2>' + escapeHtml(t.judul) + '</h2>' +
       '<form id="prapenForm">' +
-        '<div class="prapen-block"><p class="prapen-q">' + escapeHtml(t.q1) + ' <span class="req">*</span></p>' + radios('grade', PRAPEN_GRADE, prapenState.grade) + '<span class="field-error" data-err="grade"></span></div>' +
-        '<div class="prapen-block"><p class="prapen-q">' + escapeHtml(t.q2) + ' <span class="req">*</span></p>' +
-          '<p class="prapen-sub">' + escapeHtml(t.contohYa) + '</p>' + list(t.ya) +
-          '<p class="prapen-sub">' + escapeHtml(t.contohTidak) + '</p>' + list(t.tidak) +
-          radios('usaha', PRAPEN_USAHA, prapenState.usaha) + '<span class="field-error" data-err="usaha"></span></div>' +
+        block(t.q3, radios('mulai', PRAPEN_MULAI, prapenState.mulai), 'mulai') +
+        block(t.q4, radios('kondisi', PRAPEN_KONDISI, prapenState.kondisi), 'kondisi') +
+        block(t.q5, radios('jenis', PRAPEN_JENIS, prapenState.jenis), 'jenis') +
         '<span class="field-error" id="prapenFormErr"></span>' +
         '<button type="submit" class="btn-primary" id="prapenSubmit">' + escapeHtml(t.kirim) + '</button>' +
-        '<p class="hint" style="text-align:center;margin:8px 0 0;">' + escapeHtml(t.privasi) + '</p>' +
-        '<button type="button" class="btn-text" data-prapen-close>' + escapeHtml(t.nanti) + '</button>' +
+        '<button type="button" class="btn-text" id="prapenBack">' + escapeHtml(t.kembali) + '</button>' +
       '</form>';
   }
 
   function showPrapenPopup() {
     if (prapenSudahSelesai() || document.getElementById('prapenOverlay')) return;
-    prapenState = { grade: '', usaha: '' };
+    prapenState = { grade: '', usaha: '', mulai: '', kondisi: '', jenis: '', step: 1 };
     var overlay = document.createElement('div');
     overlay.id = 'prapenOverlay';
     overlay.className = 'prapen-overlay';
@@ -3366,39 +3406,54 @@
       overlay.remove();
       document.body.classList.remove('prapen-noscroll');
     }
+    async function kirim(t) {
+      var btn = body.querySelector('#prapenSubmit');
+      btn.disabled = true; btn.textContent = t.mengirim;
+      var jawaban = { grade: prapenState.grade, pernah_usaha: prapenState.usaha, bahasa: S.lang === 'en' ? 'en' : 'id' };
+      if (prapenState.usaha === 'ya') { jawaban.mulai_usaha = prapenState.mulai; jawaban.kondisi_usaha = prapenState.kondisi; jawaban.jenis_usaha = prapenState.jenis; }
+      var res;
+      try {
+        res = await sb.from('survey_pra').insert({ device_id: prapenDeviceId(), versi: PRAPEN_VERSI, nama: null, kelas: prapenState.grade, jawaban: jawaban });
+      } catch (err) { res = { error: { message: String(err && err.message || err) } }; }
+      var duplikat = res.error && /duplicate|unique/i.test(res.error.message || '');
+      if (res.error && !duplikat) {
+        btn.disabled = false; btn.textContent = t.kirim;
+        body.querySelector('#prapenFormErr').textContent = t.gagal(res.error.message);
+        return;
+      }
+      prapenTandaiSelesai();
+      body.innerHTML = '<div class="prapen-thanks"><div class="seal">&#10003;</div><h2>' + escapeHtml(t.terimaKasih) + '</h2><p class="hint">' + escapeHtml(t.terimaSub) + '</p><button type="button" class="btn-primary" data-prapen-done>' + escapeHtml(t.tutup) + '</button></div>';
+      body.querySelector('[data-prapen-done]').onclick = function () { tutup(false); };
+    }
     function pasang() {
       body.innerHTML = prapenFormHtml();
+      body.scrollTop = 0; overlay.querySelector('.prapen-modal').scrollTop = 0;
       overlay.querySelectorAll('[data-prapen-close]').forEach(function (b) { b.onclick = function () { tutup(true); }; });
       body.querySelectorAll('input[type=radio]').forEach(function (r) {
-        r.addEventListener('change', function () { prapenState[r.name] = r.value; });
+        r.addEventListener('change', function () {
+          prapenState[r.name] = r.value;
+          if (r.name === 'usaha') body.querySelector('#prapenSubmit').textContent = PRAPEN_TEKS[S.lang === 'en' ? 'en' : 'id'][r.value === 'ya' ? 'lanjut' : 'kirim'];
+        });
       });
       body.querySelector('#prapenLang').onclick = function () { toggleLang(); pasang(); };
+      var back = body.querySelector('#prapenBack');
+      if (back) back.onclick = function () { prapenState.step = 1; pasang(); };
       body.querySelector('#prapenForm').addEventListener('submit', async function (e) {
         e.preventDefault();
         var t = PRAPEN_TEKS[S.lang === 'en' ? 'en' : 'id'];
         body.querySelectorAll('[data-err]').forEach(function (el) { el.textContent = ''; });
         var ok = true;
-        if (!prapenState.grade) { body.querySelector('[data-err="grade"]').textContent = t.wajib; ok = false; }
-        if (!prapenState.usaha) { body.querySelector('[data-err="usaha"]').textContent = t.wajib; ok = false; }
-        if (!ok) return;
-        var btn = body.querySelector('#prapenSubmit');
-        btn.disabled = true; btn.textContent = t.mengirim;
-        var res;
-        try {
-          res = await sb.from('survey_pra').insert({
-            device_id: prapenDeviceId(), versi: PRAPEN_VERSI, nama: null, kelas: prapenState.grade,
-            jawaban: { grade: prapenState.grade, pernah_usaha: prapenState.usaha, bahasa: S.lang === 'en' ? 'en' : 'id' }
-          });
-        } catch (err) { res = { error: { message: String(err && err.message || err) } }; }
-        var duplikat = res.error && /duplicate|unique/i.test(res.error.message || '');
-        if (res.error && !duplikat) {
-          btn.disabled = false; btn.textContent = t.kirim;
-          body.querySelector('#prapenFormErr').textContent = t.gagal(res.error.message);
-          return;
+        function wajib(name) { if (!prapenState[name]) { body.querySelector('[data-err="' + name + '"]').textContent = t.wajib; ok = false; } }
+        if (prapenState.step === 1) {
+          wajib('grade'); wajib('usaha');
+          if (!ok) return;
+          if (prapenState.usaha === 'ya') { prapenState.step = 2; pasang(); return; }
+          await kirim(t);
+        } else {
+          wajib('mulai'); wajib('kondisi'); wajib('jenis');
+          if (!ok) return;
+          await kirim(t);
         }
-        prapenTandaiSelesai();
-        body.innerHTML = '<div class="prapen-thanks"><div class="seal">&#10003;</div><h2>' + escapeHtml(t.terimaKasih) + '</h2><p class="hint">' + escapeHtml(t.terimaSub) + '</p><button type="button" class="btn-primary" data-prapen-done>' + escapeHtml(t.tutup) + '</button></div>';
-        body.querySelector('[data-prapen-done]').onclick = function () { tutup(false); };
       });
     }
     pasang();
@@ -3418,10 +3473,11 @@
   }
 
   function buildPrapenCsv(rows) {
-    var lines = [['Waktu', 'Kelas / Grade', 'Pernah Menjalankan Usaha', 'Bahasa Pengisian'].map(csvField).join(',')];
+    var lines = [['Waktu', 'Kelas / Grade', 'Pernah Menjalankan Usaha', 'Kapan Pertama Kali Mulai', 'Kondisi Usaha Sekarang', 'Jenis Usaha Terdekat', 'Bahasa Pengisian'].map(csvField).join(',')];
     rows.slice().sort(function (a, b) { return new Date(a.created_at) - new Date(b.created_at); }).forEach(function (r) {
       var j = r.jawaban || {};
-      lines.push([ymdHm(r.created_at), prapenLabel(PRAPEN_GRADE, j.grade || r.kelas), prapenLabel(PRAPEN_USAHA, j.pernah_usaha), (j.bahasa || '').toUpperCase()].map(csvField).join(','));
+      lines.push([ymdHm(r.created_at), prapenLabel(PRAPEN_GRADE, j.grade || r.kelas), prapenLabel(PRAPEN_USAHA, j.pernah_usaha),
+        prapenLabel(PRAPEN_MULAI, j.mulai_usaha), prapenLabel(PRAPEN_KONDISI, j.kondisi_usaha), prapenLabel(PRAPEN_JENIS, j.jenis_usaha), (j.bahasa || '').toUpperCase()].map(csvField).join(','));
     });
     return lines.join('\n');
   }
@@ -3435,7 +3491,8 @@
     }
     var rows = S.prapenData.filter(function (r) { return r.versi === PRAPEN_VERSI; });
     var total = rows.length;
-    var ya = rows.filter(function (r) { return (r.jawaban || {}).pernah_usaha === 'ya'; }).length;
+    var yaRows = rows.filter(function (r) { return (r.jawaban || {}).pernah_usaha === 'ya'; });
+    var ya = yaRows.length;
     var pct = function (n, d) { return d ? (Math.round(n * 1000 / d) / 10) + '%' : '-'; };
     var html = head +
       '<div class="stats-grid">' +
@@ -3456,9 +3513,17 @@
         return '<tr style="border-bottom:1px solid #EEE8DA;"><td style="padding:6px 4px;">' + escapeHtml(prapenLabel(PRAPEN_GRADE, g.value)) + '</td><td style="padding:6px 4px;text-align:right;">' + sub.length + '</td><td style="padding:6px 4px;text-align:right;">' + subYa + '</td><td style="padding:6px 4px;text-align:right;">' + pct(subYa, sub.length) + '</td></tr>';
       }).join('') + '</table></div>';
     html += '<div class="stat-block"><p class="stat-block-title">Pernah Menjalankan Usaha per Kelas / Grade</p>' + table + '</div>';
-    html += '<div class="stat-block"><p class="stat-block-title">Responden per Kelas / Grade</p>' + renderRecapList(PRAPEN_GRADE.map(function (g) {
-      return { label: prapenLabel(PRAPEN_GRADE, g.value), count: rows.filter(function (r) { return ((r.jawaban || {}).grade || r.kelas) === g.value; }).length };
-    }).filter(function (x) { return x.count > 0; })) + '</div>';
+
+    function dist(title, list, key) {
+      var items = list.map(function (o) {
+        var c = yaRows.filter(function (r) { return (r.jawaban || {})[key] === o.value; }).length;
+        return { label: o.id + ' (' + pct(c, ya) + ')', count: c };
+      });
+      return '<div class="stat-block"><p class="stat-block-title">' + escapeHtml(title) + ' <span class="hint">&mdash; dari ' + ya + ' yang pernah usaha</span></p>' + (ya ? renderRecapList(items) : '<p class="hint">Belum ada data.</p>') + '</div>';
+    }
+    html += dist('Kapan Pertama Kali Memulai Usaha', PRAPEN_MULAI, 'mulai_usaha');
+    html += dist('Kondisi Usaha Sekarang', PRAPEN_KONDISI, 'kondisi_usaha');
+    html += dist('Jenis Usaha Terdekat', PRAPEN_JENIS, 'jenis_usaha');
     var en = rows.filter(function (r) { return (r.jawaban || {}).bahasa === 'en'; }).length;
     html += '<p class="hint">Bahasa pengisian: ID ' + (total - en) + ', EN ' + en + '.</p>';
     return html;
