@@ -126,6 +126,23 @@
   body.prapen-noscroll { overflow: hidden; }
 
   /* ---------- Finance & Persetujuan ---------- */
+  #app.wide { max-width: 1180px; }
+  .fin-tablewrap { overflow-x: auto; margin-top: 8px; }
+  .fin-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
+  .fin-table th, .fin-table td { border: 1px solid #E5DECB; padding: 6px 8px; text-align: left; vertical-align: top; }
+  .fin-table th { background: #F1EBDA; position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+  .fin-table .num { text-align: right; white-space: nowrap; }
+  .fin-table .nowrap { white-space: nowrap; }
+  .fin-table .no-copy { user-select: none; -webkit-user-select: none; }
+  .fin-table tr.fin-lunas td { background: #F1F8F3; }
+  .fin-table tr.fin-tidak td { background: #FBF0EE; }
+  .fin-st { font-weight: 600; }
+  .fin-st-lunas { color: #2E7D5B; }
+  .fin-st-tidak { color: #B4453A; }
+  .fin-btn { padding: 4px 10px; font-size: 12px; border-radius: 6px; border: 1px solid; cursor: pointer; background: #fff; font-family: inherit; }
+  .fin-btn:disabled { opacity: .4; cursor: default; }
+  .fin-ok { background: #2E7D5B; border-color: #2E7D5B; color: #fff; }
+  .fin-no { border-color: #B4453A; color: #B4453A; }
   .fin-row { padding: 12px 14px; }
   .fin-name { margin: 6px 0 4px; font-weight: 600; }
   .fin-check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
@@ -1414,6 +1431,7 @@
     }
     if (STUDENT_VIEWS.indexOf(S.view) !== -1) html = renderLangToggle() + html;
     app.innerHTML = html;
+    app.classList.toggle('wide', S.view === 'financeDashboard' && S.userRole === 'finance');
     attachHandlers();
   }
 
@@ -3863,6 +3881,27 @@
     return lines.join('\n');
   }
 
+  // Email tujuan bukti pembayaran (ditampilkan ke siswa lewat catatan status).
+  var EMAIL_BUKTI_BAYAR = 'atik.setiyorini@uphcollege.com';
+  function catatanBelumBayar() {
+    return 'Pembayaran belum kami terima. Mohon lampirkan bukti pembayaran melalui email ' + EMAIL_BUKTI_BAYAR + '.';
+  }
+  function financeStatusText(r) {
+    if (r.status === 'pembayaran_belum_diterima') return 'Belum ada';
+    if (r.status === 'baru') return 'Menunggu';
+    if (r.status === 'ditolak') return 'Ditolak';
+    return 'Lunas';
+  }
+  function buildFinanceTsv(list) {
+    function f(v) { return String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' '); }
+    var lines = [['No', 'Nama', 'Kelas', 'Surat', 'Jumlah', 'Atas Nama (Pengirim)', 'Tgl Bayar', 'Status'].join('\t')];
+    list.forEach(function (r, i) {
+      var d = r.data || {};
+      lines.push([i + 1, d.namaLengkap, d.kelas, LETTER_TYPES[r.type].shortLabel, financeJumlah(r), r.paymentNote, r.paymentDate ? formatDateShort(r.paymentDate) : '', financeStatusText(r)].map(f).join('\t'));
+    });
+    return lines.join('\n');
+  }
+
   function renderFinanceDashboard() {
     var all = financeRequests();
     var cnt = { belum: 0, tidak: 0, lunas: 0 };
@@ -3870,42 +3909,44 @@
     var list = financeFiltered();
     var sel = S.financeSel || {};
     var selCount = list.filter(function (r) { return sel[r.id] && r.status !== 'selesai'; }).length;
-    function stat(key, n, label) {
-      return '<button class="stat stat-clickable' + (S.financeFilter === key ? ' active' : '') + '" data-finfilter="' + key + '"><span class="stat-num">' + n + '</span><span class="stat-label">' + label + '</span></button>';
+    function tab(key, label, n) {
+      return '<button type="button" class="btn-outline' + (S.financeFilter === key ? ' active' : '') + '" data-finfilter="' + key + '" style="flex:1 1 auto;width:auto;padding:8px 10px;">' + label + (n != null ? ' (' + n + ')' : '') + '</button>';
     }
-    var rows = list.map(function (r) {
+    var rows = list.map(function (r, i) {
       var d = r.data || {};
-      var bisaUbah = r.status !== 'selesai';
-      return '<div class="card fin-row">' +
-        '<div class="list-item-top">' +
-          (bisaUbah ? '<span class="fin-check"><input type="checkbox" data-finsel="' + escapeHtml(r.id) + '"' + (sel[r.id] ? ' checked' : '') + '> <span class="req-id-small" title="Klik untuk salin kode">' + escapeHtml(r.id) + '</span></span>'
-                    : '<span class="req-id-small" title="Klik untuk salin kode">' + escapeHtml(r.id) + '</span>') +
-          '<span class="stamp ' + r.status + '">' + escapeHtml(statusLabelFor(r.type, r.status)) + '</span>' +
-        '</div>' +
-        '<p class="fin-name">' + escapeHtml(d.namaLengkap || '-') + (d.kelas ? ' &middot; ' + escapeHtml(d.kelas) : '') + '</p>' +
-        '<div class="detail-row"><span class="detail-label">Jenis Surat</span><span class="detail-value">' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span></div>' +
-        '<div class="detail-row"><span class="detail-label">Jumlah</span><span class="detail-value">' + formatRupiah(financeJumlah(r)) + '</span></div>' +
-        '<div class="detail-row"><span class="detail-label">Tanggal Bayar</span><span class="detail-value">' + (r.paymentDate ? escapeHtml(formatDateShort(r.paymentDate)) : '-') + '</span></div>' +
-        '<div class="detail-row"><span class="detail-label">Nama Pengirim</span><span class="detail-value">' + escapeHtml(r.paymentNote || '-') + '</span></div>' +
-        (d.lunasAt ? '<p class="hint" style="margin:4px 0 0">Dilunaskan ' + escapeHtml(formatDateTimeFull(d.lunasAt)) + ' oleh ' + escapeHtml(shortWho(d.lunasOleh)) + '</p>' : '') +
-        (bisaUbah ? '<div class="fin-actions">' +
-          '<button type="button" class="btn-primary" data-finact="lunas" data-id="' + escapeHtml(r.id) + '"' + (r.status === 'lunas' ? ' disabled' : '') + '>Lunas</button>' +
-          '<button type="button" class="btn-outline" data-finact="tidak" data-id="' + escapeHtml(r.id) + '"' + (r.status === 'pembayaran_belum_diterima' ? ' disabled' : '') + '>Belum Diterima</button>' +
-        '</div>' : '') +
-      '</div>';
-    }).join('') || '<p class="hint">Tidak ada pengajuan untuk filter ini.</p>';
+      var bisaUbah = r.status !== 'selesai' && r.status !== 'ditolak';
+      var b = financeBucket(r);
+      return '<tr class="fin-' + b + '">' +
+        '<td class="no-copy">' + (bisaUbah ? '<input type="checkbox" data-finsel="' + escapeHtml(r.id) + '"' + (sel[r.id] ? ' checked' : '') + '>' : '') + '</td>' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td>' + escapeHtml(d.namaLengkap || '-') + '</td>' +
+        '<td>' + escapeHtml(d.kelas || '-') + '</td>' +
+        '<td>' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</td>' +
+        '<td class="num">' + formatRupiah(financeJumlah(r)) + '</td>' +
+        '<td>' + escapeHtml(r.paymentNote || '-') + '</td>' +
+        '<td class="nowrap">' + (r.paymentDate ? escapeHtml(formatDateShort(r.paymentDate)) : '-') + '</td>' +
+        '<td><span class="fin-st fin-st-' + b + '">' + escapeHtml(financeStatusText(r)) + '</span></td>' +
+        '<td class="no-copy nowrap">' + (bisaUbah ?
+          '<button type="button" class="fin-btn fin-ok" data-finact="lunas" data-id="' + escapeHtml(r.id) + '"' + (r.status === 'lunas' ? ' disabled' : '') + '>Lunas</button> ' +
+          '<button type="button" class="fin-btn fin-no" data-finact="tidak" data-id="' + escapeHtml(r.id) + '"' + (r.status === 'pembayaran_belum_diterima' ? ' disabled' : '') + '>Belum Ada</button>' : '') + '</td>' +
+      '</tr>';
+    }).join('');
+    var table = list.length
+      ? '<div class="fin-tablewrap"><table class="fin-table" id="finTable"><thead><tr>' +
+          '<th class="no-copy"></th><th>No</th><th>Nama</th><th>Kelas</th><th>Surat</th><th>Jumlah</th><th>Atas Nama (Pengirim)</th><th>Tgl Bayar</th><th>Status</th><th class="no-copy">Aksi</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+      : '<p class="hint">Tidak ada pengajuan untuk filter ini.</p>';
 
-    return '<div class="top-row">' + backBar('home', 'Beranda') + '<button class="btn-text" id="finLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
-      '<h2>Dashboard Finance</h2>' +
-      '<p class="hint">Cek pembayaran di akun keuangan, lalu klik <strong>Lunas</strong>. Kalau dana belum masuk, klik <strong>Belum Diterima</strong> (siswa akan melihat statusnya).</p>' +
-      '<div class="stats-grid">' + stat('belum', cnt.belum, 'Perlu Dicek') + stat('tidak', cnt.tidak, 'Belum Diterima') + stat('lunas', cnt.lunas, 'Lunas') + stat('all', all.length, 'Semua') + '</div>' +
-      '<input class="field-input" id="finSearch" type="search" placeholder="Cari nama / kelas / kode / nama pengirim" value="' + escapeHtml(S.financeSearch || '') + '" style="margin:8px 0;">' +
+    return '<div class="top-row"><h2 style="margin:0">Pembayaran Surat Berbayar</h2><button class="btn-text" id="finLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
+      '<p class="hint">Cek di akun keuangan, lalu klik <strong>Lunas</strong>. Kalau dana belum masuk, klik <strong>Belum Ada</strong> &mdash; siswa langsung melihat pesan untuk melampirkan bukti pembayaran lewat email.</p>' +
+      '<div class="filter-row" style="flex-wrap:wrap;">' + tab('belum', 'Perlu Dicek', cnt.belum) + tab('tidak', 'Belum Ada', cnt.tidak) + tab('lunas', 'Lunas', cnt.lunas) + tab('all', 'Semua', all.length) + '</div>' +
       '<div class="filter-row">' +
-        '<button type="button" class="btn-outline" id="finSelAll" style="flex:1">Pilih semua yang tampil</button>' +
-        '<button type="button" class="btn-outline" id="finExport" style="flex:1">Unduh Excel</button>' +
+        '<input class="field-input" id="finSearch" type="search" placeholder="Cari nama / kelas / kode / pengirim" value="' + escapeHtml(S.financeSearch || '') + '" style="flex:2">' +
+        '<button type="button" class="btn-outline" id="finCopy" style="flex:1;white-space:nowrap">Salin untuk Excel</button>' +
+        '<button type="button" class="btn-outline" id="finExport" style="flex:1;white-space:nowrap">Unduh Excel</button>' +
       '</div>' +
-      '<div class="stack">' + rows + '</div>' +
-      '<div class="bulk-bar"><button type="button" class="btn-primary" id="finBulkLunas"' + (selCount ? '' : ' disabled') + '>Tandai Lunas (' + selCount + ' dipilih)</button></div>';
+      table +
+      '<div class="bulk-bar"><button type="button" class="btn-primary" id="finBulkLunas"' + (selCount ? '' : ' disabled') + '>Tandai Lunas (' + selCount + ' dicentang)</button></div>';
   }
 
   function attachFinanceDashboard() {
@@ -3927,23 +3968,19 @@
         render();
       });
     });
-    document.getElementById('finSelAll').addEventListener('click', function () {
-      S.financeSel = {};
-      financeFiltered().forEach(function (r) { if (r.status !== 'selesai' && r.status !== 'lunas') S.financeSel[r.id] = true; });
-      render();
+    document.getElementById('finCopy').addEventListener('click', async function () {
+      var tsv = buildFinanceTsv(financeFiltered());
+      try { await navigator.clipboard.writeText(tsv); alert('Tabel disalin. Tinggal paste (Ctrl+V) di Excel.'); }
+      catch (e) { alert('Gagal menyalin otomatis. Gunakan "Unduh Excel", atau blok tabel lalu salin manual.'); }
     });
     document.getElementById('finExport').addEventListener('click', function () {
       downloadCsv('keuangan-surat-' + todayISO() + '.csv', buildFinanceCsv(financeFiltered()));
     });
     document.querySelectorAll('[data-finact]').forEach(function (b) {
       b.addEventListener('click', async function () {
-        var id = b.getAttribute('data-id'), aksi = b.getAttribute('data-finact'), note;
-        if (aksi === 'tidak') {
-          note = prompt('Catatan untuk siswa (opsional), misalnya "Mohon cek nominal/tanggal transfer":', '');
-          if (note === null) return;
-        }
+        var id = b.getAttribute('data-id'), aksi = b.getAttribute('data-finact');
         b.disabled = true;
-        var gagal = await financeSetStatus([id], aksi === 'lunas' ? 'lunas' : 'tidak', note);
+        var gagal = await financeSetStatus([id], aksi === 'lunas' ? 'lunas' : 'tidak', aksi === 'lunas' ? undefined : catatanBelumBayar());
         if (gagal.length) alert('Gagal menyimpan: ' + gagal.join(', '));
         render();
       });
