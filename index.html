@@ -125,6 +125,16 @@
   .prapen-lang { background: none; border: 1px solid var(--color-brass); color: var(--color-brass); border-radius: 20px; padding: 3px 12px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; margin-right: 26px; }
   body.prapen-noscroll { overflow: hidden; }
 
+  /* ---------- Finance & Persetujuan ---------- */
+  .fin-row { padding: 12px 14px; }
+  .fin-name { margin: 6px 0 4px; font-weight: 600; }
+  .fin-check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .fin-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .fin-actions button { flex: 1; width: auto; margin: 0; padding: 9px 10px; }
+  .bulk-bar { position: sticky; bottom: 8px; margin-top: 12px; z-index: 5; }
+  .bulk-bar button { box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+  .bulk-bar button:disabled { opacity: .55; }
+
   /* ---------- Cetak Surat (kop + TTD + cap) ---------- */
   .cetak-details { margin-top: 12px; border: 1px solid #E5DECB; border-radius: 10px; padding: 8px 12px; }
   .cetak-details summary { cursor: pointer; font-size: 13px; font-weight: 600; }
@@ -135,7 +145,7 @@
   .cetak-bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; padding: 10px 12px; background: #1f1f1f; color: #fff; font-size: 13px; }
   .cetak-bar label { display: inline-flex; gap: 4px; align-items: center; }
   .cetak-tip { flex-basis: 100%; text-align: center; font-size: 11.5px; opacity: .75; }
-  .cs-sheet { background: #fff; color: #000; width: 210mm; height: 296mm; margin: 16px auto; display: flex; flex-direction: column; font-family: Calibri, Carlito, Arial, sans-serif; font-size: 11pt; line-height: 1.32; box-shadow: 0 2px 14px rgba(0,0,0,.4); overflow: hidden; }
+  .cs-sheet { background: #fff; color: #000; width: 210mm; height: 296.7mm; margin: 16px auto; display: flex; flex-direction: column; font-family: Calibri, Carlito, Arial, sans-serif; font-size: 11pt; line-height: 1.32; box-shadow: 0 2px 14px rgba(0,0,0,.4); overflow: hidden; }
   .cs-head { text-align: center; padding-top: 9mm; }
   .cs-head img { width: 78mm; height: auto; }
   .cs-content { padding: 8mm 25.4mm 0; }
@@ -143,13 +153,14 @@
   .cs-line { text-align: justify; }
   .cs-title { text-align: center; font-weight: 700; text-decoration: underline; font-size: 12.5pt; margin-top: 2mm; }
   .cs-nomor { text-align: center; }
+  .cs-tgl { text-align: right; }
   .cs-kv { display: grid; grid-template-columns: 56mm 4mm 1fr; row-gap: .6mm; margin-left: 2mm; }
   .cs-sign { margin-top: 2mm; break-inside: avoid; }
-  .cs-sigspace { position: relative; height: 27mm; }
-  .cs-ttd { position: absolute; left: 14mm; top: 1mm; max-height: 24mm; max-width: 55mm; }
-  .cs-cap { position: absolute; left: 0; top: -1mm; max-height: 29mm; max-width: 40mm; opacity: .88; mix-blend-mode: multiply; }
+  .cs-sigspace { position: relative; height: 17mm; }
+  .cs-ttd { position: absolute; left: 14mm; top: 0; max-height: 17mm; max-width: 50mm; }
+  .cs-cap { position: absolute; left: 0; top: -2mm; max-height: 21mm; max-width: 32mm; opacity: .88; mix-blend-mode: multiply; }
   .cs-name { font-weight: 700; text-decoration: underline; }
-  .cs-foot { margin-top: auto; text-align: center; font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.3; padding-bottom: 8mm; }
+  .cs-foot { margin-top: auto; text-align: center; font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.3; padding-bottom: 0; }
   .cs-foot-t { font-weight: 700; color: #0F7071; }
   .cs-bar { height: 4.6mm; background: #0F7071; margin-top: 3mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @media screen and (max-width: 860px) { .cs-sheet { zoom: .42; margin: 8px auto; } }
@@ -1050,7 +1061,11 @@
     klinikTandaiErrors: {},
     klinikPetugasError: false,
     klinikTreatmentDraft: {},
-    guruTab: 'rekomendasi'
+    guruTab: 'rekomendasi',
+    financeFilter: 'belum',
+    financeSearch: '',
+    financeSel: {},
+    approveSel: {}
   };
 
   function escapeHtml(str) {
@@ -1348,6 +1363,7 @@
     if (role === 'guru') return 'guruDashboard';
     if (role === 'dormparent') return 'klinikForm';
     if (role === 'klinik') return 'klinikDashboard';
+    if (role === 'finance') return 'financeDashboard';
     return 'adminDashboard';
   }
 
@@ -1382,9 +1398,12 @@
       case 'klinikForm': html = renderKlinikForm(); break;
       case 'klinikSlip': html = renderKlinikSlip(); break;
       case 'klinikDashboard': html = renderKlinikDashboard(); break;
+      case 'financeDashboard': html = S.userRole === 'finance' ? renderFinanceDashboard() : renderAdminDashboard(); break;
       case 'adminDetail':
         var detailReq = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
-        if (!detailReq || (S.userRole === 'guru' && detailReq.type !== 'REKOMENDASI')) {
+        if (S.userRole === 'finance') {
+          S.view = 'financeDashboard'; html = renderFinanceDashboard();
+        } else if (!detailReq || (S.userRole === 'guru' && detailReq.type !== 'REKOMENDASI')) {
           S.view = S.userRole === 'guru' ? 'guruDashboard' : 'adminDashboard';
           html = S.userRole === 'guru' ? renderGuruDashboard() : renderAdminDashboard();
         } else {
@@ -1746,13 +1765,16 @@
   function renderAdminDashboard() {
     var tabsHtml = '<div class="filter-row" style="flex-wrap:wrap;">' +
       '<button class="btn-outline' + (S.adminTab === 'umum' ? ' active' : '') + '" data-admintab="umum" style="flex:1 1 45%">Surat Umum (Berbayar)</button>' +
+      '<button class="btn-outline' + (S.adminTab === 'persetujuan' ? ' active' : '') + '" data-admintab="persetujuan" style="flex:1 1 45%">Persetujuan (' + persetujuanLists().siap.length + ')</button>' +
       '<button class="btn-outline' + (S.adminTab === 'rekomendasi' ? ' active' : '') + '" data-admintab="rekomendasi" style="flex:1 1 45%">Surat Rekomendasi</button>' +
       '<button class="btn-outline' + (S.adminTab === 'klinik' ? ' active' : '') + '" data-admintab="klinik" style="flex:1 1 45%">Izin Klinik</button>' +
       '<button class="btn-outline' + (S.adminTab === 'prapen' ? ' active' : '') + '" data-admintab="prapen" style="flex:1 1 45%">Pra-Penelitian</button>' +
     '</div>';
 
     var bodyHtml;
-    if (S.adminTab === 'rekomendasi') {
+    if (S.adminTab === 'persetujuan') {
+      bodyHtml = renderPersetujuanBody();
+    } else if (S.adminTab === 'rekomendasi') {
       bodyHtml = renderRekomendasiBody();
     } else if (S.adminTab === 'klinik') {
       bodyHtml = renderKlinikDashboardBody();
@@ -1787,7 +1809,8 @@
             '<span>' + escapeHtml(r.data.namaLengkap || '-') + ' · ' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span>' +
             '<span>' + escapeHtml(formatDateShortAdmin(r.submittedAt)) + '</span>' +
           '</div>' +
-          (r.status === 'selesai' && r.data.completedAt ? '<div class="hint" style="margin-top:4px;">Selesai ' + escapeHtml(formatDateShortAdmin(r.data.completedAt)) + ' &middot; lama: ' + escapeHtml(formatDurationLong(new Date(r.data.completedAt) - new Date(r.submittedAt)) || '-') + '</div>'
+          (r.status === 'lunas' && r.data.disetujuiAt ? '<div class="hint" style="margin-top:4px;">Disetujui &middot; siap kirim</div>' : '') +
+          (r.status === 'selesai' && r.data.completedAt ? '<div class="hint" style="margin-top:4px;">Selesai' + escapeHtml(formatDateShortAdmin(r.data.completedAt)) + ' &middot; lama: ' + escapeHtml(formatDurationLong(new Date(r.data.completedAt) - new Date(r.submittedAt)) || '-') + '</div>'
             : (r.status === 'selesai' && r.tanggalSurat ? '<div class="hint" style="margin-top:4px;">Perkiraan selesai ' + escapeHtml(formatDateShort(r.tanggalSurat)) + ' &middot; lama ' + escapeHtml(estimateDays(r.submittedAt, r.tanggalSurat)) + ' (dari Tanggal Surat)</div>' : '')) +
         '</button>';
       }).join('') || '<p class="hint">Belum ada permintaan untuk filter ini.</p>';
@@ -2634,6 +2657,7 @@
       '<div class="stamp ' + req.status + '">' + escapeHtml(statusLabelFor(req.type, req.status)) + '</div>' +
       pickupNoticeHtml +
       adminNoticeHtml +
+      approvalInfoHtml(req) +
       '<div class="card">' + fieldsHtml + '</div>' +
       '<div class="card">' +
         '<div class="detail-row"><span class="detail-label">Waktu Pengajuan</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
@@ -2710,7 +2734,8 @@
       case 'klinikForm': attachKlinikForm(); break;
       case 'klinikSlip': attachKlinikSlip(); break;
       case 'klinikDashboard': attachKlinikDashboard(); break;
-      case 'adminDetail': attachAdminDetail(); break;
+      case 'financeDashboard': if (S.userRole === 'finance') attachFinanceDashboard(); else attachAdminDashboard(); break;
+      case 'adminDetail': if (S.userRole === 'finance') attachFinanceDashboard(); else attachAdminDetail(); break;
     }
   }
 
@@ -3021,6 +3046,10 @@
       if (prapenExport) prapenExport.addEventListener('click', function () { downloadCsv('pra-penelitian-' + todayISO() + '.csv', buildPrapenCsv((S.prapenData || []).filter(function (r) { return r.versi === PRAPEN_VERSI; }))); });
       var prapenReload = document.getElementById('reloadPrapenBtn');
       if (prapenReload) prapenReload.addEventListener('click', async function () { S.prapenData = null; render(); await loadPrapenData(); render(); });
+      return;
+    }
+    if (S.adminTab === 'persetujuan') {
+      attachPersetujuanBody();
       return;
     }
     if (S.adminTab === 'rekomendasi') {
@@ -3617,6 +3646,12 @@
     var out = '';
     var lastWasGap = true;
     var inKv = false;
+    // Tanggal ("Tangerang, ...") dipindah ke bawah judul/nomor, rata kanan.
+    var tglLine = '', tglHtml = '';
+    if (lines.length && /^Tangerang,/.test(lines[0].trim())) {
+      tglLine = lines.shift().trim();
+      tglHtml = '<div class="cs-gap"></div><div class="cs-tgl">' + escapeHtml(tglLine) + '</div><div class="cs-gap"></div>';
+    }
     for (var i = 0; i < lines.length; i++) {
       var ln = lines[i];
       if (!ln.trim()) {
@@ -3631,7 +3666,7 @@
         out += '<div class="cs-title">' + escapeHtml(ln.trim()) + '</div>';
         continue;
       }
-      if (/^No\.\s*:/.test(ln.trim())) { out += '<div class="cs-nomor">' + escapeHtml(ln.trim()) + '</div>'; continue; }
+      if (/^No\.\s*:/.test(ln.trim())) { out += '<div class="cs-nomor">' + escapeHtml(ln.trim()) + '</div>' + tglHtml; tglHtml = ''; continue; }
       var m = kvRe.exec(ln);
       if (m) {
         if (!inKv) { out += '<div class="cs-kv">'; inKv = true; }
@@ -3647,6 +3682,7 @@
       out += '<div class="cs-line">' + escapeHtml(ln.trim()) + '</div>';
     }
     if (inKv) out += '</div>';
+    if (tglHtml) out = '<div class="cs-tgl">' + escapeHtml(tglLine) + '</div><div class="cs-gap"></div>' + out; // teks tanpa "No." (diedit manual)
     return { body: out, closing: closing.trim(), nama: nama.trim(), jabatan: jabatan.trim() };
   }
 
@@ -3754,6 +3790,306 @@
       });
       if (del) del.addEventListener('click', function () { cetakSet(CETAK_KEY[k], ''); cetakAssetUiRefresh(); });
     });
+  }
+
+  // ============================================================
+  // FINANCE (peran 'finance') + PERSETUJUAN OWNER (tab admin)
+  // Alur: Menunggu -> Lunas (Finance) -> Disetujui/Siap Kirim (Owner) -> Selesai.
+  // Penanda disimpan di requests.data: lunasAt/lunasOleh, disetujuiAt/disetujuiOleh.
+  // ============================================================
+  var SURAT_SIMPLE = ['VISA', 'KKM_STATEMENT', 'KETERANGAN', 'SKL_EXPECTED', 'SKL_EXPECTED_UNIV', 'SKL_COMPLETED'];
+
+  async function currentEmail() {
+    try { var r = await sb.auth.getSession(); return (r.data.session.user.email) || ''; } catch (e) { return ''; }
+  }
+  function cloneReq(req) { return Object.assign({}, req, { data: Object.assign({}, req.data) }); }
+  function replaceReq(updated) {
+    var i = S.requests.findIndex(function (r) { return r.id === updated.id; });
+    if (i >= 0) S.requests[i] = updated;
+  }
+  function byOldest(a, b) { return new Date(a.submittedAt) - new Date(b.submittedAt); }
+  function shortWho(email) { return String(email || '').split('@')[0] || '-'; }
+
+  function financeRequests() {
+    return S.requests.filter(function (r) { return !isDedicatedTabType(r.type) && LETTER_TYPES[r.type] && !LETTER_TYPES[r.type].noPayment; });
+  }
+  function financeJumlah(r) { return r.amount != null ? r.amount : FEE; }
+  function financeBucket(r) {
+    if (r.status === 'baru') return 'belum';
+    if (r.status === 'pembayaran_belum_diterima') return 'tidak';
+    if (r.status === 'ditolak') return 'lain';
+    return 'lunas';
+  }
+  function financeFiltered() {
+    var q = (S.financeSearch || '').trim().toLowerCase();
+    return financeRequests().filter(function (r) {
+      if (S.financeFilter !== 'all' && financeBucket(r) !== S.financeFilter) return false;
+      if (q) {
+        var d = r.data || {};
+        var hay = [r.id, d.namaLengkap, d.kelas, r.paymentNote].join(' ').toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    }).sort(function (a, b) { return byOldest(b, a); });
+  }
+
+  async function financeSetStatus(ids, aksi, note) {
+    var email = await currentEmail(), now = new Date().toISOString(), gagal = [];
+    for (var i = 0; i < ids.length; i++) {
+      var req = S.requests.find(function (r) { return r.id === ids[i]; });
+      if (!req || req.status === 'selesai') continue;
+      var copy = cloneReq(req);
+      if (aksi === 'lunas') {
+        if (req.status === 'pembayaran_belum_diterima') copy.adminNote = '';
+        copy.status = 'lunas'; copy.data.lunasAt = now; copy.data.lunasOleh = email;
+      } else {
+        copy.status = 'pembayaran_belum_diterima';
+        delete copy.data.lunasAt; delete copy.data.lunasOleh; delete copy.data.disetujuiAt; delete copy.data.disetujuiOleh;
+        if (note) copy.adminNote = note;
+      }
+      var res = await updateRequest(copy);
+      if (res.ok) replaceReq(copy); else gagal.push(req.id + ' (' + res.error + ')');
+    }
+    return gagal;
+  }
+
+  function buildFinanceCsv(list) {
+    var lines = [['Kode', 'Nama', 'Kelas', 'Jenis Surat', 'Jumlah', 'Tanggal Bayar', 'Nama Pengirim', 'Status', 'Dilunaskan Oleh', 'Waktu Lunas'].map(csvField).join(',')];
+    list.forEach(function (r) {
+      var d = r.data || {};
+      lines.push([r.id, d.namaLengkap || '', d.kelas || '', LETTER_TYPES[r.type].shortLabel, financeJumlah(r), r.paymentDate || '', r.paymentNote || '',
+        statusLabelFor(r.type, r.status), d.lunasOleh || '', d.lunasAt ? ymdHm(d.lunasAt) : ''].map(csvField).join(','));
+    });
+    return lines.join('\n');
+  }
+
+  function renderFinanceDashboard() {
+    var all = financeRequests();
+    var cnt = { belum: 0, tidak: 0, lunas: 0 };
+    all.forEach(function (r) { var b = financeBucket(r); if (cnt[b] !== undefined) cnt[b]++; });
+    var list = financeFiltered();
+    var sel = S.financeSel || {};
+    var selCount = list.filter(function (r) { return sel[r.id] && r.status !== 'selesai'; }).length;
+    function stat(key, n, label) {
+      return '<button class="stat stat-clickable' + (S.financeFilter === key ? ' active' : '') + '" data-finfilter="' + key + '"><span class="stat-num">' + n + '</span><span class="stat-label">' + label + '</span></button>';
+    }
+    var rows = list.map(function (r) {
+      var d = r.data || {};
+      var bisaUbah = r.status !== 'selesai';
+      return '<div class="card fin-row">' +
+        '<div class="list-item-top">' +
+          (bisaUbah ? '<span class="fin-check"><input type="checkbox" data-finsel="' + escapeHtml(r.id) + '"' + (sel[r.id] ? ' checked' : '') + '> <span class="req-id-small" title="Klik untuk salin kode">' + escapeHtml(r.id) + '</span></span>'
+                    : '<span class="req-id-small" title="Klik untuk salin kode">' + escapeHtml(r.id) + '</span>') +
+          '<span class="stamp ' + r.status + '">' + escapeHtml(statusLabelFor(r.type, r.status)) + '</span>' +
+        '</div>' +
+        '<p class="fin-name">' + escapeHtml(d.namaLengkap || '-') + (d.kelas ? ' &middot; ' + escapeHtml(d.kelas) : '') + '</p>' +
+        '<div class="detail-row"><span class="detail-label">Jenis Surat</span><span class="detail-value">' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Jumlah</span><span class="detail-value">' + formatRupiah(financeJumlah(r)) + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Tanggal Bayar</span><span class="detail-value">' + (r.paymentDate ? escapeHtml(formatDateShort(r.paymentDate)) : '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Nama Pengirim</span><span class="detail-value">' + escapeHtml(r.paymentNote || '-') + '</span></div>' +
+        (d.lunasAt ? '<p class="hint" style="margin:4px 0 0">Dilunaskan ' + escapeHtml(formatDateTimeFull(d.lunasAt)) + ' oleh ' + escapeHtml(shortWho(d.lunasOleh)) + '</p>' : '') +
+        (bisaUbah ? '<div class="fin-actions">' +
+          '<button type="button" class="btn-primary" data-finact="lunas" data-id="' + escapeHtml(r.id) + '"' + (r.status === 'lunas' ? ' disabled' : '') + '>Lunas</button>' +
+          '<button type="button" class="btn-outline" data-finact="tidak" data-id="' + escapeHtml(r.id) + '"' + (r.status === 'pembayaran_belum_diterima' ? ' disabled' : '') + '>Belum Diterima</button>' +
+        '</div>' : '') +
+      '</div>';
+    }).join('') || '<p class="hint">Tidak ada pengajuan untuk filter ini.</p>';
+
+    return '<div class="top-row">' + backBar('home', 'Beranda') + '<button class="btn-text" id="finLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
+      '<h2>Dashboard Finance</h2>' +
+      '<p class="hint">Cek pembayaran di akun keuangan, lalu klik <strong>Lunas</strong>. Kalau dana belum masuk, klik <strong>Belum Diterima</strong> (siswa akan melihat statusnya).</p>' +
+      '<div class="stats-grid">' + stat('belum', cnt.belum, 'Perlu Dicek') + stat('tidak', cnt.tidak, 'Belum Diterima') + stat('lunas', cnt.lunas, 'Lunas') + stat('all', all.length, 'Semua') + '</div>' +
+      '<input class="field-input" id="finSearch" type="search" placeholder="Cari nama / kelas / kode / nama pengirim" value="' + escapeHtml(S.financeSearch || '') + '" style="margin:8px 0;">' +
+      '<div class="filter-row">' +
+        '<button type="button" class="btn-outline" id="finSelAll" style="flex:1">Pilih semua yang tampil</button>' +
+        '<button type="button" class="btn-outline" id="finExport" style="flex:1">Unduh Excel</button>' +
+      '</div>' +
+      '<div class="stack">' + rows + '</div>' +
+      '<div class="bulk-bar"><button type="button" class="btn-primary" id="finBulkLunas"' + (selCount ? '' : ' disabled') + '>Tandai Lunas (' + selCount + ' dipilih)</button></div>';
+  }
+
+  function attachFinanceDashboard() {
+    document.getElementById('finLogoutBtn').addEventListener('click', async function () {
+      await adminLogout(); S.adminAuthed = false; S.userRole = null; S.requests = []; go('home');
+    });
+    document.querySelectorAll('[data-finfilter]').forEach(function (b) {
+      b.addEventListener('click', function () { S.financeFilter = b.getAttribute('data-finfilter'); S.financeSel = {}; render(); });
+    });
+    var search = document.getElementById('finSearch');
+    search.addEventListener('input', function () {
+      S.financeSearch = search.value; render();
+      var el = document.getElementById('finSearch'); el.focus(); el.setSelectionRange(el.value.length, el.value.length);
+    });
+    document.querySelectorAll('[data-finsel]').forEach(function (c) {
+      c.addEventListener('change', function () {
+        S.financeSel = S.financeSel || {};
+        if (c.checked) S.financeSel[c.getAttribute('data-finsel')] = true; else delete S.financeSel[c.getAttribute('data-finsel')];
+        render();
+      });
+    });
+    document.getElementById('finSelAll').addEventListener('click', function () {
+      S.financeSel = {};
+      financeFiltered().forEach(function (r) { if (r.status !== 'selesai' && r.status !== 'lunas') S.financeSel[r.id] = true; });
+      render();
+    });
+    document.getElementById('finExport').addEventListener('click', function () {
+      downloadCsv('keuangan-surat-' + todayISO() + '.csv', buildFinanceCsv(financeFiltered()));
+    });
+    document.querySelectorAll('[data-finact]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        var id = b.getAttribute('data-id'), aksi = b.getAttribute('data-finact'), note;
+        if (aksi === 'tidak') {
+          note = prompt('Catatan untuk siswa (opsional), misalnya "Mohon cek nominal/tanggal transfer":', '');
+          if (note === null) return;
+        }
+        b.disabled = true;
+        var gagal = await financeSetStatus([id], aksi === 'lunas' ? 'lunas' : 'tidak', note);
+        if (gagal.length) alert('Gagal menyimpan: ' + gagal.join(', '));
+        render();
+      });
+    });
+    document.getElementById('finBulkLunas').addEventListener('click', async function () {
+      var ids = Object.keys(S.financeSel || {});
+      if (!ids.length) return;
+      if (!confirm('Tandai ' + ids.length + ' pengajuan sebagai LUNAS?')) return;
+      this.disabled = true; this.textContent = 'Menyimpan...';
+      var gagal = await financeSetStatus(ids, 'lunas');
+      S.financeSel = {};
+      if (gagal.length) alert('Sebagian gagal disimpan:\n' + gagal.join('\n'));
+      render();
+    });
+  }
+
+  // ---------- Persetujuan owner ----------
+  function persetujuanLists() {
+    var simple = S.requests.filter(function (r) { return SURAT_SIMPLE.indexOf(r.type) >= 0 && r.status === 'lunas'; });
+    return {
+      siap: simple.filter(function (r) { return !(r.data || {}).disetujuiAt; }).sort(byOldest),
+      sudah: simple.filter(function (r) { return (r.data || {}).disetujuiAt; }).sort(function (a, b) { return new Date(a.data.disetujuiAt) - new Date(b.data.disetujuiAt); })
+    };
+  }
+
+  async function approveRequests(ids) {
+    var fresh = await getSettings();
+    var next = fresh.nextSuratNumber || 1, tgl = todayISO(), email = await currentEmail(), nowIso = new Date().toISOString();
+    var list = ids.map(function (id) { return S.requests.find(function (r) { return r.id === id; }); })
+      .filter(function (r) { return r && r.status === 'lunas' && !(r.data || {}).disetujuiAt; }).sort(byOldest);
+    var ok = 0, gagal = [];
+    for (var i = 0; i < list.length; i++) {
+      var req = list[i], copy = cloneReq(req), pakaiBaru = false;
+      var nomor = req.nomorSurat;
+      if (!nomor) { nomor = suggestedNomor({ nextSuratNumber: next }, tgl); pakaiBaru = true; next++; }
+      copy.nomorSurat = nomor;
+      copy.tanggalSurat = req.tanggalSurat || tgl;
+      copy.generatedText = req.generatedText || generateLetterText(copy, nomor, copy.tanggalSurat);
+      copy.data.disetujuiAt = nowIso; copy.data.disetujuiOleh = email;
+      var res = await updateRequest(copy);
+      if (res.ok) { replaceReq(copy); ok++; }
+      else { gagal.push(req.id + ' (' + res.error + ')'); if (pakaiBaru) next--; }
+    }
+    S.settings = Object.assign({}, S.settings || {}, { nextSuratNumber: next });
+    var saved = await saveSettings(S.settings);
+    return { ok: ok, gagal: gagal, settingsSaved: saved };
+  }
+
+  async function markSelesaiBulk(ids) {
+    var nowIso = new Date().toISOString(), gagal = [];
+    for (var i = 0; i < ids.length; i++) {
+      var req = S.requests.find(function (r) { return r.id === ids[i]; });
+      if (!req || req.status !== 'lunas') continue;
+      var copy = cloneReq(req); copy.status = 'selesai'; copy.data.completedAt = nowIso;
+      var res = await updateRequest(copy);
+      if (res.ok) replaceReq(copy); else gagal.push(req.id + ' (' + res.error + ')');
+    }
+    return gagal;
+  }
+
+  function persetujuanItemHtml(r, mode) {
+    var d = r.data || {};
+    var sel = (S.approveSel || {})[r.id];
+    return '<div class="card fin-row">' +
+      '<div class="list-item-top"><span class="fin-check"><input type="checkbox" data-appsel="' + escapeHtml(r.id) + '"' + (sel ? ' checked' : '') + '> <span class="req-id-small" title="Klik untuk salin kode">' + escapeHtml(r.id) + '</span></span>' +
+      '<span class="hint" style="margin:0">' + escapeHtml(LETTER_TYPES[r.type].shortLabel) + '</span></div>' +
+      '<p class="fin-name">' + escapeHtml(d.namaLengkap || '-') + (d.kelas ? ' &middot; ' + escapeHtml(d.kelas) : '') + '</p>' +
+      '<p class="hint" style="margin:0">' + (d.lunasAt ? 'Lunas ' + escapeHtml(formatDateShortAdmin(d.lunasAt)) + ' (' + escapeHtml(shortWho(d.lunasOleh)) + ')' : 'Lunas') +
+        (mode === 'sudah' ? ' &middot; Disetujui ' + escapeHtml(formatDateShortAdmin(d.disetujuiAt)) + ' &middot; No. ' + escapeHtml(r.nomorSurat || '-') : '') + '</p>' +
+      '<div class="fin-actions">' +
+        '<button type="button" class="btn-outline" data-appview="' + escapeHtml(r.id) + '">' + (mode === 'sudah' ? 'Cetak' : 'Pratinjau') + '</button>' +
+        '<button type="button" class="btn-outline" data-detail="' + escapeHtml(r.id) + '">Detail / Edit</button>' +
+      '</div></div>';
+  }
+
+  function renderPersetujuanBody() {
+    var L = persetujuanLists();
+    var sel = S.approveSel || {};
+    var nSiap = L.siap.filter(function (r) { return sel[r.id]; }).length;
+    var nSudah = L.sudah.filter(function (r) { return sel[r.id]; }).length;
+    return '<p class="hint">Surat sederhana (Visa, KKM, Keterangan, SKL) yang sudah <strong>Lunas</strong> menunggu persetujuan Bapak. Saat disetujui, nomor surat dan tanggal (hari ini) diberikan otomatis. Pengiriman email belum aktif &mdash; setelah disetujui, cetak/kirim manual lalu tandai Selesai.</p>' +
+      '<p class="field-label" style="margin-top:12px">Menunggu persetujuan (' + L.siap.length + ')</p>' +
+      '<div class="filter-row"><button type="button" class="btn-outline" id="appSelAllSiap" style="flex:1">Pilih semua</button></div>' +
+      '<div class="stack">' + (L.siap.map(function (r) { return persetujuanItemHtml(r, 'siap'); }).join('') || '<p class="hint">Tidak ada surat yang menunggu persetujuan.</p>') + '</div>' +
+      '<div class="bulk-bar"><button type="button" class="btn-primary" id="appApproveBtn"' + (nSiap ? '' : ' disabled') + '>Setujui (' + nSiap + ' dipilih)</button></div>' +
+      '<p class="field-label" style="margin-top:20px">Sudah disetujui &mdash; siap kirim (' + L.sudah.length + ')</p>' +
+      '<div class="filter-row"><button type="button" class="btn-outline" id="appSelAllSudah" style="flex:1">Pilih semua</button></div>' +
+      '<div class="stack">' + (L.sudah.map(function (r) { return persetujuanItemHtml(r, 'sudah'); }).join('') || '<p class="hint">Belum ada.</p>') + '</div>' +
+      '<div class="bulk-bar"><button type="button" class="btn-outline" id="appDoneBtn"' + (nSudah ? '' : ' disabled') + ' style="background:#fff">Tandai Selesai (' + nSudah + ' dipilih)</button></div>';
+  }
+
+  function attachPersetujuanBody() {
+    var L = persetujuanLists();
+    document.querySelectorAll('[data-appsel]').forEach(function (c) {
+      c.addEventListener('change', function () {
+        S.approveSel = S.approveSel || {};
+        if (c.checked) S.approveSel[c.getAttribute('data-appsel')] = true; else delete S.approveSel[c.getAttribute('data-appsel')];
+        render();
+      });
+    });
+    function selAll(list) { return function () { S.approveSel = S.approveSel || {}; list.forEach(function (r) { S.approveSel[r.id] = true; }); render(); }; }
+    document.getElementById('appSelAllSiap').addEventListener('click', selAll(L.siap));
+    document.getElementById('appSelAllSudah').addEventListener('click', selAll(L.sudah));
+    document.querySelectorAll('[data-detail]').forEach(function (b) {
+      b.addEventListener('click', function () { S.adminSelectedId = b.getAttribute('data-detail'); go('adminDetail'); });
+    });
+    document.querySelectorAll('[data-appview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var req = S.requests.find(function (r) { return r.id === b.getAttribute('data-appview'); });
+        if (!req) return;
+        var tgl = req.tanggalSurat || todayISO();
+        var nomor = req.nomorSurat || suggestedNomor(S.settings, tgl);
+        var text = req.generatedText || generateLetterText(req, nomor, tgl);
+        showCetakSurat(text, ('Surat ' + req.id + ' ' + (req.data.namaLengkap || '')).trim());
+      });
+    });
+    document.getElementById('appApproveBtn').addEventListener('click', async function () {
+      var ids = L.siap.filter(function (r) { return (S.approveSel || {})[r.id]; }).map(function (r) { return r.id; });
+      if (!ids.length) return;
+      if (!confirm('Setujui ' + ids.length + ' surat?\nNomor surat diberikan otomatis dan tanggal surat = hari ini.')) return;
+      this.disabled = true; this.textContent = 'Memproses...';
+      var res = await approveRequests(ids);
+      S.approveSel = {};
+      var msg = res.ok + ' surat disetujui.';
+      if (res.gagal.length) msg += '\nGagal:\n' + res.gagal.join('\n');
+      if (!res.settingsSaved) msg += '\n\nPERINGATAN: nomor surat berikutnya gagal disimpan. Cek "Pengaturan (Nomor Surat Berikutnya)" sebelum menyetujui lagi.';
+      alert(msg);
+      render();
+    });
+    document.getElementById('appDoneBtn').addEventListener('click', async function () {
+      var ids = L.sudah.filter(function (r) { return (S.approveSel || {})[r.id]; }).map(function (r) { return r.id; });
+      if (!ids.length) return;
+      if (!confirm('Tandai ' + ids.length + ' surat sebagai SELESAI? Siswa akan melihat statusnya Selesai.')) return;
+      this.disabled = true; this.textContent = 'Memproses...';
+      var gagal = await markSelesaiBulk(ids);
+      S.approveSel = {};
+      if (gagal.length) alert('Sebagian gagal:\n' + gagal.join('\n'));
+      render();
+    });
+  }
+
+  function approvalInfoHtml(req) {
+    var d = req.data || {}, parts = [];
+    if (d.lunasAt) parts.push('Dilunaskan ' + escapeHtml(formatDateTimeFull(d.lunasAt)) + ' oleh ' + escapeHtml(shortWho(d.lunasOleh)));
+    if (d.disetujuiAt) parts.push('Disetujui ' + escapeHtml(formatDateTimeFull(d.disetujuiAt)) + ' oleh ' + escapeHtml(shortWho(d.disetujuiOleh)));
+    return parts.length ? '<div class="card"><p class="hint" style="margin:0">' + parts.join('<br>') + '</p></div>' : '';
   }
 
   async function init() {
