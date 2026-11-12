@@ -4578,7 +4578,8 @@
   function namaFileSurat(req, ext) {
     var d = req.data || {};
     var jenis = (LETTER_TYPES[req.type] || {}).shortLabel || req.type;
-    return ('Surat ' + jenis + ' - ' + (d.namaLengkap || '') + ' - ' + req.id)
+    var nomor = String(req.nomorSurat || '').trim().replace(/[\\\/]+/g, '.');
+    return ((nomor ? nomor + ' - ' : '') + 'Surat ' + jenis + ' - ' + (d.namaLengkap || '') + ' - ' + req.id)
       .replace(/[\\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() + '.' + ext;
   }
 
