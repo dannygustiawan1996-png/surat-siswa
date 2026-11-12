@@ -1875,7 +1875,7 @@
               '</div>';
             }).join('');
           } else {
-            noteHtml = r.adminNote ? '<div class="hint" style="margin-top:6px;"><strong>' + escapeHtml(tt('catatanAdminLabel')) + '</strong> ' + escapeHtml(r.adminNote) + '</div>' : '';
+            noteHtml = r.adminNote ? '<div class="hint" style="margin-top:6px;white-space:pre-line;"><strong>' + escapeHtml(tt('catatanAdminLabel')) + '</strong> ' + escapeHtml(r.adminNote) + '</div>' : '';
           }
           var fixMsg = S.fixLinkMessages && S.fixLinkMessages[r.id];
           var fixLinkHtml = '';
@@ -4152,6 +4152,13 @@
       var res = await sb.from('surat_pdf').delete().eq('request_id', S.adminSelectedId);
       if (res.error) { alert('Gagal menghapus: ' + res.error.message); return; }
       if (S.pdfInfo) delete S.pdfInfo[S.adminSelectedId];
+      var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+      if (req && req.adminNote && req.adminNote.indexOf(CATATAN_TERBIT) === 0) {
+        var copy = cloneReq(req);
+        copy.adminNote = hapusCatatanTerbit(copy.adminNote);
+        var r2 = await updateRequest(copy);
+        if (r2.ok) replaceReq(copy); else alert('PDF terhapus, tapi catatan otomatis untuk siswa gagal dihapus: ' + r2.error);
+      }
       render();
     });
     cetakAssetUiRefresh();
@@ -4624,14 +4631,22 @@
     }
     S.pdfInfo = S.pdfInfo || {};
     S.pdfInfo[req.id] = { request_id: req.id, created_at: now, first_download_at: null, last_download_at: null, download_count: 0 };
-    if (req.status !== 'selesai') {
-      var copy = cloneReq(req);
-      copy.status = 'selesai';
-      copy.data.completedAt = copy.data.completedAt || now;
+    var copy = cloneReq(req), berubah = false;
+    if (copy.status !== 'selesai') { copy.status = 'selesai'; copy.data.completedAt = copy.data.completedAt || now; berubah = true; }
+    var lama = (copy.adminNote || '').trim();
+    if (lama.indexOf(CATATAN_TERBIT) !== 0) { copy.adminNote = lama ? CATATAN_TERBIT + '\n\n' + lama : CATATAN_TERBIT; berubah = true; }
+    if (berubah) {
       var r2 = await updateRequest(copy);
-      if (!r2.ok) throw new Error('PDF sudah terbit, tapi status gagal diubah ke Selesai: ' + r2.error);
+      if (!r2.ok) throw new Error('PDF sudah terbit, tapi status/catatan gagal disimpan: ' + r2.error);
       replaceReq(copy);
     }
+  }
+  // Catatan otomatis untuk siswa (tampil di Cek Status) saat PDF terbit. Catatan lama Bapak tetap disimpan di bawahnya.
+  var CATATAN_TERBIT = 'Surat sudah terbit dalam bentuk PDF. Unduh di kotak "Unduh Surat (PDF)" di halaman ini (isi 2 dari 3: kode pengajuan, email, NIS/Student ID); tersedia 14 hari sejak pertama diunduh. Butuh hardcopy, atau ada kesalahan data di surat? Silakan temui Pak Danny di Teacher Lounge (TL).\n\n' +
+    'Your letter has been issued as a PDF. Download it in the "Download Letter (PDF)" box on this page (fill in 2 of 3: request code, email, NIS/Student ID); available for 14 days after the first download. Need a hard copy, or found an error in the letter? Please see Mr. Danny at the Teacher Lounge (TL).';
+  function hapusCatatanTerbit(note) {
+    var s = String(note || '');
+    return s.indexOf(CATATAN_TERBIT) === 0 ? s.slice(CATATAN_TERBIT.length).trim() : s;
   }
   async function terbitkanBanyak(ids, onProgress) {
     var gagal = [];
