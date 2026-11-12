@@ -397,6 +397,143 @@
     return { subject: 'he', possessive: 'his', object: 'him' };
   }
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  // Nama negara untuk Surat Visa: isian siswa (sering bahasa Indonesia / singkatan)
+  // dicocokkan ke nama resmi bahasa Inggris. Format: 'Nama Inggris': [alias huruf kecil].
+  var NEGARA_EN = {
+    'the United States of America': ['amerika', 'amerika serikat', 'as', 'usa', 'us', 'u.s.', 'u.s.a.', 'u.s.a', 'amrik', 'united states', 'united states of america', 'the united states', 'america'],
+    'the United Kingdom': ['inggris', 'uk', 'u.k.', 'united kingdom', 'the united kingdom', 'britania raya', 'england', 'great britain', 'britain', 'inggris raya'],
+    'South Korea': ['korea', 'korea selatan', 'korsel', 'south korea', 'republic of korea', 'korea south', 'republik korea'],
+    'North Korea': ['korea utara', 'korut', 'north korea'],
+    'Japan': ['jepang', 'japan', 'nippon'],
+    'China': ['cina', 'china', 'tiongkok', 'rrt', 'rrc', 'republik rakyat tiongkok', 'prc', 'mainland china'],
+    'Taiwan': ['taiwan'],
+    'Hong Kong': ['hong kong', 'hongkong', 'hk'],
+    'Macau': ['makau', 'macau', 'macao'],
+    'Singapore': ['singapura', 'singapore', 'sg', 'spore'],
+    'Malaysia': ['malaysia', 'malaisia'],
+    'Thailand': ['thailand', 'tailan', 'muangthai', 'thai'],
+    'Vietnam': ['vietnam', 'viet nam'],
+    'the Philippines': ['filipina', 'philippines', 'the philippines', 'pilipina'],
+    'Cambodia': ['kamboja', 'cambodia'],
+    'Laos': ['laos'],
+    'Myanmar': ['myanmar', 'burma'],
+    'Brunei Darussalam': ['brunei', 'brunei darussalam'],
+    'Timor-Leste': ['timor leste', 'timor-leste', 'timor timur'],
+    'India': ['india'],
+    'Sri Lanka': ['sri lanka', 'srilanka'],
+    'Nepal': ['nepal'],
+    'Pakistan': ['pakistan'],
+    'Bangladesh': ['bangladesh'],
+    'the Maldives': ['maladewa', 'maldives', 'the maldives', 'maldiv'],
+    'Mongolia': ['mongolia'],
+    'Kazakhstan': ['kazakhstan', 'kazakstan'],
+    'Uzbekistan': ['uzbekistan'],
+    'Australia': ['australia', 'aussie', 'ostrali'],
+    'New Zealand': ['selandia baru', 'new zealand', 'nz', 'newzealand'],
+    'Papua New Guinea': ['papua nugini', 'papua new guinea', 'png'],
+    'Fiji': ['fiji'],
+    'Canada': ['kanada', 'canada'],
+    'Mexico': ['meksiko', 'mexico'],
+    'Brazil': ['brasil', 'brazil'],
+    'Argentina': ['argentina'],
+    'Chile': ['chili', 'chile', 'cile'],
+    'Peru': ['peru'],
+    'Colombia': ['kolombia', 'colombia'],
+    'Cuba': ['kuba', 'cuba'],
+    'Germany': ['jerman', 'germany', 'deutschland'],
+    'France': ['prancis', 'perancis', 'france'],
+    'Italy': ['itali', 'italia', 'italy'],
+    'Spain': ['spanyol', 'spain', 'espana'],
+    'Portugal': ['portugal', 'portugis'],
+    'the Netherlands': ['belanda', 'netherlands', 'the netherlands', 'holland', 'nederland'],
+    'Belgium': ['belgia', 'belgium'],
+    'Luxembourg': ['luksemburg', 'luxembourg', 'luxemburg'],
+    'Switzerland': ['swiss', 'switzerland', 'swis'],
+    'Austria': ['austria'],
+    'Sweden': ['swedia', 'sweden'],
+    'Norway': ['norwegia', 'norway'],
+    'Denmark': ['denmark', 'danmark'],
+    'Finland': ['finlandia', 'finland'],
+    'Iceland': ['islandia', 'iceland'],
+    'Ireland': ['irlandia', 'ireland'],
+    'Greece': ['yunani', 'greece'],
+    'Türkiye': ['turki', 'turkey', 'turkiye', 'türkiye'],
+    'Russia': ['rusia', 'russia'],
+    'Ukraine': ['ukraina', 'ukraine'],
+    'Poland': ['polandia', 'poland'],
+    'the Czech Republic': ['ceko', 'republik ceko', 'czech', 'czech republic', 'the czech republic', 'czechia', 'cheko'],
+    'Slovakia': ['slovakia', 'slowakia'],
+    'Slovenia': ['slovenia'],
+    'Hungary': ['hungaria', 'hongaria', 'hungary'],
+    'Croatia': ['kroasia', 'croatia'],
+    'Romania': ['rumania', 'romania'],
+    'Bulgaria': ['bulgaria'],
+    'Serbia': ['serbia'],
+    'Estonia': ['estonia'],
+    'Latvia': ['latvia'],
+    'Lithuania': ['lituania', 'lithuania'],
+    'Malta': ['malta'],
+    'Cyprus': ['siprus', 'cyprus'],
+    'Monaco': ['monako', 'monaco'],
+    'Vatican City': ['vatikan', 'vatican', 'vatican city'],
+    'Saudi Arabia': ['arab saudi', 'saudi arabia', 'saudi'],
+    'the United Arab Emirates': ['uni emirat arab', 'uea', 'uae', 'emirat arab', 'united arab emirates', 'the united arab emirates', 'dubai', 'abu dhabi'],
+    'Qatar': ['qatar', 'katar'],
+    'Kuwait': ['kuwait'],
+    'Oman': ['oman'],
+    'Bahrain': ['bahrain'],
+    'Jordan': ['yordania', 'jordan'],
+    'Israel': ['israel'],
+    'Iran': ['iran'],
+    'Iraq': ['irak', 'iraq'],
+    'Egypt': ['mesir', 'egypt'],
+    'Morocco': ['maroko', 'morocco'],
+    'South Africa': ['afrika selatan', 'south africa', 'afsel'],
+    'Kenya': ['kenya'],
+    'Nigeria': ['nigeria'],
+    'Ethiopia': ['etiopia', 'ethiopia'],
+    'Tanzania': ['tanzania']
+  };
+  var NEGARA_ALIAS = (function () {
+    var m = {};
+    Object.keys(NEGARA_EN).forEach(function (en) {
+      m[en.toLowerCase()] = en;
+      NEGARA_EN[en].forEach(function (a) { m[a] = en; });
+    });
+    return m;
+  })();
+  // Hasil: { en: teks untuk surat, known: semua bagian dikenali?, parts: [{asli, en, known}] }
+  function negaraInfo(input) {
+    var raw = String(input || '').replace(/\s+/g, ' ').trim();
+    var bersih = raw.replace(/[()\[\]]/g, ' ').replace(/\bschengen\b/ig, ' ').replace(/\s+/g, ' ').trim() || raw;
+    var bagian = bersih.split(/\s*(?:,|\/|&|\+|;|\bdan\b|\band\b)\s*/i).filter(function (x) { return x; });
+    var parts = bagian.map(function (b) {
+      var kunci = b.toLowerCase().replace(/^(?:negara|kedutaan besar|kedutaan|kedubes|embassy of|embassy|visa|ke)\s+/i, '').replace(/[.]+$/, '').trim();
+      var en = NEGARA_ALIAS[kunci] || NEGARA_ALIAS[kunci.replace(/\./g, '')];
+      if (en) return { asli: b, en: en, known: true };
+      return { asli: b, en: b.replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); }), known: false };
+    });
+    var sudah = {};
+    parts = parts.filter(function (p) { if (sudah[p.en]) return false; sudah[p.en] = true; return true; });
+    if (!parts.length) return { en: raw, known: false, parts: [] };
+    var names = parts.map(function (p) { return p.en; });
+    var en = names.length === 1 ? names[0] : names.length === 2 ? names.join(' and ') : names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+    return { en: en, known: parts.every(function (p) { return p.known; }), parts: parts };
+  }
+  function negaraEn(input) { return negaraInfo(input).en; }
+  // Peringatan untuk admin kalau isian negara di Surat Visa perlu dicek manual.
+  function negaraCekHtml(req) {
+    if (!req || req.type !== 'VISA') return '';
+    var isi = (req.data || {}).negaraTujuan || '';
+    var info = negaraInfo(isi);
+    var sama = info.en === String(isi).trim();
+    if (info.known && info.parts.length === 1) {
+      return sama ? '' : '<p class="hint" style="margin:4px 0 0">Negara di surat: <strong>' + escapeHtml(info.en) + '</strong> (isian siswa: ' + escapeHtml(isi) + ')</p>';
+    }
+    var alasan = info.parts.length > 1 ? 'siswa mengisi lebih dari satu negara' : 'nama negara tidak dikenali';
+    return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Cek negara tujuan: ' + alasan + ' (isian siswa: ' + escapeHtml(isi) + ' &rarr; di surat: ' + escapeHtml(info.en) + ')</p>';
+  }
   function gradeFromKelas(kelas) {
     var letter = String(kelas || '').trim().charAt(0).toUpperCase();
     if (letter === 'L') return 12;
@@ -742,7 +879,7 @@
         return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
           'LETTER OF STATEMENT\n' +
           'No. : ' + nomor + '\n\n' +
-          'Embassy of ' + d.negaraTujuan + '\n' +
+          'Embassy of ' + negaraEn(d.negaraTujuan) + '\n' +
           'Jakarta – Indonesia\n\n' +
           'To Whom It May Concern:\n\n' +
           'Dear Sir/Madam,\n\n' +
@@ -754,7 +891,7 @@
           'Place, Date of Birth  : ' + d.ttl + '\n' +
           'NIS                   : ' + d.studentId + '\n' +
           'Grade/Class           : ' + d.kelas + '\n\n' +
-          'is a student at UPH College in the academic year of ' + d.tahunAjaran + ', and will be traveling to ' + d.negaraTujuan + ' from ' + formatDateEN(d.tanggalBerangkat) + ' to ' + formatDateEN(d.tanggalKembali) + '. ' + cap(p.subject) + ' will return to Indonesia to continue ' + p.possessive + ' studies after the trip.\n\n' +
+          'is a student at UPH College in the academic year of ' + d.tahunAjaran + ', and will be traveling to ' + negaraEn(d.negaraTujuan) + ' from ' + formatDateEN(d.tanggalBerangkat) + ' to ' + formatDateEN(d.tanggalKembali) + '. ' + cap(p.subject) + ' will return to Indonesia to continue ' + p.possessive + ' studies after the trip.\n\n' +
           'Your kind assistance in processing this visa application would be highly appreciated.\n\n' +
           'Yours Sincerely,\n\n\n' +
           'Hans Deny\n' +
@@ -2676,6 +2813,7 @@
       pickupNoticeHtml +
       adminNoticeHtml +
       approvalInfoHtml(req) +
+      (negaraCekHtml(req) ? '<div class="card">' + negaraCekHtml(req) + '</div>' : '') +
       '<div class="card">' + fieldsHtml + '</div>' +
       '<div class="card">' +
         '<div class="detail-row"><span class="detail-label">Waktu Pengajuan</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
@@ -4050,6 +4188,7 @@
       '<p class="fin-name">' + escapeHtml(d.namaLengkap || '-') + (d.kelas ? ' &middot; ' + escapeHtml(d.kelas) : '') + '</p>' +
       '<p class="hint" style="margin:0">' + (d.lunasAt ? 'Lunas ' + escapeHtml(formatDateShortAdmin(d.lunasAt)) + ' (' + escapeHtml(shortWho(d.lunasOleh)) + ')' : 'Lunas') +
         (mode === 'sudah' ? ' &middot; Disetujui ' + escapeHtml(formatDateShortAdmin(d.disetujuiAt)) + ' &middot; No. ' + escapeHtml(r.nomorSurat || '-') : '') + '</p>' +
+      negaraCekHtml(r) +
       '<div class="fin-actions">' +
         '<button type="button" class="btn-outline" data-appview="' + escapeHtml(r.id) + '">' + (mode === 'sudah' ? 'Cetak' : 'Pratinjau') + '</button>' +
         '<button type="button" class="btn-outline" data-detail="' + escapeHtml(r.id) + '">Detail / Edit</button>' +
