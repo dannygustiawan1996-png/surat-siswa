@@ -246,3 +246,138 @@ grant select, insert on requests to anon;
 grant select on settings to anon;
 grant all on requests to authenticated;
 grant all on settings to authenticated;
+
+-- ============================================================
+-- UNDUH SURAT PDF OLEH SISWA (Cek Status)
+-- PDF dibuat di browser admin (kop + TTD + cap), disimpan di tabel ini,
+-- lalu siswa/ortu mengunduh lewat fungsi unduh_surat() dengan 2 dari 3:
+-- kode pengajuan, email di formulir, NIS/Student ID di formulir.
+-- Tabel TIDAK bisa dibaca anon; hanya akun dengan app_metadata.surat_admin = true
+-- (diset manual lewat SQL, tidak bisa diubah sendiri oleh pemilik akun) yang
+-- boleh menulis/membaca. Hapus otomatis: 14 hari setelah pertama diunduh,
+-- atau 30 hari kalau tidak pernah diunduh.
+--
+-- Sekali saja, beri tanda admin ke akun pemilik (ganti emailnya), lalu login ulang:
+--   update auth.users
+--   set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"surat_admin": true}'::jsonb
+--   where email = 'EMAIL_ADMIN_DI_SINI';
+-- ============================================================
+create table if not exists surat_pdf (
+  request_id text primary key references requests(id) on delete cascade,
+  nama_file text not null,
+  pdf_base64 text not null,
+  created_at timestamptz not null default now(),
+  first_download_at timestamptz,
+  last_download_at timestamptz,
+  download_count int not null default 0
+);
+alter table surat_pdf enable row level security;
+drop policy if exists "surat admin kelola surat_pdf" on surat_pdf;
+create policy "surat admin kelola surat_pdf" on surat_pdf
+  for all to authenticated
+  using (coalesce((auth.jwt() -> 'app_metadata' ->> 'surat_admin')::boolean, false))
+  with check (coalesce((auth.jwt() -> 'app_metadata' ->> 'surat_admin')::boolean, false));
+revoke all on surat_pdf from anon;
+grant select, insert, update, delete on surat_pdf to authenticated;
+
+create table if not exists unduh_log (
+  id bigserial primary key,
+  at timestamptz not null default now(),
+  ip text,
+  request_id text,
+  ok boolean not null
+);
+create index if not exists unduh_log_ip_at on unduh_log (ip, at);
+alter table unduh_log enable row level security;
+drop policy if exists "surat admin baca unduh_log" on unduh_log;
+create policy "surat admin baca unduh_log" on unduh_log
+  for select to authenticated
+  using (coalesce((auth.jwt() -> 'app_metadata' ->> 'surat_admin')::boolean, false));
+revoke all on unduh_log from anon;
+grant select on unduh_log to authenticated;
+
+create or replace function public.bersihkan_surat_pdf()
+returns int
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare n int;
+begin
+  delete from surat_pdf
+   where (first_download_at is not null and first_download_at < now() - interval '14 days')
+      or (first_download_at is null and created_at < now() - interval '30 days');
+  get diagnostics n = row_count;
+  delete from unduh_log where at < now() - interval '30 days';
+  return n;
+end;
+$$;
+revoke all on function public.bersihkan_surat_pdf() from public;
+grant execute on function public.bersihkan_surat_pdf() to authenticated;
+
+create or replace function public.unduh_surat(p_kode text, p_email text, p_nis text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_ip text := '';
+  v_gagal int;
+  v_kode text := upper(trim(coalesce(p_kode, '')));
+  v_email text := lower(trim(coalesce(p_email, '')));
+  v_nis text := lower(regexp_replace(coalesce(p_nis, ''), '[^0-9A-Za-z]', '', 'g'));
+  v_ids text[];
+begin
+  perform public.bersihkan_surat_pdf();
+  begin
+    v_ip := coalesce(
+      current_setting('request.headers', true)::json ->> 'cf-connecting-ip',
+      current_setting('request.headers', true)::json ->> 'x-real-ip',
+      split_part(current_setting('request.headers', true)::json ->> 'x-forwarded-for', ',', 1),
+      '');
+  exception when others then v_ip := '';
+  end;
+  v_ip := trim(v_ip);
+
+  -- Maks. 10 percobaan gagal per 15 menit per alamat IP (wifi sekolah bisa berbagi satu IP).
+  if v_ip <> '' then
+    select count(*) into v_gagal from unduh_log
+     where ip = v_ip and not ok and at > now() - interval '15 minutes';
+    if v_gagal >= 10 then
+      return json_build_object('status', 'terlalu_banyak');
+    end if;
+  end if;
+
+  if ((v_kode <> '')::int + (v_email <> '')::int + (v_nis <> '')::int) < 2 then
+    return json_build_object('status', 'kurang_data');
+  end if;
+
+  select array_agg(r.id) into v_ids
+    from requests r
+    join surat_pdf s on s.request_id = r.id
+   where ( (case when v_kode <> '' and r.id = v_kode then 1 else 0 end)
+         + (case when v_email <> '' and lower(trim(coalesce(r.data->>'kontak', ''))) = v_email then 1 else 0 end)
+         + (case when v_nis <> '' and lower(regexp_replace(coalesce(nullif(r.data->>'studentId', ''), nullif(r.data->>'studentNumber', ''), ''), '[^0-9A-Za-z]', '', 'g')) = v_nis then 1 else 0 end)
+         ) >= 2;
+
+  if v_ids is null then
+    insert into unduh_log (ip, ok) values (v_ip, false);
+    return json_build_object('status', 'tidak_cocok');
+  end if;
+
+  update surat_pdf
+     set download_count = download_count + 1,
+         first_download_at = coalesce(first_download_at, now()),
+         last_download_at = now()
+   where request_id = any (v_ids);
+  insert into unduh_log (ip, request_id, ok) select v_ip, unnest(v_ids), true;
+
+  return json_build_object('status', 'ok', 'files', (
+    select json_agg(json_build_object('request_id', s.request_id, 'jenis', r.type, 'nama_file', s.nama_file, 'pdf_base64', s.pdf_base64))
+      from surat_pdf s join requests r on r.id = s.request_id
+     where s.request_id = any (v_ids)));
+end;
+$$;
+revoke all on function public.unduh_surat(text, text, text) from public;
+grant execute on function public.unduh_surat(text, text, text) to anon, authenticated;

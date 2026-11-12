@@ -181,6 +181,8 @@
   .cs-foot-t { font-weight: 700; color: #0F7071; }
   .cs-bar { height: 4.6mm; background: #0F7071; margin-top: 3mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @media screen and (max-width: 860px) { .cs-sheet { zoom: .42; margin: 8px auto; } }
+  .cs-render { position: fixed; left: -12000px; top: 0; z-index: -1; pointer-events: none; }
+  .cs-render .cs-sheet { zoom: 1 !important; margin: 0 !important; box-shadow: none !important; }
   @media print {
     @page { size: A4; margin: 0; }
     body.cetak-mode { background: #fff !important; }
@@ -1820,7 +1822,8 @@
           var isKlinik = r.type === 'IZIN_KLINIK';
           var pickupHtml = (r.status === 'selesai' && !isRekom && !isKlinik)
             ? ((r.data && r.data.completedAt) ? '<div class="pickup-card">' + escapeHtml(tt('suratSelesaiInfo')(formatDateTimeFull(r.data.completedAt), durasiSejakPengajuan(r.submittedAt, r.data.completedAt))) + '</div>' : '') +
-              '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>'
+              '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' +
+              ((LETTER_TYPES[r.type] && LETTER_TYPES[r.type].generator) ? '<button type="button" class="btn-outline" data-unduhkode="' + escapeHtml(r.id) + '" style="margin-top:8px">' + escapeHtml(ut('tombolHasil')) + '</button>' : '')
             : '';
           var klinikInfoHtml = isKlinik ? '<div class="pickup-card">' + escapeHtml(r.status === 'selesai' ? tt('klinikSelesaiInfo') : tt('klinikBaruInfo')) + '</div>' : '';
           var klinikTreatmentRowsHtml = isKlinik && r.status === 'selesai' ? (
@@ -1910,7 +1913,8 @@
       '<h2>' + escapeHtml(tt('cekStatusTitle')) + '</h2>' +
       '<div class="field"><input class="field-input" id="statusQuery" type="text" placeholder="' + escapeHtml(tt('statusPlaceholder')) + '" value="' + escapeHtml(S.statusQuery) + '"></div>' +
       '<button class="btn-primary" id="searchStatusBtn" style="margin-top:12px">' + escapeHtml(tt('cari')) + '</button>' +
-      '<div class="stack" style="margin-top:16px">' + resultsHtml + '</div>';
+      '<div class="stack" style="margin-top:16px">' + resultsHtml + '</div>' +
+      renderUnduhCard();
   }
 
   function renderAdminGate() {
@@ -2881,6 +2885,14 @@
         '<textarea class="field-input mono-area" id="generatedTextArea" rows="16">' + escapeHtml(req.generatedText || '') + '</textarea></label>' +
         '<button class="btn-primary" id="copyLetterBtn">Salin Teks Surat</button>' +
         '<button class="btn-primary" id="printLetterBtn" style="margin-top:8px">Cetak Surat (Kop + TTD + Cap)</button>' +
+        '<button class="btn-outline" id="wordLetterBtn" style="margin-top:8px">Unduh Word (untuk kertas kop, tanpa TTD/cap)</button>' +
+        '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #E5DECB">' +
+          '<p class="field-label" style="margin:0 0 4px">Softcopy untuk siswa</p>' +
+          pdfInfoHtml(req) +
+          '<button class="btn-primary" id="terbitPdfBtn">' + ((S.pdfInfo && S.pdfInfo[req.id]) ? 'Terbitkan ulang PDF' : 'Terbitkan PDF untuk siswa') + '</button>' +
+          '<p class="hint" style="margin:6px 0 0">PDF dibuat dari teks di atas (kop + TTD + cap browser ini), tersimpan otomatis di komputer ini, bisa diunduh siswa di Cek Status, dan status menjadi Selesai.</p>' +
+          ((S.pdfInfo && S.pdfInfo[req.id]) ? '<button type="button" class="btn-text" id="hapusPdfBtn" style="color:var(--color-red)">Hapus PDF dari server</button>' : '') +
+        '</div>' +
         cetakAssetCardHtml() +
       '</div>';
     }
@@ -3159,6 +3171,7 @@
     });
   }
   function attachCekStatus() {
+    attachUnduhCard();
     var inp = document.getElementById('statusQuery');
     inp.addEventListener('input', function () { S.statusQuery = inp.value; });
     document.getElementById('searchStatusBtn').addEventListener('click', async function () {
@@ -4037,6 +4050,47 @@
   function attachCetakHandlers() {
     var printBtn = document.getElementById('printLetterBtn');
     if (!printBtn) return;
+    pastikanPdfInfo();
+    function teksDetail() {
+      var area = document.getElementById('generatedTextArea');
+      return area ? area.value.trim() : '';
+    }
+    var wordBtn = document.getElementById('wordLetterBtn');
+    if (wordBtn) wordBtn.addEventListener('click', async function () {
+      var text = teksDetail();
+      if (!text) { alert('Teks surat masih kosong. Klik "Generate Teks Surat" dulu.'); return; }
+      var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+      wordBtn.disabled = true;
+      try { await unduhWordSurat(req, text); } catch (e) { alert('Gagal membuat Word: ' + (e && e.message || e)); }
+      wordBtn.disabled = false;
+    });
+    var terbitBtn = document.getElementById('terbitPdfBtn');
+    if (terbitBtn) terbitBtn.addEventListener('click', async function () {
+      var text = teksDetail();
+      if (!text) { alert('Teks surat masih kosong. Klik "Generate Teks Surat" dulu.'); return; }
+      if (!konfirmasiTtdCap()) return;
+      var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+      var copy = cloneReq(req);
+      copy.generatedText = text;
+      var nomorInput = document.getElementById('nomorSuratInput'), tglInput = document.getElementById('tanggalSuratInput');
+      if (nomorInput && nomorInput.value.trim()) copy.nomorSurat = nomorInput.value.trim();
+      if (tglInput && tglInput.value) copy.tanggalSurat = tglInput.value;
+      terbitBtn.disabled = true; terbitBtn.textContent = 'Membuat PDF...';
+      var simpan = await updateRequest(copy);
+      if (!simpan.ok) { alert('Gagal menyimpan teks surat: ' + simpan.error); render(); return; }
+      replaceReq(copy);
+      try { await terbitkanPdf(copy); alert('PDF terbit. File juga tersimpan di folder Downloads komputer ini, dan status surat sekarang Selesai.'); }
+      catch (e) { alert(e && e.message || e); }
+      render();
+    });
+    var hapusBtn = document.getElementById('hapusPdfBtn');
+    if (hapusBtn) hapusBtn.addEventListener('click', async function () {
+      if (!confirm('Hapus PDF surat ini dari server? Siswa tidak bisa mengunduhnya lagi sampai diterbitkan ulang.')) return;
+      var res = await sb.from('surat_pdf').delete().eq('request_id', S.adminSelectedId);
+      if (res.error) { alert('Gagal menghapus: ' + res.error.message); return; }
+      if (S.pdfInfo) delete S.pdfInfo[S.adminSelectedId];
+      render();
+    });
     cetakAssetUiRefresh();
     printBtn.addEventListener('click', function () {
       var area = document.getElementById('generatedTextArea');
@@ -4265,7 +4319,7 @@
     var next = fresh.nextSuratNumber, tgl = todayISO(), email = await currentEmail(), nowIso = new Date().toISOString();
     var list = ids.map(function (id) { return S.requests.find(function (r) { return r.id === id; }); })
       .filter(function (r) { return r && r.status === 'lunas' && !(r.data || {}).disetujuiAt; }).sort(byOldest);
-    var ok = 0, gagal = [];
+    var ok = 0, gagal = [], okIds = [];
     for (var i = 0; i < list.length; i++) {
       var req = list[i], copy = cloneReq(req), pakaiBaru = false;
       var nomor = req.nomorSurat;
@@ -4275,12 +4329,12 @@
       copy.generatedText = req.generatedText || generateLetterText(copy, nomor, copy.tanggalSurat);
       copy.data.disetujuiAt = nowIso; copy.data.disetujuiOleh = email;
       var res = await updateRequest(copy);
-      if (res.ok) { replaceReq(copy); ok++; }
+      if (res.ok) { replaceReq(copy); ok++; okIds.push(copy.id); }
       else { gagal.push(req.id + ' (' + res.error + ')'); if (pakaiBaru) next--; }
     }
     S.settings = Object.assign({}, S.settings || {}, { nextSuratNumber: next });
     var saved = await saveSettings(S.settings);
-    return { ok: ok, gagal: gagal, settingsSaved: saved };
+    return { ok: ok, okIds: okIds, gagal: gagal, settingsSaved: saved };
   }
 
   async function markSelesaiBulk(ids) {
@@ -4307,6 +4361,7 @@
       isianCekHtml(r) +
       '<div class="fin-actions">' +
         '<button type="button" class="btn-outline" data-appview="' + escapeHtml(r.id) + '">' + (mode === 'sudah' ? 'Cetak' : 'Pratinjau') + '</button>' +
+        '<button type="button" class="btn-outline" data-appword="' + escapeHtml(r.id) + '">Word</button>' +
         '<button type="button" class="btn-outline" data-detail="' + escapeHtml(r.id) + '">Detail / Edit</button>' +
       '</div></div>';
   }
@@ -4316,15 +4371,17 @@
     var sel = S.approveSel || {};
     var nSiap = L.siap.filter(function (r) { return sel[r.id]; }).length;
     var nSudah = L.sudah.filter(function (r) { return sel[r.id]; }).length;
-    return '<p class="hint">Surat sederhana (Visa, KKM, Keterangan, SKL) yang sudah <strong>Lunas</strong> menunggu persetujuan Bapak. Saat disetujui, nomor surat dan tanggal (hari ini) diberikan otomatis. Pengiriman email belum aktif &mdash; setelah disetujui, cetak/kirim manual lalu tandai Selesai.</p>' +
+    return '<p class="hint">Surat sederhana (Visa, KKM, Keterangan, SKL) yang sudah <strong>Lunas</strong> menunggu persetujuan Bapak. Saat disetujui: nomor surat &amp; tanggal (hari ini) diberikan, PDF dibuat dengan kop + TTD + cap dari browser ini, tersimpan otomatis di komputer ini, siswa bisa mengunduhnya di Cek Status, dan status menjadi Selesai.</p>' +
+      (ttdCapSiap() ? '' : '<p class="hint" style="color:var(--color-red)">&#9888; TTD/cap belum diunggah di browser ini. Unggah dulu lewat detail surat &rarr; "Atur Tanda Tangan &amp; Cap".</p>') +
       '<p class="field-label" style="margin-top:12px">Menunggu persetujuan (' + L.siap.length + ')</p>' +
       '<div class="filter-row"><button type="button" class="btn-outline" id="appSelAllSiap" style="flex:1">Pilih semua</button></div>' +
       '<div class="stack">' + (L.siap.map(function (r) { return persetujuanItemHtml(r, 'siap'); }).join('') || '<p class="hint">Tidak ada surat yang menunggu persetujuan.</p>') + '</div>' +
-      '<div class="bulk-bar"><button type="button" class="btn-primary" id="appApproveBtn"' + (nSiap ? '' : ' disabled') + '>Setujui (' + nSiap + ' dipilih)</button></div>' +
+      '<div class="bulk-bar"><button type="button" class="btn-primary" id="appApproveBtn"' + (nSiap ? '' : ' disabled') + '>Setujui &amp; Terbitkan PDF (' + nSiap + ' dipilih)</button></div>' +
       '<p class="field-label" style="margin-top:20px">Sudah disetujui &mdash; siap kirim (' + L.sudah.length + ')</p>' +
       '<div class="filter-row"><button type="button" class="btn-outline" id="appSelAllSudah" style="flex:1">Pilih semua</button></div>' +
       '<div class="stack">' + (L.sudah.map(function (r) { return persetujuanItemHtml(r, 'sudah'); }).join('') || '<p class="hint">Belum ada.</p>') + '</div>' +
-      '<div class="bulk-bar"><button type="button" class="btn-outline" id="appDoneBtn"' + (nSudah ? '' : ' disabled') + ' style="background:#fff">Tandai Selesai (' + nSudah + ' dipilih)</button></div>';
+      '<div class="bulk-bar"><button type="button" class="btn-primary" id="appTerbitBtn"' + (nSudah ? '' : ' disabled') + '>Terbitkan PDF &amp; Selesai (' + nSudah + ' dipilih)</button></div>' +
+      '<button type="button" class="btn-text" id="appDoneBtn"' + (nSudah ? '' : ' disabled') + '>Tandai Selesai tanpa PDF (' + nSudah + ' dipilih)</button>';
   }
 
   function attachPersetujuanBody() {
@@ -4355,15 +4412,42 @@
     document.getElementById('appApproveBtn').addEventListener('click', async function () {
       var ids = L.siap.filter(function (r) { return (S.approveSel || {})[r.id]; }).map(function (r) { return r.id; });
       if (!ids.length) return;
-      if (!confirm('Setujui ' + ids.length + ' surat?\nNomor surat diberikan otomatis dan tanggal surat = hari ini.')) return;
-      this.disabled = true; this.textContent = 'Memproses...';
+      if (!confirm('Setujui ' + ids.length + ' surat?\nNomor surat diberikan otomatis, tanggal surat = hari ini, lalu PDF dibuat dan diterbitkan untuk siswa.')) return;
+      if (!konfirmasiTtdCap()) return;
+      var btn = this;
+      btn.disabled = true; btn.textContent = 'Memberi nomor...';
       var res = await approveRequests(ids);
+      var gagalPdf = await terbitkanBanyak(res.okIds || [], function (i, n) { btn.textContent = 'Membuat PDF ' + i + '/' + n + '...'; });
       S.approveSel = {};
-      var msg = res.ok + ' surat disetujui.';
-      if (res.gagal.length) msg += '\nGagal:\n' + res.gagal.join('\n');
+      var terbit = (res.okIds || []).length - gagalPdf.length;
+      var msg = res.ok + ' surat disetujui, ' + terbit + ' PDF terbit (tersimpan juga di folder Downloads).';
+      if (res.gagal.length) msg += '\n\nGagal disetujui:\n' + res.gagal.join('\n');
+      if (gagalPdf.length) msg += '\n\nPDF gagal (surat tetap disetujui, bisa diterbitkan ulang dari bagian "Sudah disetujui"):\n' + gagalPdf.join('\n');
       if (!res.settingsSaved) msg += '\n\nPERINGATAN: nomor surat berikutnya gagal disimpan. Cek "Pengaturan (Nomor Surat Berikutnya)" sebelum menyetujui lagi.';
       alert(msg);
       render();
+    });
+    document.getElementById('appTerbitBtn').addEventListener('click', async function () {
+      var ids = L.sudah.filter(function (r) { return (S.approveSel || {})[r.id]; }).map(function (r) { return r.id; });
+      if (!ids.length) return;
+      if (!konfirmasiTtdCap()) return;
+      var btn = this;
+      btn.disabled = true;
+      var gagal = await terbitkanBanyak(ids, function (i, n) { btn.textContent = 'Membuat PDF ' + i + '/' + n + '...'; });
+      S.approveSel = {};
+      alert((ids.length - gagal.length) + ' PDF terbit.' + (gagal.length ? '\n\nGagal:\n' + gagal.join('\n') : ''));
+      render();
+    });
+    document.querySelectorAll('[data-appword]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        var req = S.requests.find(function (r) { return r.id === b.getAttribute('data-appword'); });
+        if (!req) return;
+        var tgl = req.tanggalSurat || todayISO();
+        var text = req.generatedText || generateLetterText(req, req.nomorSurat || suggestedNomor(S.settings, tgl), tgl);
+        b.disabled = true;
+        try { await unduhWordSurat(req, text); } catch (e) { alert('Gagal membuat Word: ' + (e && e.message || e)); }
+        b.disabled = false;
+      });
     });
     document.getElementById('appDoneBtn').addEventListener('click', async function () {
       var ids = L.sudah.filter(function (r) { return (S.approveSel || {})[r.id]; }).map(function (r) { return r.id; });
@@ -4382,6 +4466,316 @@
     if (d.lunasAt) parts.push('Dilunaskan ' + escapeHtml(formatDateTimeFull(d.lunasAt)) + ' oleh ' + escapeHtml(shortWho(d.lunasOleh)));
     if (d.disetujuiAt) parts.push('Disetujui ' + escapeHtml(formatDateTimeFull(d.disetujuiAt)) + ' oleh ' + escapeHtml(shortWho(d.disetujuiOleh)));
     return parts.length ? '<div class="card"><p class="hint" style="margin:0">' + parts.join('<br>') + '</p></div>' : '';
+  }
+
+  // ============================================================
+  // PDF UNTUK SISWA + WORD UNTUK HARDCOPY
+  // PDF dibuat di browser admin dari tampilan Cetak Surat (kop + TTD + cap),
+  // disimpan ke tabel surat_pdf, otomatis terunduh ke komputer admin, dan bisa
+  // diunduh siswa di Cek Status lewat fungsi unduh_surat (2 dari 3: kode/email/NIS).
+  // Word: teks surat tanpa kop/TTD/cap, untuk dicetak di kertas kop sekolah.
+  // ============================================================
+  var LIB_URL = {
+    html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+    jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    jszip: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+  };
+  var _libPromise = {};
+  function muatLib(nama) {
+    if (_libPromise[nama]) return _libPromise[nama];
+    _libPromise[nama] = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = LIB_URL[nama];
+      s.onload = function () { resolve(); };
+      s.onerror = function () { delete _libPromise[nama]; reject(new Error('Gagal memuat ' + nama + ' (cek koneksi internet)')); };
+      document.head.appendChild(s);
+    });
+    return _libPromise[nama];
+  }
+  function simpanBlob(blob, nama) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nama;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+  function base64ToBlob(b64, type) {
+    var bin = atob(b64), n = bin.length, arr = new Uint8Array(n);
+    for (var i = 0; i < n; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: type });
+  }
+  function namaFileSurat(req, ext) {
+    var d = req.data || {};
+    var jenis = (LETTER_TYPES[req.type] || {}).shortLabel || req.type;
+    return ('Surat ' + jenis + ' - ' + (d.namaLengkap || '') + ' - ' + req.id)
+      .replace(/[\\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() + '.' + ext;
+  }
+
+  async function buatPdfSurat(text) {
+    await Promise.all([muatLib('html2canvas'), muatLib('jspdf')]);
+    var wrap = document.createElement('div');
+    wrap.className = 'cs-render';
+    wrap.innerHTML = cetakSheetHtml(text);
+    document.body.appendChild(wrap);
+    try {
+      var imgs = [].slice.call(wrap.querySelectorAll('img'));
+      await Promise.all(imgs.map(function (im) {
+        return (im.complete && im.naturalWidth) ? null : new Promise(function (r) { im.onload = r; im.onerror = r; });
+      }));
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      var sheet = wrap.querySelector('.cs-sheet');
+      var canvas = await window.html2canvas(sheet, { scale: 2.5, backgroundColor: '#ffffff', logging: false, useCORS: true });
+      var pdf = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
+      return pdf;
+    } finally {
+      wrap.remove();
+    }
+  }
+
+  function ttdCapSiap() {
+    return !!(cetakGet(CETAK_KEY.ttd) && cetakOn(CETAK_KEY.ttdOn) && cetakGet(CETAK_KEY.cap) && cetakOn(CETAK_KEY.capOn));
+  }
+  function konfirmasiTtdCap() {
+    if (ttdCapSiap()) return true;
+    return confirm('TTD dan/atau cap belum diunggah (atau dimatikan) di browser ini, jadi PDF akan dibuat TANPA TTD/cap.\n\nLanjut?');
+  }
+
+  // Buat PDF -> simpan ke komputer admin -> unggah untuk siswa -> status Selesai.
+  async function terbitkanPdf(req) {
+    if (!req.generatedText) throw new Error('teks surat belum dibuat');
+    var pdf = await buatPdfSurat(req.generatedText);
+    var nama = namaFileSurat(req, 'pdf');
+    pdf.save(nama);
+    var b64 = pdf.output('datauristring').split(',')[1];
+    var now = new Date().toISOString();
+    var res = await sb.from('surat_pdf').upsert({
+      request_id: req.id, nama_file: nama, pdf_base64: b64, created_at: now,
+      first_download_at: null, last_download_at: null, download_count: 0
+    });
+    if (res.error) {
+      var m = res.error.message || '';
+      if (/row-level security|permission denied|does not exist|schema cache/i.test(m)) m += ' (cek: SQL unduhan PDF sudah dijalankan, tanda surat_admin sudah diset, lalu login ulang)';
+      throw new Error('PDF tersimpan di komputer, tapi gagal diunggah untuk siswa: ' + m);
+    }
+    S.pdfInfo = S.pdfInfo || {};
+    S.pdfInfo[req.id] = { request_id: req.id, created_at: now, first_download_at: null, last_download_at: null, download_count: 0 };
+    if (req.status !== 'selesai') {
+      var copy = cloneReq(req);
+      copy.status = 'selesai';
+      copy.data.completedAt = copy.data.completedAt || now;
+      var r2 = await updateRequest(copy);
+      if (!r2.ok) throw new Error('PDF sudah terbit, tapi status gagal diubah ke Selesai: ' + r2.error);
+      replaceReq(copy);
+    }
+  }
+  async function terbitkanBanyak(ids, onProgress) {
+    var gagal = [];
+    for (var i = 0; i < ids.length; i++) {
+      var req = S.requests.find(function (r) { return r.id === ids[i]; });
+      if (!req) continue;
+      if (onProgress) onProgress(i + 1, ids.length);
+      try { await terbitkanPdf(req); } catch (e) { gagal.push(req.id + ': ' + (e && e.message || e)); }
+      await new Promise(function (r) { setTimeout(r, 350); }); // jeda kecil supaya unduhan beruntun tidak diblok browser
+    }
+    return gagal;
+  }
+
+  async function loadPdfInfo() {
+    try { await sb.rpc('bersihkan_surat_pdf'); } catch (e) {}
+    try {
+      var res = await sb.from('surat_pdf').select('request_id,created_at,first_download_at,last_download_at,download_count');
+      if (res.error) { S.pdfInfo = {}; S.pdfInfoError = res.error.message; return; }
+      var m = {};
+      (res.data || []).forEach(function (r) { m[r.request_id] = r; });
+      S.pdfInfo = m; S.pdfInfoError = null;
+    } catch (e) { S.pdfInfo = {}; S.pdfInfoError = String(e && e.message || e); }
+  }
+  function pastikanPdfInfo() {
+    if (S.userRole === 'finance' || S.pdfInfo !== undefined) return;
+    S.pdfInfo = null;
+    loadPdfInfo().then(function () { if (S.view === 'adminDetail' || S.view === 'adminDashboard') render(); });
+  }
+  function pdfKedaluwarsa(info) {
+    var t = info.first_download_at ? new Date(info.first_download_at).getTime() + 14 * 864e5 : new Date(info.created_at).getTime() + 30 * 864e5;
+    return new Date(t).toISOString();
+  }
+  function pdfInfoHtml(req) {
+    if (S.pdfInfo === undefined || S.pdfInfo === null) return '<p class="hint">Memuat status PDF siswa...</p>';
+    if (S.pdfInfoError) return '<p class="hint" style="color:var(--color-red)">Fitur PDF siswa belum aktif: ' + escapeHtml(S.pdfInfoError) + '</p>';
+    var info = S.pdfInfo[req.id];
+    if (!info) return '<p class="hint">Belum ada PDF untuk siswa.</p>';
+    return '<p class="hint" style="color:#2E7D5B">&#10003; PDF tersedia untuk siswa (terbit ' + escapeHtml(formatDateShortAdmin(info.created_at)) + ') &middot; ' +
+      (info.download_count ? 'diunduh ' + info.download_count + 'x, terakhir ' + escapeHtml(formatDateShortAdmin(info.last_download_at)) : 'belum diunduh') +
+      ' &middot; dihapus otomatis ' + escapeHtml(formatDateShort(pdfKedaluwarsa(info))) + '</p>';
+  }
+
+  // ---------- Word (.docx) ----------
+  function suratParse(text) {
+    var lines = String(text || '').replace(/\r/g, '').split('\n');
+    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+    var jabatan = lines.length ? lines.pop().trim() : '';
+    var nama = lines.length ? lines.pop().trim() : '';
+    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+    var closing = lines.length ? lines.pop().trim() : '';
+    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+    var tgl = '';
+    if (lines.length && /^Tangerang,/.test(lines[0].trim())) tgl = lines.shift().trim();
+    var kvRe = /^(\S.{0,30}?)\s+:\s+(.+)$/;
+    var blocks = [], tglDone = !tgl, lastGap = true, inKv = false;
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i], tr = ln.trim();
+      if (!tr) { inKv = false; if (!lastGap) { blocks.push({ t: 'gap' }); lastGap = true; } continue; }
+      lastGap = false;
+      var next = (lines[i + 1] || '').trim();
+      if (/^[A-Z][A-Z0-9 \-–\/&().,]{5,}$/.test(tr) && /^No\./.test(next)) { inKv = false; blocks.push({ t: 'title', s: tr }); continue; }
+      if (/^No\.\s*:/.test(tr)) {
+        inKv = false; blocks.push({ t: 'nomor', s: tr });
+        if (!tglDone) { blocks.push({ t: 'gap' }, { t: 'tgl', s: tgl }, { t: 'gap' }); tglDone = true; }
+        continue;
+      }
+      var m = kvRe.exec(ln);
+      if (m) { inKv = true; blocks.push({ t: 'kv', k: m[1].trim(), v: [m[2].trim()] }); continue; }
+      if (inKv) { blocks[blocks.length - 1].v.push(tr); continue; }
+      blocks.push({ t: 'line', s: tr });
+    }
+    if (!tglDone) blocks.unshift({ t: 'tgl', s: tgl }, { t: 'gap' });
+    return { blocks: blocks, closing: closing, nama: nama, jabatan: jabatan };
+  }
+  function xmlEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function wRun(s, o) {
+    o = o || {};
+    var rpr = (o.b ? '<w:b/><w:bCs/>' : '') + (o.sz ? '<w:sz w:val="' + o.sz + '"/><w:szCs w:val="' + o.sz + '"/>' : '') + (o.u ? '<w:u w:val="single"/>' : '');
+    return '<w:r>' + (rpr ? '<w:rPr>' + rpr + '</w:rPr>' : '') + '<w:t xml:space="preserve">' + xmlEsc(s) + '</w:t></w:r>';
+  }
+  function wPara(runs, ppr) { return '<w:p>' + (ppr ? '<w:pPr>' + ppr + '</w:pPr>' : '') + (runs || '') + '</w:p>'; }
+  var W_TAB = '<w:r><w:tab/></w:r>', W_BR = '<w:r><w:br/></w:r>';
+  function suratDocxXml(text) {
+    var p = suratParse(text), body = '';
+    var gap = wPara('', '<w:spacing w:after="0" w:line="180" w:lineRule="exact"/>');
+    p.blocks.forEach(function (b) {
+      if (b.t === 'gap') body += gap;
+      else if (b.t === 'title') body += wPara(wRun(b.s, { b: 1, u: 1, sz: 25 }), '<w:spacing w:before="113"/><w:jc w:val="center"/>');
+      else if (b.t === 'nomor') body += wPara(wRun(b.s), '<w:jc w:val="center"/>');
+      else if (b.t === 'tgl') body += wPara(wRun(b.s), '<w:jc w:val="right"/>');
+      else if (b.t === 'line') body += wPara(wRun(b.s), '<w:jc w:val="both"/>');
+      else if (b.t === 'kv') body += wPara(wRun(b.k) + W_TAB + wRun(':') + W_TAB + b.v.map(function (v) { return wRun(v); }).join(W_BR),
+        '<w:tabs><w:tab w:val="left" w:pos="3288"/><w:tab w:val="left" w:pos="3515"/></w:tabs><w:spacing w:after="34"/><w:ind w:left="3515" w:hanging="3402"/>');
+    });
+    var keep = '<w:keepNext/><w:keepLines/>';
+    body += gap;
+    if (p.closing) body += wPara(wRun(p.closing), keep);
+    for (var i = 0; i < 5; i++) body += wPara('', keep); // ruang tanda tangan basah + cap
+    body += wPara(wRun(p.nama, { b: 1, u: 1 }), keep);
+    body += wPara(wRun(p.jabatan));
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' + body +
+      '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1984" w:right="1440" w:bottom="1984" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>' +
+      '</w:body></w:document>';
+  }
+  async function buatDocxSurat(text) {
+    await muatLib('jszip');
+    var zip = new window.JSZip();
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
+    zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+    zip.file('word/_rels/document.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    zip.file('word/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style></w:styles>');
+    zip.file('word/document.xml', suratDocxXml(text));
+    return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  }
+  async function unduhWordSurat(req, text) {
+    var blob = await buatDocxSurat(text);
+    simpanBlob(blob, namaFileSurat(req, 'docx'));
+  }
+
+  // ---------- Cek Status: unduh surat oleh siswa/ortu ----------
+  var UNDUH_TEKS = {
+    id: {
+      judul: 'Unduh Surat (PDF)',
+      intro: 'Surat yang sudah selesai bisa diunduh di sini. Isi minimal 2 dari 3 data di bawah, sama persis dengan yang diisi di formulir pengajuan.',
+      kode: 'Kode Pengajuan', email: 'Email (yang diisi di formulir)', nis: 'NIS / Student ID (sesuai formulir)',
+      tombol: 'Unduh Surat', memproses: 'Memeriksa...',
+      kurang: 'Isi minimal 2 dari 3 data.',
+      tidakCocok: 'Data tidak cocok, atau surat digital belum tersedia / sudah melewati masa unduh. Hubungi Pak Danny di Teacher Lounge.',
+      terlaluBanyak: 'Terlalu banyak percobaan yang gagal. Coba lagi 15 menit lagi.',
+      gagal: 'Gagal mengunduh: ',
+      berhasil: function (n) { return 'Berhasil, ' + n + ' surat diunduh. Cek folder Downloads.'; },
+      masa: 'Surat digital tersedia 14 hari sejak pertama kali diunduh.',
+      tombolHasil: 'Unduh softcopy (PDF)'
+    },
+    en: {
+      judul: 'Download Letter (PDF)',
+      intro: 'Completed letters can be downloaded here. Fill in at least 2 of the 3 fields below, exactly as entered in the request form.',
+      kode: 'Request Code', email: 'Email (as entered in the form)', nis: 'NIS / Student ID (as in the form)',
+      tombol: 'Download Letter', memproses: 'Checking...',
+      kurang: 'Please fill in at least 2 of the 3 fields.',
+      tidakCocok: 'The details do not match, or the digital letter is not available yet / has expired. Please see Mr. Danny at the Teacher Lounge.',
+      terlaluBanyak: 'Too many failed attempts. Please try again in 15 minutes.',
+      gagal: 'Download failed: ',
+      berhasil: function (n) { return 'Done, ' + n + ' letter(s) downloaded. Check your Downloads folder.'; },
+      masa: 'The digital letter is available for 14 days after the first download.',
+      tombolHasil: 'Download softcopy (PDF)'
+    }
+  };
+  function ut(k) { return UNDUH_TEKS[S.lang === 'en' ? 'en' : 'id'][k]; }
+  function renderUnduhCard() {
+    var u = S.unduh || (S.unduh = {});
+    function field(id, label, val, type, ph) {
+      return '<label class="field"><span class="field-label">' + escapeHtml(label) + '</span><input class="field-input" id="' + id + '" type="' + type + '"' + (ph ? ' placeholder="' + escapeHtml(ph) + '"' : '') + ' value="' + escapeHtml(val || '') + '" autocomplete="off"></label>';
+    }
+    var msg = '';
+    if (u.status === 'ok') msg = '<p class="hint" style="color:#2E7D5B;margin:6px 0">' + escapeHtml(ut('berhasil')(u.n)) + '</p>';
+    else if (u.status === 'err') msg = '<span class="field-error" style="display:block;margin:6px 0">' + escapeHtml(u.msg) + '</span>';
+    return '<div class="card" id="unduhCard" style="margin-top:20px">' +
+      '<p class="field-label" style="margin-top:0">' + escapeHtml(ut('judul')) + '</p>' +
+      '<p class="hint">' + escapeHtml(ut('intro')) + '</p>' +
+      field('unduhKode', ut('kode'), u.kode, 'text', 'VISA-261111-ABCD') +
+      field('unduhEmail', ut('email'), u.email, 'email', '') +
+      field('unduhNis', ut('nis'), u.nis, 'text', '') +
+      msg +
+      '<button class="btn-primary" id="unduhBtn"' + (u.status === 'loading' ? ' disabled' : '') + '>' + escapeHtml(u.status === 'loading' ? ut('memproses') : ut('tombol')) + '</button>' +
+      '<p class="hint" style="margin-top:8px">' + escapeHtml(ut('masa')) + '</p>' +
+    '</div>';
+  }
+  async function jalankanUnduh() {
+    var u = S.unduh || (S.unduh = {});
+    var isi = [u.kode, u.email, u.nis].filter(function (x) { return x && String(x).trim(); }).length;
+    if (isi < 2) { u.status = 'err'; u.msg = ut('kurang'); render(); return; }
+    u.status = 'loading'; render();
+    try {
+      var res = await sb.rpc('unduh_surat', { p_kode: (u.kode || '').trim(), p_email: (u.email || '').trim(), p_nis: (u.nis || '').trim() });
+      if (res.error) throw new Error(res.error.message);
+      var d = res.data || {};
+      if (d.status === 'ok' && d.files && d.files.length) {
+        d.files.forEach(function (f, i) {
+          setTimeout(function () { simpanBlob(base64ToBlob(f.pdf_base64, 'application/pdf'), f.nama_file || ('Surat-' + f.request_id + '.pdf')); }, i * 500);
+        });
+        u.status = 'ok'; u.n = d.files.length;
+      } else {
+        u.status = 'err';
+        u.msg = d.status === 'terlalu_banyak' ? ut('terlaluBanyak') : d.status === 'kurang_data' ? ut('kurang') : ut('tidakCocok');
+      }
+    } catch (e) { u.status = 'err'; u.msg = ut('gagal') + (e && e.message || e); }
+    render();
+  }
+  function attachUnduhCard() {
+    var u = S.unduh || (S.unduh = {});
+    [['unduhKode', 'kode'], ['unduhEmail', 'email'], ['unduhNis', 'nis']].forEach(function (p) {
+      var el = document.getElementById(p[0]);
+      if (el) el.addEventListener('input', function () { u[p[1]] = el.value; });
+    });
+    var btn = document.getElementById('unduhBtn');
+    if (btn) btn.addEventListener('click', jalankanUnduh);
+    document.querySelectorAll('[data-unduhkode]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        u.kode = b.getAttribute('data-unduhkode'); u.status = null;
+        render();
+        var card = document.getElementById('unduhCard');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var em = document.getElementById('unduhEmail'); if (em) em.focus({ preventScroll: true });
+      });
+    });
   }
 
   async function init() {
