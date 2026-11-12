@@ -635,8 +635,26 @@
     if (!info.adaTempat) return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Cek tempat lahir: siswa hanya mengisi tanggal (di surat: ' + escapeHtml(info.teks) + ')</p>';
     return info.teks === isi ? '' : '<p class="hint" style="margin:4px 0 0">Tempat, tgl lahir di surat: <strong>' + escapeHtml(info.teks) + '</strong> (isian siswa: ' + escapeHtml(isi) + ')</p>';
   }
-  // Gabungan catatan/peringatan isian siswa untuk admin (negara visa + tempat/tanggal lahir).
-  function isianCekHtml(req) { return negaraCekHtml(req) + ttlCekHtml(req); }
+  // Tanggal perjalanan Surat Visa: kembali tidak boleh sebelum berangkat; berangkat tidak boleh sebelum tanggal acuan.
+  function cekTanggalPerjalanan(d, acuanISO) {
+    var out = {};
+    var b = d && d.tanggalBerangkat, k = d && d.tanggalKembali;
+    if (b && k && k < b) out.kembali = { id: 'Tanggal kembali tidak boleh sebelum tanggal berangkat.', en: 'The return date cannot be before the departure date.' };
+    if (b && acuanISO && b < String(acuanISO).slice(0, 10)) out.berangkat = { id: 'Tanggal berangkat sudah lewat. Cek lagi tahunnya.', en: 'The departure date is in the past. Please check the year.' };
+    return out;
+  }
+  function tanggalVisaCekHtml(req) {
+    if (!req || req.type !== 'VISA') return '';
+    var d = req.data || {};
+    var c = cekTanggalPerjalanan(d, req.submittedAt);
+    if (!c.kembali && !c.berangkat) return '';
+    var masalah = [];
+    if (c.kembali) masalah.push('tanggal kembali (' + formatDateShort(d.tanggalKembali) + ') sebelum tanggal berangkat (' + formatDateShort(d.tanggalBerangkat) + ')');
+    if (c.berangkat) masalah.push('tanggal berangkat (' + formatDateShort(d.tanggalBerangkat) + ') sebelum tanggal pengajuan');
+    return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Cek tanggal perjalanan: ' + escapeHtml(masalah.join('; ')) + '. Perbaiki isiannya dulu sebelum surat dibuat.</p>';
+  }
+  // Gabungan catatan/peringatan isian siswa untuk admin (negara visa + tempat/tanggal lahir + tanggal perjalanan).
+  function isianCekHtml(req) { return negaraCekHtml(req) + ttlCekHtml(req) + tanggalVisaCekHtml(req); }
   function yearOf(dateStr) { return parseDateParts(dateStr).y; }
   function todayISO() {
     var d = new Date();
@@ -2816,11 +2834,28 @@
     var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
     var t = LETTER_TYPES[req.type];
     var isRekomendasi = req.type === 'REKOMENDASI';
-    var fieldsHtml = t.fields.map(function (f) {
-      var raw = req.data[f.key];
-      var displayVal = (f.isLink && raw) ? ('<a href="' + escapeHtml(raw) + '" target="_blank" rel="noopener">Buka Link ↗</a>') : escapeHtml(raw || '-');
-      return '<div class="detail-row"><span class="detail-label">' + escapeHtml(f.label) + '</span><span class="detail-value">' + displayVal + '</span></div>';
-    }).join('');
+    var bisaEditData = !isRekomendasi && req.type !== 'IZIN_KLINIK';
+    var fieldsHtml;
+    if (bisaEditData && S.editDataId === req.id) {
+      fieldsHtml = '<p class="field-label" style="margin-top:0">Edit data isian siswa</p>' + t.fields.map(function (f) {
+        var v = req.data[f.key] == null ? '' : String(req.data[f.key]);
+        var input;
+        if (f.type === 'textarea') input = '<textarea class="field-input" data-editfield="' + f.key + '" rows="2">' + escapeHtml(v) + '</textarea>';
+        else if (f.type === 'select') input = '<select class="field-input" data-editfield="' + f.key + '"><option value=""></option>' + f.options.map(function (o) {
+          return '<option value="' + escapeHtml(o.value) + '"' + (o.value === v ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
+        }).join('') + '</select>';
+        else input = '<input class="field-input" data-editfield="' + f.key + '" type="' + (f.type === 'date' ? 'date' : 'text') + '" value="' + escapeHtml(v) + '">';
+        return '<label class="field"><span class="field-label">' + escapeHtml(f.label) + '</span>' + input + '</label>';
+      }).join('') +
+      '<div class="filter-row"><button type="button" class="btn-primary" id="simpanDataBtn" style="flex:1">Simpan Data</button><button type="button" class="btn-outline" id="batalDataBtn" style="flex:1">Batal</button></div>' +
+      '<p class="hint" style="margin:6px 0 0">Setelah disimpan, klik "Generate Teks Surat" lagi supaya surat memakai data baru.</p>';
+    } else {
+      fieldsHtml = t.fields.map(function (f) {
+        var raw = req.data[f.key];
+        var displayVal = (f.isLink && raw) ? ('<a href="' + escapeHtml(raw) + '" target="_blank" rel="noopener">Buka Link ↗</a>') : escapeHtml(raw || '-');
+        return '<div class="detail-row"><span class="detail-label">' + escapeHtml(f.label) + '</span><span class="detail-value">' + displayVal + '</span></div>';
+      }).join('') + (bisaEditData ? '<button type="button" class="btn-text" id="editDataBtn" style="width:auto;padding:0;margin-top:8px">Edit data isian</button>' : '');
+    }
     var adminNoticeHtml = (t.notice && !isRekomendasi) ? '<div class="notice-card"><strong>Ingat admin:</strong> ' + escapeHtml(t.notice) + '</div>' : '';
     var pickupNoticeHtml = (req.status === 'selesai' && !isRekomendasi) ? '<div class="pickup-card">' + escapeHtml(UI_TEXT.id.pengambilanInfo) + '</div>' : '';
 
@@ -3020,6 +3055,9 @@
       t.fields.forEach(function (f) {
         if (f.required && !(S.formDraft[f.key] && String(S.formDraft[f.key]).trim())) errors[f.key] = tt('fieldWajib');
       });
+      var cekTgl = cekTanggalPerjalanan(S.formDraft, todayISO());
+      if (cekTgl.kembali && !errors.tanggalKembali) errors.tanggalKembali = S.lang === 'en' ? cekTgl.kembali.en : cekTgl.kembali.id;
+      if (cekTgl.berangkat && !errors.tanggalBerangkat) errors.tanggalBerangkat = S.lang === 'en' ? cekTgl.berangkat.en : cekTgl.berangkat.id;
       S.formErrors = errors;
       if (Object.keys(errors).length > 0) { render(); return; }
       if (!S.dobelDikonfirmasi) {
@@ -4047,7 +4085,32 @@
     '</details>';
   }
 
+  function attachEditDataHandlers() {
+    var editBtn = document.getElementById('editDataBtn');
+    if (editBtn) editBtn.addEventListener('click', function () { S.editDataId = S.adminSelectedId; render(); });
+    var batal = document.getElementById('batalDataBtn');
+    if (batal) batal.addEventListener('click', function () { S.editDataId = null; render(); });
+    var simpan = document.getElementById('simpanDataBtn');
+    if (simpan) simpan.addEventListener('click', async function () {
+      var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+      if (!req) return;
+      var copy = cloneReq(req);
+      document.querySelectorAll('[data-editfield]').forEach(function (el) { copy.data[el.getAttribute('data-editfield')] = el.value.trim(); });
+      if (copy.type === 'VISA') {
+        var c = cekTanggalPerjalanan(copy.data, null);
+        if (c.kembali && !confirm('Tanggal kembali masih sebelum tanggal berangkat. Tetap simpan?')) return;
+      }
+      simpan.disabled = true; simpan.textContent = 'Menyimpan...';
+      var res = await updateRequest(copy);
+      if (!res.ok) { alert('Gagal menyimpan data: ' + res.error); simpan.disabled = false; simpan.textContent = 'Simpan Data'; return; }
+      replaceReq(copy);
+      S.editDataId = null;
+      render();
+    });
+  }
+
   function attachCetakHandlers() {
+    attachEditDataHandlers();
     var printBtn = document.getElementById('printLetterBtn');
     if (!printBtn) return;
     pastikanPdfInfo();
