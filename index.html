@@ -845,6 +845,7 @@
       }
     },
     TRANSKRIP: {
+      manualAmbil: true, // transkrip dibuat manual & diambil di TL: tanpa nomor surat, tanpa PDF unduhan
       shortLabel: 'Transkrip 1 Halaman',
       shortLabelEn: 'One Page Transcript',
       label: 'Pengajuan One Page Transcript Nilai',
@@ -863,7 +864,7 @@
       generator: function (d, nomor, tgl) {
         return 'Tangerang, ' + formatDateID(tgl) + '\n\n' +
           'TANDA TERIMA PERMOHONAN ONE PAGE TRANSCRIPT\n' +
-          'No. : ' + nomor + '\n\n' +
+          (nomor ? 'No. : ' + nomor + '\n' : '') + '\n' +
           'Yang bertandatangan di bawah ini menerangkan bahwa :\n\n' +
           'Nama                     : ' + d.namaLengkap + '\n' +
           'Kelas                    : ' + d.kelas + '\n' +
@@ -1841,7 +1842,7 @@
           var pickupHtml = (r.status === 'selesai' && !isRekom && !isKlinik)
             ? ((r.data && r.data.completedAt) ? '<div class="pickup-card">' + escapeHtml(tt('suratSelesaiInfo')(formatDateTimeFull(r.data.completedAt), durasiSejakPengajuan(r.submittedAt, r.data.completedAt))) + '</div>' : '') +
               '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' +
-              ((LETTER_TYPES[r.type] && LETTER_TYPES[r.type].generator) ? '<button type="button" class="btn-outline" data-unduhkode="' + escapeHtml(r.id) + '" style="margin-top:8px">' + escapeHtml(ut('tombolHasil')) + '</button>' : '')
+              ((LETTER_TYPES[r.type] && LETTER_TYPES[r.type].generator && !LETTER_TYPES[r.type].manualAmbil) ? '<button type="button" class="btn-outline" data-unduhkode="' + escapeHtml(r.id) + '" style="margin-top:8px">' + escapeHtml(ut('tombolHasil')) + '</button>' : '')
             : '';
           var klinikInfoHtml = isKlinik ? '<div class="pickup-card">' + escapeHtml(r.status === 'selesai' ? tt('klinikSelesaiInfo') : tt('klinikBaruInfo')) + '</div>' : '';
           var klinikTreatmentRowsHtml = isKlinik && r.status === 'selesai' ? (
@@ -2906,12 +2907,14 @@
       '</div>';
     } else {
       var defaultTgl = req.tanggalSurat || todayISO();
+      var manualAmbil = !!t.manualAmbil;
       var nomorSementara = !req.nomorSurat;
       var defaultNomor = req.nomorSurat || suggestedNomor(S.settings, defaultTgl);
       actionCardHtml = '<div class="card">' +
         '<p class="field-label">Generate Teks Surat</p>' +
-        '<label class="field"><span class="field-label">Nomor Surat</span><input class="field-input" id="nomorSuratInput" type="text" value="' + escapeHtml(defaultNomor) + '"' + (nomorSementara ? ' data-sementara="' + escapeHtml(defaultNomor) + '"' : '') + '></label>' +
-        (nomorSementara
+        (manualAmbil ? '<p class="hint" style="margin:0 0 8px">' + escapeHtml(t.shortLabel) + ' dibuat manual dan diambil siswa di TL: tanpa nomor surat dan tanpa PDF unduhan. Teks di bawah hanya tanda terima permohonan.</p>' : '') +
+        (manualAmbil ? '' : '<label class="field"><span class="field-label">Nomor Surat</span><input class="field-input" id="nomorSuratInput" type="text" value="' + escapeHtml(defaultNomor) + '"' + (nomorSementara ? ' data-sementara="' + escapeHtml(defaultNomor) + '"' : '') + '></label>') +
+        (manualAmbil ? '' : nomorSementara
           ? '<p class="hint" style="margin:-4px 0 8px">Nomor sementara. Nomor resmi baru keluar saat surat diterbitkan (Terbitkan PDF / Setujui). Membuka, Generate Teks, Simpan, Cetak, atau Word tidak mengeluarkan nomor tanpa terbit.</p>'
           : ((req.status !== 'selesai' && !(S.pdfInfo && S.pdfInfo[req.id]))
             ? '<p class="hint" style="margin:-4px 0 4px">Nomor ini sudah tercatat untuk surat ini.</p><button type="button" class="btn-text" id="lepasNomorBtn" style="width:auto;padding:0;margin:0 0 8px">Lepas nomor ini</button>'
@@ -2923,13 +2926,13 @@
         '<button class="btn-primary" id="copyLetterBtn">Salin Teks Surat</button>' +
         '<button class="btn-primary" id="printLetterBtn" style="margin-top:8px">Cetak Surat (Kop + TTD + Cap)</button>' +
         '<button class="btn-outline" id="wordLetterBtn" style="margin-top:8px">Unduh Word (untuk kertas kop, tanpa TTD/cap)</button>' +
-        '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #E5DECB">' +
+        (manualAmbil ? '' : '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #E5DECB">' +
           '<p class="field-label" style="margin:0 0 4px">Softcopy untuk siswa</p>' +
           pdfInfoHtml(req) +
           '<button class="btn-primary" id="terbitPdfBtn">' + ((S.pdfInfo && S.pdfInfo[req.id]) ? 'Terbitkan ulang PDF' : 'Terbitkan PDF untuk siswa') + '</button>' +
           '<p class="hint" style="margin:6px 0 0">PDF dibuat dari teks di atas (kop + TTD + cap browser ini), tersimpan otomatis di komputer ini, bisa diunduh siswa di Cek Status, dan status menjadi Selesai.</p>' +
           ((S.pdfInfo && S.pdfInfo[req.id]) ? '<button type="button" class="btn-text" id="hapusPdfBtn" style="color:var(--color-red)">Hapus PDF dari server</button>' : '') +
-        '</div>' +
+        '</div>') +
         cetakAssetCardHtml() +
       '</div>';
     }
@@ -3555,15 +3558,15 @@
     if (generateLetterBtn) generateLetterBtn.addEventListener('click', async function () {
       var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
       var inp = document.getElementById('nomorSuratInput');
-      var nomor = inp.value.trim();
-      var sementara = inp.getAttribute('data-sementara');
+      var nomor = inp ? inp.value.trim() : '';            // tanpa kolom nomor (mis. Transkrip): teks tanpa nomor
+      var sementara = inp ? inp.getAttribute('data-sementara') : null;
       var tanggal = document.getElementById('tanggalSuratInput').value;
       var text = generateLetterText(req, nomor, tanggal);
       document.getElementById('generatedTextArea').value = text;
       req.tanggalSurat = tanggal;
       req.generatedText = text;
       // Generate = draf. Nomor hanya disimpan kalau surat memang sudah memegang nomor, atau Bapak mengetik nomor manual.
-      var simpanNomor = !!req.nomorSurat || (sementara !== null && nomor !== sementara);
+      var simpanNomor = !!inp && (!!req.nomorSurat || (sementara !== null && nomor !== sementara));
       if (simpanNomor) req.nomorSurat = nomor;
       await updateRequest(req);
       if (simpanNomor) {
@@ -3992,7 +3995,7 @@
       }
       lastWasGap = false;
       var nextLn = lines[i + 1] || '';
-      if (/^[A-Z][A-Z0-9 \-–\/&().,]{5,}$/.test(ln.trim()) && /^No\./.test(nextLn.trim())) {
+      if (/^[A-Z][A-Z0-9 \-–\/&().,]{5,}$/.test(ln.trim()) && (/^No\./.test(nextLn.trim()) || !/cs-(line|kv|title|nomor)/.test(out))) {
         if (inKv) { out += '</div>'; inKv = false; }
         out += '<div class="cs-title">' + escapeHtml(ln.trim()) + '</div>';
         continue;
@@ -4192,8 +4195,9 @@
       var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
       wordBtn.disabled = true;
       try {
-        var fin = await pastikanTerbit(salinanDariDetail(req));
-        if (fin) await unduhWordSurat(fin, fin.generatedText);
+        var manual = LETTER_TYPES[req.type] && LETTER_TYPES[req.type].manualAmbil;
+        var fin = manual ? salinanDariDetail(req) : await pastikanTerbit(salinanDariDetail(req));
+        if (fin) await unduhWordSurat(fin, manual ? text : fin.generatedText);
       } catch (e) { alert('Gagal membuat Word: ' + (e && e.message || e)); }
       render();
     });
@@ -4232,6 +4236,7 @@
       var text = area ? area.value.trim() : '';
       if (!text) { alert('Teks surat masih kosong. Klik "Generate Teks Surat" dulu.'); return; }
       var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
+      if (LETTER_TYPES[req.type] && LETTER_TYPES[req.type].manualAmbil) { showCetakSurat(text, judulFileSurat(req)); return; }
       showCetakSurat(text, judulFileSurat(salinanDariDetail(req)), async function () {
         var fin = await pastikanTerbit(salinanDariDetail(S.requests.find(function (r) { return r.id === S.adminSelectedId; })));
         return fin ? { text: fin.generatedText, judul: judulFileSurat(fin) } : null;
@@ -4781,7 +4786,7 @@
       if (!tr) { inKv = false; if (!lastGap) { blocks.push({ t: 'gap' }); lastGap = true; } continue; }
       lastGap = false;
       var next = (lines[i + 1] || '').trim();
-      if (/^[A-Z][A-Z0-9 \-–\/&().,]{5,}$/.test(tr) && /^No\./.test(next)) { inKv = false; blocks.push({ t: 'title', s: tr }); continue; }
+      if (/^[A-Z][A-Z0-9 \-–\/&().,]{5,}$/.test(tr) && (/^No\./.test(next) || !blocks.some(function (b) { return b.t !== 'gap' && b.t !== 'tgl'; }))) { inKv = false; blocks.push({ t: 'title', s: tr }); continue; }
       if (/^No\.\s*:/.test(tr)) {
         inKv = false; blocks.push({ t: 'nomor', s: tr });
         if (!tglDone) { blocks.push({ t: 'gap' }, { t: 'tgl', s: tgl }, { t: 'gap' }); tglDone = true; }
