@@ -522,6 +522,14 @@
     return { en: en, known: parts.every(function (p) { return p.known; }), parts: parts };
   }
   function negaraEn(input) { return negaraInfo(input).en; }
+  // Tujuan surat visa. Taiwan tidak punya kedutaan di Indonesia: urusan visa lewat Taipei Economic and Trade Office (TETO).
+  var KANTOR_VISA_KHUSUS = { 'Taiwan': 'Taipei Economic and Trade Office' };
+  var NEGARA_TANPA_KEDUTAAN = ['Hong Kong', 'Macau'];
+  function kantorVisa(input) {
+    var info = negaraInfo(input);
+    if (info.parts.length === 1 && KANTOR_VISA_KHUSUS[info.parts[0].en]) return KANTOR_VISA_KHUSUS[info.parts[0].en];
+    return 'Embassy of ' + info.en;
+  }
   // Peringatan untuk admin kalau isian negara di Surat Visa perlu dicek manual.
   function negaraCekHtml(req) {
     if (!req || req.type !== 'VISA') return '';
@@ -529,7 +537,9 @@
     var info = negaraInfo(isi);
     var sama = info.en === String(isi).trim();
     if (info.known && info.parts.length === 1) {
-      return sama ? '' : '<p class="hint" style="margin:4px 0 0">Negara di surat: <strong>' + escapeHtml(info.en) + '</strong> (isian siswa: ' + escapeHtml(isi) + ')</p>';
+      if (KANTOR_VISA_KHUSUS[info.en]) return '<p class="hint" style="margin:4px 0 0">Tujuan surat: <strong>' + escapeHtml(KANTOR_VISA_KHUSUS[info.en]) + '</strong> (' + escapeHtml(info.en) + ' tidak punya kedutaan di Indonesia; isian siswa: ' + escapeHtml(isi) + ')</p>';
+      if (NEGARA_TANPA_KEDUTAAN.indexOf(info.en) >= 0) return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Cek tujuan surat: ' + escapeHtml(info.en) + ' tidak punya kedutaan sendiri, "Embassy of ' + escapeHtml(info.en) + '" perlu diganti manual (isian siswa: ' + escapeHtml(isi) + ')</p>';
+      return sama ? '' :'<p class="hint" style="margin:4px 0 0">Negara di surat: <strong>' + escapeHtml(info.en) + '</strong> (isian siswa: ' + escapeHtml(isi) + ')</p>';
     }
     var alasan = info.parts.length > 1 ? 'siswa mengisi lebih dari satu negara' : 'nama negara tidak dikenali';
     return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Cek negara tujuan: ' + alasan + ' (isian siswa: ' + escapeHtml(isi) + ' &rarr; di surat: ' + escapeHtml(info.en) + ')</p>';
@@ -943,7 +953,7 @@
         return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
           'LETTER OF STATEMENT\n' +
           'No. : ' + nomor + '\n\n' +
-          'Embassy of ' + negaraEn(d.negaraTujuan) + '\n' +
+          kantorVisa(d.negaraTujuan) + '\n' +
           'Jakarta – Indonesia\n\n' +
           'To Whom It May Concern:\n\n' +
           'Dear Sir/Madam,\n\n' +
@@ -1520,6 +1530,14 @@
       if (res.error || !res.data) return { paymentInfo: DEFAULT_PAYMENT_INFO, nextSuratNumber: 1 };
       return { paymentInfo: res.data.payment_info, nextSuratNumber: res.data.next_surat_number };
     } catch (e) { return { paymentInfo: DEFAULT_PAYMENT_INFO, nextSuratNumber: 1 }; }
+  }
+  // Seperti getSettings, tapi mengembalikan null kalau gagal (jangan pernah jatuh ke nomor 1 saat memberi nomor surat).
+  async function getSettingsStrict() {
+    try {
+      var res = await sb.from('settings').select('*').eq('id', 1).single();
+      if (res.error || !res.data || !res.data.next_surat_number) return null;
+      return { paymentInfo: res.data.payment_info, nextSuratNumber: res.data.next_surat_number };
+    } catch (e) { return null; }
   }
   async function saveSettings(obj) {
     try {
@@ -2853,6 +2871,7 @@
       actionCardHtml = '<div class="card">' +
         '<p class="field-label">Generate Teks Surat</p>' +
         '<label class="field"><span class="field-label">Nomor Surat</span><input class="field-input" id="nomorSuratInput" type="text" value="' + escapeHtml(defaultNomor) + '"></label>' +
+        '<button type="button" class="btn-text" id="nomorBaruBtn" style="width:auto;padding:0;margin:-4px 0 8px;">Pakai nomor berikutnya</button>' +
         '<label class="field"><span class="field-label">Tanggal Surat</span><input class="field-input" id="tanggalSuratInput" type="date" value="' + escapeHtml(defaultTgl) + '"></label>' +
         '<button class="btn-outline" id="generateLetterBtn" style="margin-top:8px">Generate Teks Surat</button>' +
         '<label class="field" style="margin-top:12px"><span class="field-label">Hasil (bisa diedit sebelum disalin)</span>' +
@@ -3477,18 +3496,32 @@
       var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
       var nomor = document.getElementById('nomorSuratInput').value.trim();
       var tanggal = document.getElementById('tanggalSuratInput').value;
-      var isFirstTime = !req.generatedText;
       var text = generateLetterText(req, nomor, tanggal);
       document.getElementById('generatedTextArea').value = text;
       req.nomorSurat = nomor;
       req.tanggalSurat = tanggal;
       req.generatedText = text;
       await updateRequest(req);
-      if (isFirstTime) {
-        var currentNext = (S.settings && S.settings.nextSuratNumber) || 1;
-        S.settings = Object.assign({}, S.settings || {}, { nextSuratNumber: currentNext + 1 });
+      // Penghitung nomor maju kalau nomor yang dipakai >= "nomor berikutnya" (baca nilai terbaru dari server
+      // dulu, supaya perubahan di Pengaturan/perangkat lain ikut terbaca). Generate ulang dengan nomor lama
+      // tidak memajukan penghitung.
+      var fresh = await getSettingsStrict();
+      var currentNext = fresh ? (fresh.nextSuratNumber || 1) : ((S.settings && S.settings.nextSuratNumber) || 1);
+      var dipakai = parseInt(nomor, 10);
+      if (dipakai >= currentNext) {
+        S.settings = Object.assign({}, S.settings || {}, fresh || {}, { nextSuratNumber: dipakai + 1 });
         await saveSettings(S.settings);
+      } else if (fresh) {
+        S.settings = Object.assign({}, S.settings || {}, fresh);
       }
+    });
+    var nomorBaruBtn = document.getElementById('nomorBaruBtn');
+    if (nomorBaruBtn) nomorBaruBtn.addEventListener('click', async function () {
+      var fresh = await getSettingsStrict();
+      if (!fresh) { alert('Gagal membaca nomor berikutnya dari server. Coba lagi.'); return; }
+      S.settings = Object.assign({}, S.settings || {}, fresh);
+      var tgl = document.getElementById('tanggalSuratInput').value || todayISO();
+      document.getElementById('nomorSuratInput').value = suggestedNomor(S.settings, tgl);
     });
     var copyLetterBtn = document.getElementById('copyLetterBtn');
     if (copyLetterBtn) copyLetterBtn.addEventListener('click', async function () {
@@ -4209,8 +4242,10 @@
   }
 
   async function approveRequests(ids) {
-    var fresh = await getSettings();
-    var next = fresh.nextSuratNumber || 1, tgl = todayISO(), email = await currentEmail(), nowIso = new Date().toISOString();
+    var fresh = await getSettingsStrict();
+    if (!fresh) return { ok: 0, gagal: ['Gagal membaca nomor surat berikutnya dari server. Tidak ada surat yang disetujui, coba lagi.'], settingsSaved: true };
+    S.settings = Object.assign({}, S.settings || {}, fresh);
+    var next = fresh.nextSuratNumber, tgl = todayISO(), email = await currentEmail(), nowIso = new Date().toISOString();
     var list = ids.map(function (id) { return S.requests.find(function (r) { return r.id === id; }); })
       .filter(function (r) { return r && r.status === 'lunas' && !(r.data || {}).disetujuiAt; }).sort(byOldest);
     var ok = 0, gagal = [];
