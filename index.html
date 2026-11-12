@@ -2029,10 +2029,13 @@
       '<button class="btn-outline' + (S.adminTab === 'rekomendasi' ? ' active' : '') + '" data-admintab="rekomendasi" style="flex:1 1 45%">Surat Rekomendasi</button>' +
       '<button class="btn-outline' + (S.adminTab === 'klinik' ? ' active' : '') + '" data-admintab="klinik" style="flex:1 1 45%">Izin Klinik</button>' +
       '<button class="btn-outline' + (S.adminTab === 'prapen' ? ' active' : '') + '" data-admintab="prapen" style="flex:1 1 45%">Pra-Penelitian</button>' +
+      '<button class="btn-outline' + (S.adminTab === 'bukunomor' ? ' active' : '') + '" data-admintab="bukunomor" style="flex:1 1 45%">Buku Nomor Surat</button>' +
     '</div>';
 
     var bodyHtml;
-    if (S.adminTab === 'persetujuan') {
+    if (S.adminTab === 'bukunomor') {
+      bodyHtml = renderBukuNomorBody();
+    } else if (S.adminTab === 'persetujuan') {
       bodyHtml = renderPersetujuanBody();
     } else if (S.adminTab === 'rekomendasi') {
       bodyHtml = renderRekomendasiBody();
@@ -2116,6 +2119,7 @@
       '<textarea class="field-input" id="paymentInfoInput" rows="3">' + escapeHtml((S.settings && S.settings.paymentInfo) || DEFAULT_PAYMENT_INFO) + '</textarea></label>' +
       '<label class="field"><span class="field-label">Nomor Surat Berikutnya</span>' +
       '<input class="field-input" id="nextSuratInput" type="number" min="1" value="' + ((S.settings && S.settings.nextSuratNumber) || 1) + '"></label>' +
+      '<p class="hint" style="margin-top:0">Memakai nomor untuk surat di luar web? Catat di tab <strong>Buku Nomor Surat</strong>: penghitung ini maju otomatis dan nomornya tercatat.</p>' +
       '<button class="btn-primary" id="saveSettingsBtn">Simpan</button></div>';
   }
 
@@ -3336,9 +3340,14 @@
         S.adminTab = btn.getAttribute('data-admintab');
         render();
         if (S.adminTab === 'prapen') { await loadPrapenData(); if (S.adminTab === 'prapen' && S.view === 'adminDashboard') render(); }
+        if (S.adminTab === 'bukunomor') { await loadBukuNomor(); if (S.adminTab === 'bukunomor' && S.view === 'adminDashboard') render(); }
       });
     });
 
+    if (S.adminTab === 'bukunomor') {
+      attachBukuNomorBody();
+      return;
+    }
     if (S.adminTab === 'prapen') {
       var prapenExport = document.getElementById('exportPrapenBtn');
       if (prapenExport) prapenExport.addEventListener('click', function () { downloadCsv('pra-penelitian-' + todayISO() + '.csv', buildPrapenCsv((S.prapenData || []).filter(function (r) { return r.versi === PRAPEN_VERSI; }))); });
@@ -4052,6 +4061,250 @@
     if (area && area.value.trim()) copy.generatedText = area.value.trim();
     return copy;
   }
+  // ================= BUKU NOMOR SURAT =================
+  // Satu daftar semua nomor surat: yang terbit lewat web (tabel requests) + yang dipakai di luar web
+  // (tabel nomor_luar, dicatat manual oleh admin). Mencatat nomor luar web ikut memajukan penghitung
+  // "Nomor Surat Berikutnya" supaya web tidak memakai nomor yang sama.
+  var BATAS_RENTANG_NOMOR = 200;
+  async function getNomorLuar() {
+    try {
+      var res = await sb.from('nomor_luar').select('*').order('nomor', { ascending: false });
+      if (res.error) return { error: res.error.message };
+      return { rows: res.data || [] };
+    } catch (e) { return { error: (e && e.message) ? e.message : String(e) }; }
+  }
+  async function loadBukuNomor() {
+    var r = await getNomorLuar();
+    S.nomorLuar = r.rows || [];
+    S.nomorLuarError = r.error || null;
+    var st = await getSettingsStrict();
+    if (st) S.settings = Object.assign({}, S.settings || {}, st);
+  }
+  // { nomor: 'perihal' } dari server; kosong kalau tabel belum ada / gagal dibaca (penomoran web tetap jalan).
+  // Nomor dihitung per tahun surat (nomor bisa mulai lagi dari 1 di tahun baru).
+  async function nomorLuarPeta(tahun) {
+    var r = await getNomorLuar(), peta = {};
+    (r.rows || []).forEach(function (x) { if (Number(x.tahun) === Number(tahun)) peta[x.nomor] = x.perihal || 'luar web'; });
+    return peta;
+  }
+  function tahunNomorWeb(r) {
+    var m = String(r.nomorSurat || '').match(/(\d{4})\s*$/);
+    return Number((r.tanggalSurat && yearOf(r.tanggalSurat)) || (m && m[1]) || String(r.submittedAt || '').slice(0, 4)) || null;
+  }
+  // { nomor: true } untuk nomor yang sudah dipegang surat web lain di tahun itu
+  function nomorWebPeta(tahun, kecualiId) {
+    var peta = {};
+    S.requests.forEach(function (r) {
+      var n = nomorAngka(r.nomorSurat);
+      if (n !== null && r.id !== kecualiId && tahunNomorWeb(r) === Number(tahun)) peta[n] = true;
+    });
+    return peta;
+  }
+  function nomorAngka(nomorSurat) {
+    var m = String(nomorSurat || '').match(/^\s*(\d+)/);
+    return m ? parseInt(m[1], 10) : null;
+  }
+  function tglPendek(iso) {
+    var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
+  }
+  // Semua nomor yang tercatat, terbesar dulu. ganda = nomor yang sama muncul lebih dari sekali.
+  function bukuNomorRows() {
+    var rows = [];
+    S.requests.forEach(function (r) {
+      var n = nomorAngka(r.nomorSurat);
+      if (n === null) return;
+      var t = LETTER_TYPES[r.type];
+      rows.push({ nomor: n, tahun: tahunNomorWeb(r), lengkap: r.nomorSurat, tanggal: r.tanggalSurat || '', perihal: t ? t.label : r.type,
+        untuk: (r.data || {}).namaLengkap || '', sumber: 'Web', kode: r.id, catatan: '', oleh: (r.data || {}).disetujuiOleh || '' });
+    });
+    (S.nomorLuar || []).forEach(function (x) {
+      rows.push({ nomor: x.nomor, tahun: Number(x.tahun), lengkap: x.nomor_lengkap || String(x.nomor), tanggal: x.tanggal || '', perihal: x.perihal || '',
+        untuk: x.untuk || '', sumber: 'Luar web', kode: '', catatan: x.catatan || '', oleh: x.dicatat_oleh || '' });
+    });
+    var hitung = {};
+    rows.forEach(function (r) { var k = r.tahun + '|' + r.nomor; hitung[k] = (hitung[k] || 0) + 1; });
+    rows.forEach(function (r) { r.ganda = hitung[r.tahun + '|' + r.nomor] > 1; });
+    return rows.sort(function (a, b) { return b.tahun - a.tahun || b.nomor - a.nomor || (a.sumber < b.sumber ? -1 : 1); });
+  }
+  // Nomor yang belum tercatat di mana pun (dalam satu tahun), dari nomor terkecil yang tercatat sampai batas - 1.
+  function bukuNomorKosong(rows, next) {
+    if (!rows.length) return [];
+    var ada = {}, min = Infinity;
+    rows.forEach(function (r) { ada[r.nomor] = true; if (r.nomor < min) min = r.nomor; });
+    var rentang = [], awal = null;
+    for (var n = min; n < next; n++) {
+      if (!ada[n]) { if (awal === null) awal = n; }
+      else if (awal !== null) { rentang.push([awal, n - 1]); awal = null; }
+    }
+    if (awal !== null) rentang.push([awal, next - 1]);
+    return rentang;
+  }
+  function teksRentang(rentang) {
+    return rentang.map(function (r) { return r[0] === r[1] ? String(r[0]) : r[0] + '–' + r[1]; }).join(', ');
+  }
+  function buildBukuNomorCsv(rows) {
+    var sel = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+    var lines = [['Tahun', 'Nomor', 'Nomor lengkap', 'Tanggal surat', 'Perihal / jenis surat', 'Untuk', 'Sumber', 'Kode pengajuan', 'Catatan', 'Dicatat / disetujui oleh', 'Nomor ganda'].join(',')];
+    rows.forEach(function (r) {
+      lines.push([r.tahun, r.nomor, sel(r.lengkap), sel(r.tanggal), sel(r.perihal), sel(r.untuk), sel(r.sumber), sel(r.kode), sel(r.catatan), sel(r.oleh), r.ganda ? 'YA' : ''].join(','));
+    });
+    return lines.join('\r\n');
+  }
+  var SQL_NOMOR_LUAR_HINT = 'Buku nomor belum aktif di database. Jalankan bagian "BUKU NOMOR SURAT" dari schema.sql di Supabase (SQL Editor), pastikan akun ini bertanda surat_admin, lalu muat ulang halaman.';
+
+  function renderBukuNomorBody() {
+    if (S.nomorLuar == null && !S.nomorLuarError) return '<p class="hint">Memuat buku nomor&hellip;</p>';
+    var next = (S.settings && S.settings.nextSuratNumber) || 1;
+    var semua = bukuNomorRows();
+    var tahunIni = Number(yearOf(todayISO()));
+    var daftarTahun = semua.map(function (r) { return r.tahun; }).concat([tahunIni])
+      .filter(function (t, i, a) { return t && a.indexOf(t) === i; }).sort(function (a, b) { return b - a; });
+    var tahun = Number(S.bukuNomorTahun) || tahunIni;
+    var rows = semua.filter(function (r) { return r.tahun === tahun; });
+    // tahun berjalan: sampai nomor sebelum penghitung; tahun lain: sampai nomor terbesar yang tercatat
+    var batas = tahun === tahunIni ? next : rows.reduce(function (m, r) { return Math.max(m, r.nomor + 1); }, 0);
+    var kosong = bukuNomorKosong(rows, batas);
+    var nKosong = kosong.reduce(function (n, r) { return n + r[1] - r[0] + 1; }, 0);
+    var ganda = rows.filter(function (r) { return r.ganda; }).map(function (r) { return r.nomor; })
+      .filter(function (n, i, a) { return a.indexOf(n) === i; });
+    var q = (S.bukuNomorCari || '').trim().toLowerCase();
+    var tampil = rows.filter(function (r) {
+      if (S.bukuNomorSumber && r.sumber !== S.bukuNomorSumber) return false;
+      return !q || (r.lengkap + ' ' + r.perihal + ' ' + r.untuk + ' ' + r.kode + ' ' + r.catatan).toLowerCase().indexOf(q) !== -1;
+    });
+    var BATAS = 300;
+    var body = tampil.slice(0, BATAS).map(function (r) {
+      return '<tr' + (r.ganda ? ' style="background:rgba(220,38,38,.08)"' : '') + '>' +
+        '<td style="white-space:nowrap"><strong>' + r.nomor + '</strong>' + (r.ganda ? ' <span style="color:var(--color-red)">ganda</span>' : '') + '</td>' +
+        '<td style="white-space:nowrap">' + escapeHtml(tglPendek(r.tanggal)) + '</td>' +
+        '<td>' + escapeHtml(r.perihal) + (r.catatan ? '<br><span class="hint" style="margin:0">' + escapeHtml(r.catatan) + '</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(r.untuk) + '</td>' +
+        '<td style="white-space:nowrap">' + (r.sumber === 'Web'
+          ? '<button type="button" class="btn-text" data-detail="' + escapeHtml(r.kode) + '" style="width:auto;padding:0">Web &middot; ' + escapeHtml(r.kode) + '</button>'
+          : 'Luar web <button type="button" class="btn-text" data-hapusnomor="' + r.nomor + '" data-hapustahun="' + r.tahun + '" style="width:auto;padding:0;color:var(--color-red)">hapus</button>') + '</td></tr>';
+    }).join('');
+    return '<p class="hint">Satu daftar untuk semua nomor surat: yang terbit lewat web tercatat otomatis, yang dipakai <strong>di luar web</strong> dicatat di sini supaya web tidak memakai nomor yang sama dan setiap nomor bisa ditelusuri.</p>' +
+      (S.nomorLuarError ? '<p class="hint" style="color:var(--color-red)">&#9888; ' + escapeHtml(SQL_NOMOR_LUAR_HINT) + '<br>(' + escapeHtml(S.nomorLuarError) + ')</p>' : '') +
+      '<div class="card">' +
+        '<p class="field-label" style="margin-top:0">Catat nomor yang dipakai di luar web</p>' +
+        '<p class="hint" style="margin-top:0">Nomor surat berikutnya di web sekarang: <strong>' + next + '</strong>. Kalau nomor yang dicatat (bertanggal tahun ini) sampai/melewati angka itu, penghitung otomatis maju.</p>' +
+        '<div class="filter-row">' +
+          '<label class="field" style="flex:1"><span class="field-label">Dari nomor</span><input class="field-input" id="bnDari" type="number" min="1" value="' + escapeHtml(S.bnDari || '') + '"></label>' +
+          '<label class="field" style="flex:1"><span class="field-label">Sampai nomor (kosongkan kalau satu)</span><input class="field-input" id="bnSampai" type="number" min="1" value="' + escapeHtml(S.bnSampai || '') + '"></label>' +
+        '</div>' +
+        '<label class="field"><span class="field-label">Tanggal surat</span><input class="field-input" id="bnTanggal" type="date" value="' + escapeHtml(S.bnTanggal || todayISO()) + '"></label>' +
+        '<label class="field"><span class="field-label">Perihal / jenis surat</span><input class="field-input" id="bnPerihal" type="text" maxlength="200" placeholder="mis. Surat tugas guru, Surat undangan orang tua" value="' + escapeHtml(S.bnPerihal || '') + '"></label>' +
+        '<label class="field"><span class="field-label">Untuk / kepada (opsional)</span><input class="field-input" id="bnUntuk" type="text" maxlength="200" value="' + escapeHtml(S.bnUntuk || '') + '"></label>' +
+        '<label class="field"><span class="field-label">Catatan (opsional)</span><input class="field-input" id="bnCatatan" type="text" maxlength="300" value="' + escapeHtml(S.bnCatatan || '') + '"></label>' +
+        '<button type="button" class="btn-primary" id="bnSimpanBtn"' + (S.nomorLuarError ? ' disabled' : '') + '>Catat nomor</button>' +
+      '</div>' +
+      (ganda.length ? '<p class="hint" style="color:var(--color-red)">&#9888; Nomor tercatat lebih dari sekali: ' + escapeHtml(ganda.join(', ')) + '. Periksa baris bertanda "ganda".</p>' : '') +
+      (nKosong ? '<p class="hint">&#9888; ' + nKosong + ' nomor belum tercatat di mana pun (tahun ' + tahun + ', antara nomor terkecil yang tercatat dan nomor terakhir): <strong>' + escapeHtml(teksRentang(kosong.slice(0, 40))) + (kosong.length > 40 ? ', &hellip;' : '') + '</strong>. Kalau dipakai di luar web, catat di atas; kalau memang dilewati, biarkan.</p>' : (rows.length ? '<p class="hint">Tidak ada nomor yang terlewat.</p>' : '')) +
+      '<div class="filter-row">' +
+        '<input class="field-input" id="bnCari" type="search" placeholder="Cari nomor, perihal, nama, kode&hellip;" value="' + escapeHtml(S.bukuNomorCari || '') + '" style="flex:2">' +
+        '<select class="field-input" id="bnTahun" style="flex:1">' + daftarTahun.map(function (t) { return '<option value="' + t + '"' + (t === tahun ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' +
+        '<select class="field-input" id="bnSumber" style="flex:1">' +
+          '<option value="">Semua sumber</option>' +
+          '<option value="Web"' + (S.bukuNomorSumber === 'Web' ? ' selected' : '') + '>Web</option>' +
+          '<option value="Luar web"' + (S.bukuNomorSumber === 'Luar web' ? ' selected' : '') + '>Luar web</option>' +
+        '</select>' +
+      '</div>' +
+      '<p class="hint" style="margin-bottom:4px">' + tampil.length + ' nomor' + (tampil.length > BATAS ? ' (ditampilkan ' + BATAS + ' terbaru; unduh Excel untuk semuanya)' : '') +
+        ' &middot; web ' + rows.filter(function (r) { return r.sumber === 'Web'; }).length + ' &middot; luar web ' + rows.filter(function (r) { return r.sumber !== 'Web'; }).length + '</p>' +
+      '<div class="fin-tablewrap"><table class="fin-table"><thead><tr><th>No.</th><th>Tanggal</th><th>Perihal</th><th>Untuk</th><th>Sumber</th></tr></thead><tbody>' +
+        (body || '<tr><td colspan="5">Belum ada nomor yang tercatat.</td></tr>') + '</tbody></table></div>' +
+      '<button type="button" class="btn-outline" id="bnUnduhBtn" style="margin-top:8px">Unduh Buku Nomor (Excel)</button>';
+  }
+
+  // Simpan catatan nomor luar web. Kembalikan { ok, pesan }.
+  async function catatNomorLuar(f) {
+    var dari = parseInt(f.dari, 10), sampai = f.sampai === '' || f.sampai == null ? dari : parseInt(f.sampai, 10);
+    if (!(dari >= 1) || !(sampai >= 1)) return { ok: false, pesan: 'Isi nomor dengan angka.' };
+    if (sampai < dari) return { ok: false, pesan: '"Sampai nomor" tidak boleh lebih kecil dari "Dari nomor".' };
+    if (sampai - dari + 1 > BATAS_RENTANG_NOMOR) return { ok: false, pesan: 'Rentang terlalu besar (maksimal ' + BATAS_RENTANG_NOMOR + ' nomor sekali catat). Periksa lagi angkanya.' };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(f.tanggal || '')) return { ok: false, pesan: 'Isi tanggal surat.' };
+    var perihal = String(f.perihal || '').trim();
+    if (!perihal) return { ok: false, pesan: 'Isi perihal / jenis surat, supaya nomor ini bisa ditelusuri nanti.' };
+    // data terbaru dari server sebelum memeriksa bentrok
+    var fresh = await getSettingsStrict();
+    if (!fresh) return { ok: false, pesan: 'Gagal membaca nomor surat berikutnya dari server. Coba lagi.' };
+    var luar = await getNomorLuar();
+    if (luar.error) return { ok: false, pesan: SQL_NOMOR_LUAR_HINT + ' (' + luar.error + ')' };
+    S.nomorLuar = luar.rows; S.nomorLuarError = null;
+    S.requests = await getRequestsAdmin();
+    var tahun = Number(yearOf(f.tanggal));
+    var bentrok = bukuNomorRows().filter(function (r) { return r.tahun === tahun && r.nomor >= dari && r.nomor <= sampai; });
+    if (bentrok.length) {
+      return { ok: false, pesan: 'Tidak disimpan. Nomor berikut sudah tercatat:\n' + bentrok.slice(0, 12).map(function (r) {
+        return '• ' + r.nomor + ' — ' + r.sumber + (r.kode ? ' ' + r.kode : '') + ': ' + r.perihal + (r.untuk ? ' (' + r.untuk + ')' : '');
+      }).join('\n') + (bentrok.length > 12 ? '\n… dan ' + (bentrok.length - 12) + ' lainnya' : '') };
+    }
+    var email = await currentEmail(), baris = [];
+    for (var n = dari; n <= sampai; n++) {
+      baris.push({ tahun: tahun, nomor: n, nomor_lengkap: suggestedNomor({ nextSuratNumber: n }, f.tanggal), tanggal: f.tanggal, perihal: perihal,
+        untuk: String(f.untuk || '').trim() || null, catatan: String(f.catatan || '').trim() || null, dicatat_oleh: email });
+    }
+    try {
+      var res = await sb.from('nomor_luar').insert(baris);
+      if (res.error) return { ok: false, pesan: 'Gagal menyimpan: ' + res.error.message };
+    } catch (e) { return { ok: false, pesan: 'Gagal menyimpan: ' + ((e && e.message) ? e.message : String(e)) }; }
+    var pesan = (sampai === dari ? 'Nomor ' + dari : 'Nomor ' + dari + '–' + sampai + ' (' + baris.length + ' nomor)') + ' tercatat.';
+    if (tahun === Number(yearOf(todayISO())) && sampai >= fresh.nextSuratNumber) {
+      S.settings = Object.assign({}, S.settings || {}, fresh, { nextSuratNumber: sampai + 1 });
+      if (await saveSettings(S.settings)) pesan += '\nNomor surat berikutnya di web sekarang ' + (sampai + 1) + '.';
+      else pesan += '\n\nPERINGATAN: penghitung nomor gagal disimpan. Ubah "Nomor Surat Berikutnya" menjadi ' + (sampai + 1) + ' di Pengaturan.';
+    } else {
+      S.settings = Object.assign({}, S.settings || {}, fresh);
+    }
+    S.bukuNomorTahun = tahun;
+    await loadBukuNomor();
+    return { ok: true, pesan: pesan };
+  }
+
+  function attachBukuNomorBody() {
+    var ids = { bnDari: 'bnDari', bnSampai: 'bnSampai', bnTanggal: 'bnTanggal', bnPerihal: 'bnPerihal', bnUntuk: 'bnUntuk', bnCatatan: 'bnCatatan' };
+    var simpanIsian = function () { Object.keys(ids).forEach(function (k) { var el = document.getElementById(k); if (el) S[ids[k]] = el.value; }); };
+    var simpanBtn = document.getElementById('bnSimpanBtn');
+    if (simpanBtn) simpanBtn.addEventListener('click', async function () {
+      simpanIsian();
+      var dari = S.bnDari, sampai = S.bnSampai;
+      if (sampai !== '' && sampai != null && parseInt(sampai, 10) > parseInt(dari, 10) &&
+          !confirm('Catat nomor ' + dari + ' sampai ' + sampai + ' (' + (parseInt(sampai, 10) - parseInt(dari, 10) + 1) + ' nomor) dengan perihal yang sama?')) return;
+      simpanBtn.disabled = true; simpanBtn.textContent = 'Menyimpan…';
+      var res = await catatNomorLuar({ dari: dari, sampai: sampai, tanggal: S.bnTanggal, perihal: S.bnPerihal, untuk: S.bnUntuk, catatan: S.bnCatatan });
+      if (res.ok) { S.bnDari = ''; S.bnSampai = ''; S.bnPerihal = ''; S.bnUntuk = ''; S.bnCatatan = ''; }
+      alert(res.pesan);
+      if (S.adminTab === 'bukunomor' && S.view === 'adminDashboard') render();
+    });
+    var cari = document.getElementById('bnCari');
+    if (cari) cari.addEventListener('change', function () { simpanIsian(); S.bukuNomorCari = cari.value; render(); });
+    var thn = document.getElementById('bnTahun');
+    if (thn) thn.addEventListener('change', function () { simpanIsian(); S.bukuNomorTahun = thn.value; render(); });
+    var sumber = document.getElementById('bnSumber');
+    if (sumber) sumber.addEventListener('change', function () { simpanIsian(); S.bukuNomorSumber = sumber.value; render(); });
+    var unduh = document.getElementById('bnUnduhBtn');
+    if (unduh) unduh.addEventListener('click', function () { var th = Number(S.bukuNomorTahun) || Number(yearOf(todayISO()));
+      downloadCsv('buku-nomor-surat-' + th + '-' + todayISO() + '.csv', buildBukuNomorCsv(bukuNomorRows().filter(function (r) { return r.tahun === th; }))); });
+    document.querySelectorAll('[data-detail]').forEach(function (btn) {
+      btn.addEventListener('click', function () { S.adminSelectedId = btn.getAttribute('data-detail'); go('adminDetail'); });
+    });
+    document.querySelectorAll('[data-hapusnomor]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var n = parseInt(btn.getAttribute('data-hapusnomor'), 10), th = parseInt(btn.getAttribute('data-hapustahun'), 10);
+        var x = (S.nomorLuar || []).find(function (r) { return r.nomor === n && Number(r.tahun) === th; });
+        if (!confirm('Hapus catatan nomor ' + n + (x ? ' (' + x.perihal + ')' : '') + ' dari buku nomor?\n\nPenghitung nomor web tidak dimundurkan.')) return;
+        simpanIsian();
+        try {
+          var res = await sb.from('nomor_luar').delete().eq('tahun', th).eq('nomor', n);
+          if (res.error) alert('Gagal menghapus: ' + res.error.message);
+        } catch (e) { alert('Gagal menghapus: ' + ((e && e.message) ? e.message : String(e))); }
+        await loadBukuNomor();
+        if (S.adminTab === 'bukunomor' && S.view === 'adminDashboard') render();
+      });
+    });
+  }
+
   // Nomor surat resmi dipakai di sini saja (saat dicetak / diunduh Word / diterbitkan PDF / disetujui).
   // Surat tanpa nomor mendapat nomor berikutnya dari server; baris "No. :" di teks ikut disesuaikan.
   async function kunciNomorSurat(req) {
@@ -4061,8 +4314,20 @@
     var fresh = await getSettingsStrict();
     if (!fresh) throw new Error('Gagal membaca nomor surat berikutnya dari server. Coba lagi.');
     var next = fresh.nextSuratNumber;
-    if (!copy.nomorSurat) { copy.nomorSurat = suggestedNomor(fresh, tgl); next = next + 1; }
-    else { var n = parseInt(copy.nomorSurat, 10); if (n >= next) next = n + 1; }
+    var thn = yearOf(tgl);
+    var luar = await nomorLuarPeta(thn); // nomor yang tercatat dipakai di luar web (Buku Nomor Surat)
+    var web = nomorWebPeta(thn, copy.id); // nomor yang sudah dipegang surat web lain
+    if (!copy.nomorSurat) {
+      while (luar[next] || web[next]) next++;
+      copy.nomorSurat = suggestedNomor({ nextSuratNumber: next }, tgl); next = next + 1;
+    } else {
+      var n = parseInt(copy.nomorSurat, 10);
+      var lama = S.requests.find(function (r) { return r.id === copy.id; });
+      if (luar[n] && !(lama && lama.nomorSurat === copy.nomorSurat)) {
+        throw new Error('Nomor ' + n + ' sudah tercatat dipakai di luar web (' + luar[n] + '). Ganti nomornya dulu, atau hapus catatannya di Buku Nomor Surat.');
+      }
+      if (n >= next) next = n + 1;
+    }
     var text = copy.generatedText || generateLetterText(copy, copy.nomorSurat, tgl);
     copy.generatedText = /^No\.\s*:/m.test(text) ? text.replace(/^No\.\s*:.*$/m, 'No. : ' + copy.nomorSurat) : text;
     var res = await updateRequest(copy);
@@ -4462,10 +4727,11 @@
     var list = ids.map(function (id) { return S.requests.find(function (r) { return r.id === id; }); })
       .filter(function (r) { return r && r.status === 'lunas' && !(r.data || {}).disetujuiAt; }).sort(byOldest);
     var ok = 0, gagal = [], okIds = [];
+    var luar = await nomorLuarPeta(yearOf(tgl)); // lewati nomor yang tercatat dipakai di luar web
     for (var i = 0; i < list.length; i++) {
       var req = list[i], copy = cloneReq(req), pakaiBaru = false;
       var nomor = req.nomorSurat;
-      if (!nomor) { nomor = suggestedNomor({ nextSuratNumber: next }, tgl); pakaiBaru = true; next++; }
+      if (!nomor) { var web = nomorWebPeta(yearOf(tgl), req.id); while (luar[next] || web[next]) next++; nomor = suggestedNomor({ nextSuratNumber: next }, tgl); pakaiBaru = true; next++; }
       copy.nomorSurat = nomor;
       copy.tanggalSurat = req.tanggalSurat || tgl;
       copy.generatedText = req.generatedText || generateLetterText(copy, nomor, copy.tanggalSurat);
