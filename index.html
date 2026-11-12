@@ -561,6 +561,70 @@
     return p.d + ' ' + MONTHS_ID[p.m] + ' ' + p.y;
   }
   function romanMonth(dateStr) { return ROMAN[parseDateParts(dateStr).m]; }
+
+  // Tempat, Tanggal Lahir: isian bebas siswa ("Tangerang, 12 Mei 2008", "Jakarta 12-05-2008", "May 12, 2008", dst.)
+  // dibaca lalu ditulis ulang seragam. lang 'en' -> "Tangerang, May 12, 2008"; 'id' -> "Tangerang, 12 Mei 2008".
+  var BULAN_ALIAS = (function () {
+    var m = {};
+    var daftar = [
+      ['januari', 'january', 'jan'], ['februari', 'february', 'feb', 'pebruari', 'peb'], ['maret', 'march', 'mar', 'mrt'],
+      ['april', 'apr'], ['mei', 'may'], ['juni', 'june', 'jun'], ['juli', 'july', 'jul'],
+      ['agustus', 'august', 'agu', 'agt', 'ags', 'agst', 'aug'], ['september', 'sep', 'sept'],
+      ['oktober', 'october', 'okt', 'oct'], ['november', 'nopember', 'nov', 'nop'], ['desember', 'december', 'des', 'dec']
+    ];
+    daftar.forEach(function (list, i) { list.forEach(function (a) { m[a] = i; }); });
+    return m;
+  })();
+  function ttlInfo(input, lang) {
+    var raw = String(input || '').replace(/\s+/g, ' ').trim();
+    var gagal = { teks: raw, known: false };
+    if (!raw) return gagal;
+    function tahun(y) { y = parseInt(y, 10); if (String(y).length <= 2) y += (y <= 30 ? 2000 : 1900); return y; }
+    var d, mo, y, idx = -1, len = 0, m;
+    // 1) 12 Mei 2008 / 12-Mei-2008 / 12th May 2008
+    m = /(\d{1,2})(?:st|nd|rd|th)?[\s\-\/.,]+([A-Za-z]{3,})\.?[\s\-\/.,]+(\d{4}|\d{2})\b/.exec(raw);
+    if (m && BULAN_ALIAS[m[2].toLowerCase()] !== undefined) { d = +m[1]; mo = BULAN_ALIAS[m[2].toLowerCase()]; y = tahun(m[3]); idx = m.index; len = m[0].length; }
+    // 2) May 12, 2008
+    if (idx < 0) {
+      m = /([A-Za-z]{3,})\.?\s+(\d{1,2})(?:st|nd|rd|th)?\s*,?\s+(\d{4})\b/.exec(raw);
+      if (m && BULAN_ALIAS[m[1].toLowerCase()] !== undefined) { mo = BULAN_ALIAS[m[1].toLowerCase()]; d = +m[2]; y = +m[3]; idx = m.index; len = m[0].length; }
+    }
+    // 3) 2008-05-12
+    if (idx < 0) {
+      m = /(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})\b/.exec(raw);
+      if (m) { y = +m[1]; mo = +m[2] - 1; d = +m[3]; idx = m.index; len = m[0].length; }
+    }
+    // 4) 12-05-2008 / 12/05/08 (urutan Indonesia: tanggal-bulan-tahun)
+    if (idx < 0) {
+      m = /(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4}|\d{2})\b/.exec(raw);
+      if (m) {
+        d = +m[1]; mo = +m[2] - 1; y = tahun(m[3]); idx = m.index; len = m[0].length;
+        if (mo > 11 && d <= 12) { var t = d; d = mo + 1; mo = t - 1; } // ternyata ditulis bulan/tanggal
+      }
+    }
+    if (idx < 0 || !(mo >= 0 && mo <= 11) || !(d >= 1 && d <= 31) || !(y >= 1900 && y <= 2100)) return gagal;
+    var sisa = raw.slice(idx + len).replace(/^[\s,.;]+|[\s,.;]+$/g, '');
+    if (sisa) return gagal; // ada teks lain setelah tanggal -> biarkan apa adanya, admin yang cek
+    var tempat = raw.slice(0, idx).replace(/[\s,.;:\/\-]+$/g, '').trim();
+    if (tempat && (tempat === tempat.toLowerCase() || tempat === tempat.toUpperCase())) {
+      tempat = tempat.toLowerCase().replace(/(^|[\s\-.])([a-z])/g, function (s, a, b) { return a + b.toUpperCase(); });
+    }
+    var tgl = lang === 'id' ? d + ' ' + MONTHS_ID[mo] + ' ' + y : MONTHS_EN[mo] + ' ' + d + ', ' + y;
+    return { teks: tempat ? tempat + ', ' + tgl : tgl, known: true, adaTempat: !!tempat };
+  }
+  function ttlFormat(input, lang) { return ttlInfo(input, lang).teks; }
+  var TTL_LANG = { KETERANGAN: 'en', VISA: 'en', ANAK_KARYAWAN: 'id' };
+  function ttlCekHtml(req) {
+    var lang = req && TTL_LANG[req.type];
+    if (!lang) return '';
+    var isi = String((req.data || {}).ttl || '').replace(/\s+/g, ' ').trim();
+    var info = ttlInfo(isi, lang);
+    if (!info.known) return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Cek tempat/tanggal lahir: format tidak dikenali, ditulis apa adanya (isian siswa: ' + escapeHtml(isi || '-') + ')</p>';
+    if (!info.adaTempat) return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Cek tempat lahir: siswa hanya mengisi tanggal (di surat: ' + escapeHtml(info.teks) + ')</p>';
+    return info.teks === isi ? '' : '<p class="hint" style="margin:4px 0 0">Tempat, tgl lahir di surat: <strong>' + escapeHtml(info.teks) + '</strong> (isian siswa: ' + escapeHtml(isi) + ')</p>';
+  }
+  // Gabungan catatan/peringatan isian siswa untuk admin (negara visa + tempat/tanggal lahir).
+  function isianCekHtml(req) { return negaraCekHtml(req) + ttlCekHtml(req); }
   function yearOf(dateStr) { return parseDateParts(dateStr).y; }
   function todayISO() {
     var d = new Date();
@@ -598,7 +662,7 @@
           'School Address    : Jl. MH Thamrin Boulevard 1100, Lippo Village\n\n' +
           'hereby declares and truly confirms that the student listed below :\n\n' +
           'Name                  : ' + d.namaLengkap + '\n' +
-          'Place, Date of Birth  : ' + d.ttl + '\n' +
+          'Place, Date of Birth  : ' + ttlFormat(d.ttl, 'en') + '\n' +
           'Student ID            : ' + d.studentId + '\n\n' +
           'is a Grade ' + gradeFromKelas(d.kelas) + ' (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year.\n\n' +
           'This letter is issued to be used as required.\n\n' +
@@ -739,7 +803,7 @@
           'Alamat SMA   : Jl. MH Thamrin Boulevard 1100, Karawaci\n\n' +
           'menyatakan dan menerangkan dengan sesungguhnya bahwa siswa yang tercantum di bawah ini :\n\n' +
           'Nama                     : ' + d.namaLengkap + '\n' +
-          'Tempat, Tanggal Lahir    : ' + d.ttl + '\n' +
+          'Tempat, Tanggal Lahir    : ' + ttlFormat(d.ttl, 'id') + '\n' +
           'Nama Ayah                : ' + d.namaAyah + '\n' +
           'Nama Ibu                 : ' + d.namaIbu + '\n' +
           'Alamat                   : ' + d.alamat + '\n\n' +
@@ -888,7 +952,7 @@
           'Position          : Academic Principal\n\n' +
           'This is to certify that,\n\n' +
           'Name                  : ' + d.namaLengkap + '\n' +
-          'Place, Date of Birth  : ' + d.ttl + '\n' +
+          'Place, Date of Birth  : ' + ttlFormat(d.ttl, 'en') + '\n' +
           'NIS                   : ' + d.studentId + '\n' +
           'Grade/Class           : ' + d.kelas + '\n\n' +
           'is a student at UPH College in the academic year of ' + d.tahunAjaran + ', and will be traveling to ' + negaraEn(d.negaraTujuan) + ' from ' + formatDateEN(d.tanggalBerangkat) + ' to ' + formatDateEN(d.tanggalKembali) + '. ' + cap(p.subject) + ' will return to Indonesia to continue ' + p.possessive + ' studies after the trip.\n\n' +
@@ -2813,7 +2877,7 @@
       pickupNoticeHtml +
       adminNoticeHtml +
       approvalInfoHtml(req) +
-      (negaraCekHtml(req) ? '<div class="card">' + negaraCekHtml(req) + '</div>' : '') +
+      (isianCekHtml(req) ? '<div class="card">' + isianCekHtml(req) + '</div>' : '') +
       '<div class="card">' + fieldsHtml + '</div>' +
       '<div class="card">' +
         '<div class="detail-row"><span class="detail-label">Waktu Pengajuan</span><span class="detail-value">' + escapeHtml(formatDateTimeFull(req.submittedAt)) + '</span></div>' +
@@ -4188,7 +4252,7 @@
       '<p class="fin-name">' + escapeHtml(d.namaLengkap || '-') + (d.kelas ? ' &middot; ' + escapeHtml(d.kelas) : '') + '</p>' +
       '<p class="hint" style="margin:0">' + (d.lunasAt ? 'Lunas ' + escapeHtml(formatDateShortAdmin(d.lunasAt)) + ' (' + escapeHtml(shortWho(d.lunasOleh)) + ')' : 'Lunas') +
         (mode === 'sudah' ? ' &middot; Disetujui ' + escapeHtml(formatDateShortAdmin(d.disetujuiAt)) + ' &middot; No. ' + escapeHtml(r.nomorSurat || '-') : '') + '</p>' +
-      negaraCekHtml(r) +
+      isianCekHtml(r) +
       '<div class="fin-actions">' +
         '<button type="button" class="btn-outline" data-appview="' + escapeHtml(r.id) + '">' + (mode === 'sudah' ? 'Cetak' : 'Pratinjau') + '</button>' +
         '<button type="button" class="btn-outline" data-detail="' + escapeHtml(r.id) + '">Detail / Edit</button>' +
