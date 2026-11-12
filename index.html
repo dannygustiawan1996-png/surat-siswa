@@ -2912,7 +2912,7 @@
         '<p class="field-label">Generate Teks Surat</p>' +
         '<label class="field"><span class="field-label">Nomor Surat</span><input class="field-input" id="nomorSuratInput" type="text" value="' + escapeHtml(defaultNomor) + '"' + (nomorSementara ? ' data-sementara="' + escapeHtml(defaultNomor) + '"' : '') + '></label>' +
         (nomorSementara
-          ? '<p class="hint" style="margin:-4px 0 8px">Nomor sementara. Nomor baru resmi dipakai saat surat dicetak, diunduh Word, atau diterbitkan PDF. Membuka surat atau Generate Teks tidak memakai nomor.</p>'
+          ? '<p class="hint" style="margin:-4px 0 8px">Nomor sementara. Nomor resmi baru keluar saat surat diterbitkan (Terbitkan PDF / Setujui). Membuka, Generate Teks, Simpan, Cetak, atau Word tidak mengeluarkan nomor tanpa terbit.</p>'
           : ((req.status !== 'selesai' && !(S.pdfInfo && S.pdfInfo[req.id]))
             ? '<p class="hint" style="margin:-4px 0 4px">Nomor ini sudah tercatat untuk surat ini.</p><button type="button" class="btn-text" id="lepasNomorBtn" style="width:auto;padding:0;margin:0 0 8px">Lepas nomor ini</button>'
             : '')) +
@@ -4072,6 +4072,16 @@
     return copy;
   }
   function judulFileSurat(req) { return namaFileSurat(req, 'pdf').replace(/\.pdf$/, ''); }
+  // Nomor resmi hanya keluar lewat TERBIT. Cetak/Word untuk surat yang belum terbit -> tawarkan terbit dulu.
+  // Kembalikan surat (sudah bernomor) atau null kalau dibatalkan.
+  async function pastikanTerbit(req) {
+    if (req.nomorSurat) return await kunciNomorSurat(req); // sudah memegang nomor: pakai nomornya
+    if (!confirm('Surat ini belum terbit, jadi belum punya nomor resmi.\n\nTerbitkan sekarang? Nomor surat diberikan, PDF dibuat untuk siswa, dan status menjadi Selesai. Setelah itu lanjut cetak/Word.')) return null;
+    if (!konfirmasiTtdCap()) return null;
+    var fin = await kunciNomorSurat(req);
+    await terbitkanPdf(fin);
+    return S.requests.find(function (r) { return r.id === fin.id; }) || fin;
+  }
 
   function showCetakSurat(text, judulFile, sebelumCetak) {
     var old = document.getElementById('cetakOverlay'); if (old) old.remove();
@@ -4096,6 +4106,7 @@
           var btn = this; btn.disabled = true; btn.textContent = 'Menyiapkan nomor...';
           try {
             var hasil = await sebelumCetak();
+            if (hasil === null) { gambar(); return; } // dibatalkan
             if (hasil) { text = hasil.text || text; judulFile = hasil.judul || judulFile; diubah = true; gambar(); tunggu = 400; }
           } catch (e) { alert(e && e.message || e); gambar(); return; }
         }
@@ -4181,8 +4192,8 @@
       var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
       wordBtn.disabled = true;
       try {
-        var fin = await kunciNomorSurat(salinanDariDetail(req));
-        await unduhWordSurat(fin, fin.generatedText);
+        var fin = await pastikanTerbit(salinanDariDetail(req));
+        if (fin) await unduhWordSurat(fin, fin.generatedText);
       } catch (e) { alert('Gagal membuat Word: ' + (e && e.message || e)); }
       render();
     });
@@ -4222,8 +4233,8 @@
       if (!text) { alert('Teks surat masih kosong. Klik "Generate Teks Surat" dulu.'); return; }
       var req = S.requests.find(function (r) { return r.id === S.adminSelectedId; });
       showCetakSurat(text, judulFileSurat(salinanDariDetail(req)), async function () {
-        var fin = await kunciNomorSurat(salinanDariDetail(S.requests.find(function (r) { return r.id === S.adminSelectedId; })));
-        return { text: fin.generatedText, judul: judulFileSurat(fin) };
+        var fin = await pastikanTerbit(salinanDariDetail(S.requests.find(function (r) { return r.id === S.adminSelectedId; })));
+        return fin ? { text: fin.generatedText, judul: judulFileSurat(fin) } : null;
       });
     });
     ['ttd', 'cap'].forEach(function (k) {
@@ -4534,8 +4545,8 @@
         var text = req.generatedText || generateLetterText(req, nomor, tgl);
         var id = req.id;
         showCetakSurat(text, judulFileSurat(req), async function () {
-          var fin = await kunciNomorSurat(S.requests.find(function (r) { return r.id === id; }));
-          return { text: fin.generatedText, judul: judulFileSurat(fin) };
+          var fin = await pastikanTerbit(S.requests.find(function (r) { return r.id === id; }));
+          return fin ? { text: fin.generatedText, judul: judulFileSurat(fin) } : null;
         });
       });
     });
@@ -4574,8 +4585,8 @@
         if (!req) return;
         b.disabled = true;
         try {
-          var fin = await kunciNomorSurat(req);
-          await unduhWordSurat(fin, fin.generatedText);
+          var fin = await pastikanTerbit(req);
+          if (fin) await unduhWordSurat(fin, fin.generatedText);
         } catch (e) { alert('Gagal membuat Word: ' + (e && e.message || e)); }
         render();
       });
