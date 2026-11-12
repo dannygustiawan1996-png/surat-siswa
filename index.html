@@ -2871,7 +2871,10 @@
       actionCardHtml = '<div class="card">' +
         '<p class="field-label">Generate Teks Surat</p>' +
         '<label class="field"><span class="field-label">Nomor Surat</span><input class="field-input" id="nomorSuratInput" type="text" value="' + escapeHtml(defaultNomor) + '"></label>' +
-        '<button type="button" class="btn-text" id="nomorBaruBtn" style="width:auto;padding:0;margin:-4px 0 8px;">Pakai nomor berikutnya</button>' +
+        ((req.nomorSurat && req.status !== 'selesai' && req.nomorSurat !== suggestedNomor(S.settings, defaultTgl))
+          ? '<p class="hint" style="margin:0 0 6px;color:var(--color-red)">Nomor di atas tersimpan dari generate sebelumnya, belum memakai nomor terbaru.</p>' +
+            '<button type="button" class="btn-outline" id="nomorBaruBtn" style="margin:0 0 10px;">Ganti ke nomor berikutnya (' + escapeHtml(suggestedNomor(S.settings, defaultTgl)) + ') &amp; generate ulang</button>'
+          : '') +
         '<label class="field"><span class="field-label">Tanggal Surat</span><input class="field-input" id="tanggalSuratInput" type="date" value="' + escapeHtml(defaultTgl) + '"></label>' +
         '<button class="btn-outline" id="generateLetterBtn" style="margin-top:8px">Generate Teks Surat</button>' +
         '<label class="field" style="margin-top:12px"><span class="field-label">Hasil (bisa diedit sebelum disalin)</span>' +
@@ -3515,6 +3518,17 @@
         S.settings = Object.assign({}, S.settings || {}, fresh);
       }
     });
+    // Saat detail dibuka, samakan "nomor berikutnya" dengan server (bisa saja baru diubah di Pengaturan / perangkat lain).
+    if (document.getElementById('nomorSuratInput') && !S._settingsRefreshing) {
+      S._settingsRefreshing = true;
+      getSettingsStrict().then(function (fresh) {
+        S._settingsRefreshing = false;
+        if (fresh && S.view === 'adminDetail' && (!S.settings || S.settings.nextSuratNumber !== fresh.nextSuratNumber)) {
+          S.settings = Object.assign({}, S.settings || {}, fresh);
+          render();
+        }
+      });
+    }
     var nomorBaruBtn = document.getElementById('nomorBaruBtn');
     if (nomorBaruBtn) nomorBaruBtn.addEventListener('click', async function () {
       var fresh = await getSettingsStrict();
@@ -3522,6 +3536,9 @@
       S.settings = Object.assign({}, S.settings || {}, fresh);
       var tgl = document.getElementById('tanggalSuratInput').value || todayISO();
       document.getElementById('nomorSuratInput').value = suggestedNomor(S.settings, tgl);
+      nomorBaruBtn.style.display = 'none';
+      var gen = document.getElementById('generateLetterBtn');
+      if (gen) gen.click();
     });
     var copyLetterBtn = document.getElementById('copyLetterBtn');
     if (copyLetterBtn) copyLetterBtn.addEventListener('click', async function () {
