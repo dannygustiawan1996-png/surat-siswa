@@ -1842,7 +1842,11 @@
           var pickupHtml = (r.status === 'selesai' && !isRekom && !isKlinik)
             ? ((r.data && r.data.completedAt) ? '<div class="pickup-card">' + escapeHtml(tt('suratSelesaiInfo')(formatDateTimeFull(r.data.completedAt), durasiSejakPengajuan(r.submittedAt, r.data.completedAt))) + '</div>' : '') +
               '<div class="pickup-card">' + escapeHtml(tt('pengambilanInfo')) + '</div>' +
-              ((LETTER_TYPES[r.type] && LETTER_TYPES[r.type].generator && !LETTER_TYPES[r.type].manualAmbil) ? '<button type="button" class="btn-outline" data-unduhkode="' + escapeHtml(r.id) + '" style="margin-top:8px">' + escapeHtml(ut('tombolHasil')) + '</button>' : '')
+              ((LETTER_TYPES[r.type] && LETTER_TYPES[r.type].generator && !LETTER_TYPES[r.type].manualAmbil)
+                ? (pengajuanLama(r)
+                  ? '<div class="pickup-card">' + escapeHtml(ut('lamaInfo')) + '</div>'
+                  : '<button type="button" class="btn-outline" data-unduhkode="' + escapeHtml(r.id) + '" style="margin-top:8px">' + escapeHtml(ut('tombolHasil')) + '</button>')
+                : '')
             : '';
           var klinikInfoHtml = isKlinik ? '<div class="pickup-card">' + escapeHtml(r.status === 'selesai' ? tt('klinikSelesaiInfo') : tt('klinikBaruInfo')) + '</div>' : '';
           var klinikTreatmentRowsHtml = isKlinik && r.status === 'selesai' ? (
@@ -5125,7 +5129,8 @@
       gagal: 'Gagal mengunduh: ',
       berhasil: function (n) { return 'Berhasil, ' + n + ' surat diunduh. Cek folder Downloads.'; },
       masa: 'Surat digital tersedia 14 hari sejak pertama kali diunduh.',
-      tombolHasil: 'Unduh softcopy (PDF)'
+      tombolHasil: 'Unduh softcopy (PDF)',
+      lamaInfo: 'ℹ️ Fitur unduh PDF berlaku untuk pengajuan terbaru. Pengajuan ini termasuk pengajuan lama yang belum tersinkron, jadi silakan ambil suratnya di Teacher Lounge (TL).'
     },
     en: {
       judul: 'Download Letter (PDF)',
@@ -5138,10 +5143,15 @@
       gagal: 'Download failed: ',
       berhasil: function (n) { return 'Done, ' + n + ' letter(s) downloaded. Check your Downloads folder.'; },
       masa: 'The digital letter is available for 14 days after the first download.',
-      tombolHasil: 'Download softcopy (PDF)'
+      tombolHasil: 'Download softcopy (PDF)',
+      lamaInfo: 'ℹ️ PDF download is available for newer requests. This is an older request that has not been synced yet, so please collect your letter at the Teacher Lounge (TL).'
     }
   };
   function ut(k) { return UNDUH_TEKS[S.lang === 'en' ? 'en' : 'id'][k]; }
+  // Pengajuan sampai dengan permintaan Kevin Franco Elkana (Sel, 10 Nov 2026 20.57 WIB) = pengajuan lama:
+  // tanpa tombol unduh PDF, siswa diarahkan ambil di TL.
+  var BATAS_PENGAJUAN_LAMA = '2026-11-10T13:57:24Z';
+  function pengajuanLama(r) { return !r.submittedAt || new Date(r.submittedAt) <= new Date(BATAS_PENGAJUAN_LAMA); }
   function renderUnduhCard() {
     var u = S.unduh || (S.unduh = {});
     function field(id, label, val, type, ph) {
