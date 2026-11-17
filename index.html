@@ -654,7 +654,41 @@
     return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Cek tanggal perjalanan: ' + escapeHtml(masalah.join('; ')) + '. Perbaiki isiannya dulu sebelum surat dibuat.</p>';
   }
   // Gabungan catatan/peringatan isian siswa untuk admin (negara visa + tempat/tanggal lahir + tanggal perjalanan).
-  function isianCekHtml(req) { return negaraCekHtml(req) + ttlCekHtml(req) + tanggalVisaCekHtml(req); }
+  function isianCekHtml(req) { return negaraCekHtml(req) + ttlCekHtml(req) + tanggalVisaCekHtml(req) + alumniCekHtml(req); }
+
+  // ---------- Alumni & tahun lulus ----------
+  // Tanggal kelulusan resmi per angkatan (Class of YYYY). Tambahkan angkatan lain di sini kalau sudah diketahui.
+  var TANGGAL_LULUS_ANGKATAN = { 2024: '2024-05-06' };
+  function alumniTahun(kelas) { var m = /^alumni\s+(\d{4})$/i.exec(String(kelas || '').trim()); return m ? +m[1] : null; }
+  function isAlumniData(d) { return !!alumniTahun(d && d.kelas); }
+  // Tanggal lulus alumni: data resmi angkatan dulu, lalu isian siswa.
+  function tanggalLulusAlumni(d) { var th = alumniTahun(d && d.kelas); return (th && TANGGAL_LULUS_ANGKATAN[th]) || (d && d.tanggalLulus) || ''; }
+  // Perkiraan tahun lulus siswa aktif dari tahun ajaran + kelas (kelas 12 lulus di akhir tahun ajaran, kelas 11 +1, kelas 10 +2).
+  function tahunLulusPerkiraan(d) {
+    var ta = String((d && d.tahunAjaran) || '');
+    var m = /(\d{4})\s*[\/\-]\s*(\d{4})/.exec(ta), akhir;
+    if (m) akhir = +m[2];
+    else if ((m = /(\d{4})/.exec(ta))) akhir = +m[1] + 1;
+    else { var now = new Date(); akhir = now.getFullYear() + (now.getMonth() >= 6 ? 1 : 0); }
+    var g = gradeFromKelas(d && d.kelas);
+    return akhir + (g === 11 ? 1 : g === 10 ? 2 : 0);
+  }
+  var JENIS_SISWA_AKTIF = ['KETERANGAN', 'SKL_EXPECTED', 'SKL_EXPECTED_UNIV', 'ANAK_KARYAWAN', 'VISA', 'CETAK_KARTU'];
+  function alumniCekHtml(req) {
+    if (!req || !req.data) return '';
+    var d = req.data, th = alumniTahun(d.kelas);
+    if (!th) return '';
+    if (JENIS_SISWA_AKTIF.indexOf(req.type) >= 0) {
+      return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Pengaju memilih ' + escapeHtml(d.kelas) + ', padahal surat ini untuk siswa aktif. Cek teks suratnya (untuk alumni biasanya SKL Sudah Lulus atau KKM).</p>';
+    }
+    if (req.type === 'KKM_STATEMENT') {
+      var resmi = TANGGAL_LULUS_ANGKATAN[th];
+      if (resmi && d.tanggalLulus && d.tanggalLulus !== resmi) return '<p class="hint" style="margin:4px 0 0">Alumni Class of ' + th + ': surat memakai tanggal lulus resmi ' + escapeHtml(formatDateShort(resmi)) + ' (isian siswa: ' + escapeHtml(formatDateShort(d.tanggalLulus)) + ').</p>';
+      if (!resmi && !d.tanggalLulus) return '<p class="hint" style="margin:4px 0 0;color:var(--color-red)">&#9888; Alumni Class of ' + th + ': tanggal lulus belum diketahui, surat hanya menulis "Class of ' + th + '". Isi lewat Edit data isian (Tanggal Lulus) kalau perlu.</p>';
+      return '<p class="hint" style="margin:4px 0 0">Alumni Class of ' + th + ': narasi KKM khusus alumni (lulus ' + escapeHtml(formatDateShort(tanggalLulusAlumni(d))) + ').</p>';
+    }
+    return '';
+  }
   function yearOf(dateStr) { return parseDateParts(dateStr).y; }
   function todayISO() {
     var d = new Date();
@@ -727,7 +761,7 @@
           'Name             : ' + d.namaLengkap + '\n' +
           'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
-          'is a grade 12 (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
+          'is a grade 12 (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June ' + tahunLulusPerkiraan(d) + '.\n\n' +
           'This letter is issued to support ' + p.possessive + ' university admission process.\n\n' +
           'Faithfully Yours,\n\n\n' +
           'Hans Deny\n' +
@@ -761,7 +795,7 @@
           'Name             : ' + d.namaLengkap + '\n' +
           'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
-          'is a grade 12 (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
+          'is a grade 12 (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June ' + tahunLulusPerkiraan(d) + '.\n\n' +
           'This letter of statement is intended for admission purposes to ' + d.namaUniversitas + '.\n\n' +
           'Faithfully Yours,\n\n\n' +
           'Hans Deny\n' +
@@ -891,12 +925,23 @@
         { key: 'jenisKelamin', label: 'Jenis Kelamin', labelEn: 'Gender', type: 'select', options: GENDER_OPTIONS, required: true },
         { key: 'major', label: 'Jurusan', labelEn: 'Major', type: 'select', options: MAJOR_OPTIONS, required: false },
         { key: 'studentNumber', label: 'NIS (Nomor Induk Siswa)', labelEn: 'Student Number (NIS)', type: 'text', required: true },
-        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true },
+        { key: 'tahunAjaran', label: 'Tahun Ajaran', labelEn: 'Academic Year', placeholder: 'Contoh: 2026/2027', placeholderEn: 'e.g. 2026/2027', type: 'text', required: true, showIf: function (d) { return !isAlumniData(d); } },
+        { key: 'tanggalLulus', label: 'Tanggal Lulus (khusus alumni, opsional)', labelEn: 'Graduation Date (alumni only, optional)', type: 'date', required: false, showIf: isAlumniData, hint: 'Kosongkan kalau tidak ingat; sekolah akan memakai tanggal kelulusan resmi angkatanmu.', hintEn: 'Leave blank if unsure; the school will use the official graduation date of your class.' },
         { key: 'kontak', label: 'Alamat Email', labelEn: 'Email Address', placeholder: 'nama@email.com', placeholderEn: 'name@email.com', type: 'email', required: true, hint: 'Disarankan pakai email sekolah (@' + SCHOOL_EMAIL_DOMAIN + '). Kalau yang mengisi orang tua/wali, boleh pakai email lain.', hintEn: 'We suggest using your school email (@' + SCHOOL_EMAIL_DOMAIN + '). If a parent/guardian is filling this in, another email is fine too.' },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Mohon surat dibuat dalam Bahasa Indonesia', placeholderEn: 'e.g. Please prepare the letter in Indonesian', type: 'textarea', required: false }
       ],
       generator: function (d, nomor, tgl) {
         var p = pronoun(d.jenisKelamin);
+        var th = alumniTahun(d.kelas);
+        var status, keperluan;
+        if (th) {
+          var lulus = tanggalLulusAlumni(d);
+          status = 'is a graduate of UPH College, Class of ' + th + (lulus ? ', who completed ' + p.possessive + ' course of study on ' + formatDateEN(lulus) : '') + '.';
+          keperluan = 'This letter is issued to be used as required.';
+        } else {
+          status = 'is a grade ' + gradeFromKelas(d.kelas) + ' (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June ' + tahunLulusPerkiraan(d) + '.';
+          keperluan = 'This letter is issued to support ' + p.possessive + ' university admission process.';
+        }
         return 'Tangerang, ' + formatDateEN(tgl) + '\n\n' +
           'LETTER OF STATEMENT\n' +
           'No. : ' + nomor + '\n\n' +
@@ -904,9 +949,9 @@
           'Name             : ' + d.namaLengkap + '\n' +
           'Major            : ' + majorLabelEn(d.major) + '\n' +
           'Student Number   : ' + d.studentNumber + '\n\n' +
-          'is a grade ' + gradeFromKelas(d.kelas) + ' (Class ' + d.kelas + ') student at UPH College for the ' + d.tahunAjaran + ' Academic Year and is expected to complete ' + p.possessive + ' course of study in June 2027.\n\n' +
+          status + '\n\n' +
           'This is also to confirm that in UPH College report cards are printed in English and the expected learning outcome (minimum passing grade) for students is 65.\n\n' +
-          'This letter is issued to support ' + p.possessive + ' university admission process.\n\n' +
+          keperluan + '\n\n' +
           'Faithfully Yours,\n\n\n' +
           'Hans Deny\n' +
           'Academic Principal';
@@ -1705,10 +1750,13 @@
     return backBar('home', tt('beranda')) + '<h2>' + escapeHtml(tt('pilihJenisTitle')) + '</h2><div class="stack">' + cards + '</div>';
   }
 
+  // Kolom formulir bisa bersyarat (showIf), mis. Tanggal Lulus hanya untuk alumni.
+  function fieldTampil(f) { return !f.showIf || f.showIf(S.formDraft || {}); }
+
   function renderForm() {
     var t = LETTER_TYPES[S.selectedType];
     if (!t) return renderPilihJenis();
-    var fieldsHtml = t.fields.map(function (f) {
+    var fieldsHtml = t.fields.filter(fieldTampil).map(function (f) {
       var val = escapeHtml((S.formDraft && S.formDraft[f.key]) || '');
       var err = S.formErrors[f.key] ? '<span class="field-error">' + escapeHtml(S.formErrors[f.key]) + '</span>' : '';
       var inputEl;
@@ -3060,12 +3108,17 @@
       };
       inp.addEventListener('input', handler);
       inp.addEventListener('change', handler);
+      var tAktif = LETTER_TYPES[S.selectedType];
+      if (inp.getAttribute('data-field') === 'kelas' && tAktif && tAktif.fields.some(function (f) { return f.showIf; })) {
+        inp.addEventListener('change', function () { var y = window.scrollY; render(); window.scrollTo(0, y); });
+      }
     });
     formEl.addEventListener('submit', async function (e) {
       e.preventDefault();
       var t = LETTER_TYPES[S.selectedType];
       var errors = {};
       t.fields.forEach(function (f) {
+        if (!fieldTampil(f)) return;
         if (f.required && !(S.formDraft[f.key] && String(S.formDraft[f.key]).trim())) errors[f.key] = tt('fieldWajib');
       });
       var cekTgl = cekTanggalPerjalanan(S.formDraft, todayISO());
