@@ -356,10 +356,15 @@ begin
   select array_agg(r.id) into v_ids
     from requests r
     join surat_pdf s on s.request_id = r.id
-   where ( (case when v_kode <> '' and r.id = v_kode then 1 else 0 end)
-         + (case when v_email <> '' and lower(trim(coalesce(r.data->>'kontak', ''))) = v_email then 1 else 0 end)
-         + (case when v_nis <> '' and lower(regexp_replace(coalesce(nullif(r.data->>'studentId', ''), nullif(r.data->>'studentNumber', ''), ''), '[^0-9A-Za-z]', '', 'g')) = v_nis then 1 else 0 end)
-         ) >= 2;
+   where (case when v_kode <> ''
+            -- kode diisi: hanya surat dengan kode itu, plus email ATAU NIS cocok
+            then r.id = v_kode
+                 and ((v_email <> '' and lower(trim(coalesce(r.data->>'kontak', ''))) = v_email)
+                   or (v_nis <> '' and lower(regexp_replace(coalesce(nullif(r.data->>'studentId', ''), nullif(r.data->>'studentNumber', ''), ''), '[^0-9A-Za-z]', '', 'g')) = v_nis))
+            -- tanpa kode: email DAN NIS cocok -> semua surat siswa itu
+            else lower(trim(coalesce(r.data->>'kontak', ''))) = v_email
+                 and lower(regexp_replace(coalesce(nullif(r.data->>'studentId', ''), nullif(r.data->>'studentNumber', ''), ''), '[^0-9A-Za-z]', '', 'g')) = v_nis
+         end);
 
   if v_ids is null then
     insert into unduh_log (ip, ok) values (v_ip, false);
@@ -374,7 +379,7 @@ begin
   insert into unduh_log (ip, request_id, ok) select v_ip, unnest(v_ids), true;
 
   return json_build_object('status', 'ok', 'files', (
-    select json_agg(json_build_object('request_id', s.request_id, 'jenis', r.type, 'nama_file', s.nama_file, 'pdf_base64', s.pdf_base64))
+    select json_agg(json_build_object('request_id', s.request_id, 'jenis', r.type, 'nomor', r.nomor_surat, 'nama_file', s.nama_file, 'pdf_base64', s.pdf_base64) order by r.submitted_at desc)
       from surat_pdf s join requests r on r.id = s.request_id
      where s.request_id = any (v_ids)));
 end;

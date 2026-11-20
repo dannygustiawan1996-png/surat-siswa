@@ -5173,7 +5173,7 @@
   var UNDUH_TEKS = {
     id: {
       judul: 'Unduh Surat (PDF)',
-      intro: 'Surat yang sudah selesai bisa diunduh di sini. Isi minimal 2 dari 3 data di bawah, sama persis dengan yang diisi di formulir pengajuan.',
+      intro: 'Surat yang sudah selesai bisa diunduh di sini. Isi Kode Pengajuan + Email atau NIS untuk mengunduh surat tertentu, atau Email + NIS untuk melihat semua suratmu. Data harus sama persis dengan yang diisi di formulir pengajuan.',
       kode: 'Kode Pengajuan', email: 'Email (yang diisi di formulir)', nis: 'NIS / Student ID (sesuai formulir)',
       tombol: 'Unduh Surat', memproses: 'Memeriksa...',
       kurang: 'Isi minimal 2 dari 3 data.',
@@ -5183,11 +5183,13 @@
       berhasil: function (n) { return 'Berhasil, ' + n + ' surat diunduh. Cek folder Downloads.'; },
       masa: 'Surat digital tersedia 14 hari sejak pertama kali diunduh.',
       tombolHasil: 'Unduh softcopy (PDF)',
+      pilih: function (n) { return 'Ditemukan ' + n + ' surat atas data ini. Pilih surat yang ingin diunduh (isi juga Kode Pengajuan supaya langsung ke surat yang dimaksud):'; },
+      unduhSatu: 'Unduh',
       lamaInfo: 'ℹ️ Fitur unduh PDF berlaku untuk pengajuan terbaru. Pengajuan ini termasuk pengajuan lama yang belum tersinkron, jadi silakan ambil suratnya di Teacher Lounge (TL).'
     },
     en: {
       judul: 'Download Letter (PDF)',
-      intro: 'Completed letters can be downloaded here. Fill in at least 2 of the 3 fields below, exactly as entered in the request form.',
+      intro: 'Completed letters can be downloaded here. Fill in the Request Code + Email or NIS to download a specific letter, or Email + NIS to see all your letters. The details must match the request form exactly.',
       kode: 'Request Code', email: 'Email (as entered in the form)', nis: 'NIS / Student ID (as in the form)',
       tombol: 'Download Letter', memproses: 'Checking...',
       kurang: 'Please fill in at least 2 of the 3 fields.',
@@ -5197,9 +5199,12 @@
       berhasil: function (n) { return 'Done, ' + n + ' letter(s) downloaded. Check your Downloads folder.'; },
       masa: 'The digital letter is available for 14 days after the first download.',
       tombolHasil: 'Download softcopy (PDF)',
+      pilih: function (n) { return n + ' letters were found for these details. Choose the letter to download (fill in the Request Code to go straight to a specific letter):'; },
+      unduhSatu: 'Download',
       lamaInfo: 'ℹ️ PDF download is available for newer requests. This is an older request that has not been synced yet, so please collect your letter at the Teacher Lounge (TL).'
     }
   };
+  function unduhFileSurat(f) { simpanBlob(base64ToBlob(f.pdf_base64, 'application/pdf'), f.nama_file || ('Surat-' + f.request_id + '.pdf')); }
   function ut(k) { return UNDUH_TEKS[S.lang === 'en' ? 'en' : 'id'][k]; }
   // Pengajuan sampai dengan permintaan Kevin Franco Elkana (Sel, 10 Nov 2026 20.57 WIB) = pengajuan lama:
   // tanpa tombol unduh PDF, siswa diarahkan ambil di TL.
@@ -5211,7 +5216,13 @@
       return '<label class="field"><span class="field-label">' + escapeHtml(label) + '</span><input class="field-input" id="' + id + '" type="' + type + '"' + (ph ? ' placeholder="' + escapeHtml(ph) + '"' : '') + ' value="' + escapeHtml(val || '') + '" autocomplete="off"></label>';
     }
     var msg = '';
-    if (u.status === 'ok') msg = '<p class="hint" style="color:#2E7D5B;margin:6px 0">' + escapeHtml(ut('berhasil')(u.n)) + '</p>';
+    if (u.status === 'pilih' && u.files) {
+      msg = '<p class="hint" style="margin:6px 0">' + escapeHtml(ut('pilih')(u.files.length)) + '</p>' + u.files.map(function (f, i) {
+        var jt = LETTER_TYPES[f.jenis];
+        var label = (jt ? typeLabel(jt) : f.jenis) + (f.nomor ? ' · No. ' + f.nomor : '') + ' · ' + f.request_id;
+        return '<button type="button" class="btn-outline" data-unduhfile="' + i + '" style="margin-bottom:6px;text-align:left">' + escapeHtml(ut('unduhSatu')) + ': ' + escapeHtml(label) + '</button>';
+      }).join('');
+    } else if (u.status === 'ok') msg = '<p class="hint" style="color:#2E7D5B;margin:6px 0">' + escapeHtml(ut('berhasil')(u.n)) + '</p>';
     else if (u.status === 'err') msg = '<span class="field-error" style="display:block;margin:6px 0">' + escapeHtml(u.msg) + '</span>';
     return '<div class="card" id="unduhCard" style="margin-top:20px">' +
       '<p class="field-label" style="margin-top:0">' + escapeHtml(ut('judul')) + '</p>' +
@@ -5234,10 +5245,9 @@
       if (res.error) throw new Error(res.error.message);
       var d = res.data || {};
       if (d.status === 'ok' && d.files && d.files.length) {
-        d.files.forEach(function (f, i) {
-          setTimeout(function () { simpanBlob(base64ToBlob(f.pdf_base64, 'application/pdf'), f.nama_file || ('Surat-' + f.request_id + '.pdf')); }, i * 500);
-        });
-        u.status = 'ok'; u.n = d.files.length;
+        u.files = d.files;
+        if (d.files.length === 1) { unduhFileSurat(d.files[0]); u.status = 'ok'; u.n = 1; }
+        else u.status = 'pilih'; // lebih dari satu surat: siswa memilih sendiri (browser sering memblokir unduhan beruntun)
       } else {
         u.status = 'err';
         u.msg = d.status === 'terlalu_banyak' ? ut('terlaluBanyak') : d.status === 'kurang_data' ? ut('kurang') : ut('tidakCocok');
@@ -5249,10 +5259,13 @@
     var u = S.unduh || (S.unduh = {});
     [['unduhKode', 'kode'], ['unduhEmail', 'email'], ['unduhNis', 'nis']].forEach(function (p) {
       var el = document.getElementById(p[0]);
-      if (el) el.addEventListener('input', function () { u[p[1]] = el.value; });
+      if (el) el.addEventListener('input', function () { u[p[1]] = el.value; if (u.files) { u.files = null; u.status = null; } });
     });
     var btn = document.getElementById('unduhBtn');
     if (btn) btn.addEventListener('click', jalankanUnduh);
+    document.querySelectorAll('[data-unduhfile]').forEach(function (b) {
+      b.addEventListener('click', function () { var f = (u.files || [])[+b.getAttribute('data-unduhfile')]; if (f) unduhFileSurat(f); });
+    });
     document.querySelectorAll('[data-unduhkode]').forEach(function (b) {
       b.addEventListener('click', function () {
         u.kode = b.getAttribute('data-unduhkode'); u.status = null;
