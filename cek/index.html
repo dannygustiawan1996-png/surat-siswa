@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Cek Sertifikat · UPH College</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f3;--surface:#fff;--text:#17292a;--muted:#566f70;--line:#d3dedf;--brand:#005f61;--yellow:#febe00;
+  --ok:#0a6236;--ok-bg:#e0f3e7;--bad:#9c1f1f;--bad-bg:#fde7e7}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Poppins,system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 40px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.top img{height:40px;width:auto;display:block}
+.lang{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:99px;padding:6px 14px;font:inherit;font-size:13px;font-weight:500;cursor:pointer}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.banner{padding:20px 22px;display:flex;gap:14px;align-items:flex-start}
+.banner .ic{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:#fff}
+.banner h1{font-size:19px;font-weight:600;line-height:1.3}
+.banner p{font-size:14px;color:var(--muted);margin-top:2px}
+.ok .banner{background:var(--ok-bg)} .ok .ic{background:var(--ok)} .ok h1{color:var(--ok)}
+.bad .banner{background:var(--bad-bg)} .bad .ic{background:var(--bad)} .bad h1{color:var(--bad)}
+.wait .ic{background:var(--muted)}
+dl{padding:6px 22px 18px}
+dl div{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 14px;padding:11px 0;border-bottom:1px solid var(--line)}
+dl div:last-child{border-bottom:0}
+dt{font-size:13px;color:var(--muted)}
+dd{font-size:15px;font-weight:500;overflow-wrap:anywhere}
+dd.nm{font-size:18px;font-weight:600}
+dd small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.void dd.nm{text-decoration:line-through;color:var(--muted)}
+.btn{margin:0 22px 20px;border:0;border-radius:8px;background:var(--brand);color:#fff;font:inherit;font-weight:500;padding:10px 18px;cursor:pointer}
+.note{font-size:12px;color:var(--muted);margin-top:16px;text-align:center}
+.bar{height:6px;background:linear-gradient(90deg,var(--brand) 0 70%,var(--yellow) 70%)}
+@media (max-width:480px){dl div{grid-template-columns:minmax(0,1fr);gap:2px}.banner{padding:18px 16px}dl{padding:4px 16px 14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <img src="/UPHC-Horizontal.png" alt="UPH College">
+    <button type="button" class="lang" id="lang">English</button>
+  </div>
+  <div class="card wait" id="card">
+    <div class="banner"><div class="ic">…</div><div><h1 id="h"></h1><p id="p"></p></div></div>
+  </div>
+  <p class="note" id="note"></p>
+</div>
+<script>
+(function () {
+  'use strict';
+  var SUPABASE_URL = 'https://jxyfiinqxeswyljmzhge.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_mRKDBw_XWZwHPAZQFEKYDg_n6au_AkQ'; // kunci publik; keamanan dijaga fungsi cek_sertifikat
+  var T = {
+    id: {
+      other: 'English', loading: 'Memeriksa sertifikat…', ok: 'Sertifikat Sah', okSub: 'Sertifikat ini tercatat resmi di UPH College.',
+      bad: 'Sertifikat Dibatalkan', badSub: 'Sertifikat ini pernah diterbitkan, tetapi sudah dibatalkan dan tidak berlaku.',
+      nf: 'Sertifikat Tidak Ditemukan', nfSub: 'Tidak ada sertifikat dengan kode ini. Periksa kembali QR atau tautannya.',
+      err: 'Belum Bisa Memeriksa', errSub: 'Koneksi bermasalah. Coba lagi sebentar lagi.', retry: 'Coba Lagi',
+      name: 'Penerima', cert: 'Sertifikat', reason: 'Diberikan atas', event: 'Acara', when: 'Waktu acara', issued: 'Tanggal terbit',
+      num: 'Nomor', signed: 'Ditandatangani oleh',
+      note: 'Halaman resmi UPH College. Pastikan alamat di browser adalah surat-siswa.vercel.app.',
+      months: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+      and: 'dan', ay: 'Tahun Ajaran', org: 'diselenggarakan oleh', as: 'sebagai'
+    },
+    en: {
+      other: 'Bahasa Indonesia', loading: 'Checking the certificate…', ok: 'Valid Certificate', okSub: 'This certificate is on record at UPH College.',
+      bad: 'Certificate Voided', badSub: 'This certificate was issued but has since been voided. It is no longer valid.',
+      nf: 'Certificate Not Found', nfSub: 'No certificate matches this code. Check the QR code or link and try again.',
+      err: 'Could Not Check Yet', errSub: 'There was a connection problem. Please try again shortly.', retry: 'Try Again',
+      name: 'Recipient', cert: 'Certificate', reason: 'Awarded for', event: 'Event', when: 'Event date', issued: 'Issued on',
+      num: 'Number', signed: 'Signed by',
+      note: 'Official UPH College page. Make sure the address in your browser is surat-siswa.vercel.app.',
+      months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      and: 'and', ay: 'Academic Year', org: 'organized by', as: 'as'
+    }
+  };
+  var lang = 'id';
+  try { lang = localStorage.getItem('cek-lang') || ((navigator.language || '').toLowerCase().indexOf('id') === 0 ? 'id' : 'en'); } catch (e) {}
+  var state = { kind: 'loading', rec: null };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function pd(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? { y: +m[1], m: +m[2] - 1, d: +m[3] } : null; }
+  function cmp(a, b) { return (a.y - b.y) || (a.m - b.m) || (a.d - b.d); }
+  function fd(a) { var M = T[lang].months; return lang === 'id' ? a.d + ' ' + M[a.m] + ' ' + a.y : M[a.m] + ' ' + a.d + ', ' + a.y; }
+  function fr(a, b) {
+    if (!b || cmp(a, b) === 0) return fd(a);
+    var M = T[lang].months;
+    if (a.y === b.y && a.m === b.m) return lang === 'id' ? a.d + '–' + b.d + ' ' + M[a.m] + ' ' + a.y : M[a.m] + ' ' + a.d + '–' + b.d + ', ' + a.y;
+    return fd(a) + ' – ' + fd(b);
+  }
+  function multi(list) {
+    var ds = list.map(pd).filter(Boolean).sort(cmp);
+    if (!ds.length) return '';
+    if (ds.length === 1) return fd(ds[0]);
+    return ds.slice(0, -1).map(fd).join(', ') + ' ' + T[lang].and + ' ' + fd(ds[ds.length - 1]);
+  }
+  function eventDate(r) {
+    if (r.mode === 'single') { var a = pd(r.d1); return a ? fd(a) : ''; }
+    if (r.mode === 'range') { var s = pd(r.d1); return s ? fr(s, pd(r.d2)) : ''; }
+    if (r.mode === 'multi') return multi(String(r.d1 || '').split(','));
+    if (r.mode === 'academic') { var y = parseInt(r.ay, 10); return y ? T[lang].ay + ' ' + y + '/' + (y + 1) : ''; }
+    return '';
+  }
+  function row(label, html, cls) { return html ? '<div><dt>' + esc(label) + '</dt><dd' + (cls ? ' class="' + cls + '"' : '') + '>' + html + '</dd></div>' : ''; }
+
+  function render() {
+    var t = T[lang], card = $('card'), r = state.rec;
+    document.documentElement.lang = lang;
+    $('lang').textContent = t.other;
+    $('note').textContent = t.note;
+    var k = state.kind;
+    var head = { loading: [t.loading, '', '…'], ok: [t.ok, t.okSub, '✓'], bad: [t.bad, t.badSub, '✕'], nf: [t.nf, t.nfSub, '?'], err: [t.err, t.errSub, '!'] }[k];
+    card.className = 'card ' + (k === 'ok' ? 'ok' : k === 'bad' ? 'bad void' : k === 'loading' ? 'wait' : 'bad');
+    var html = '<div class="banner"><div class="ic" aria-hidden="true">' + head[2] + '</div><div><h1>' + esc(head[0]) + '</h1>' + (head[1] ? '<p>' + esc(head[1]) + '</p>' : '') + '</div></div>';
+    if (r && (k === 'ok' || k === 'bad')) {
+      var reason = [r.lead && r.lead.t ? r.lead.t : '', r.ach].filter(Boolean).join(' ');
+      if (r.role) reason += (reason ? ' ' : '') + t.as + ' ' + r.role;
+      var ev = r.event ? esc(r.event) + (r.subtitle ? '<small>' + esc(r.subtitle) + '</small>' : '') + (r.organizer ? '<small>' + esc(t.org + ' ' + r.organizer) + '</small>' : '') : '';
+      var signers = (r.signers || []).filter(Boolean).map(function (s) { return esc(s.name) + '<small>' + esc(s.title) + '</small>'; }).join('<span style="display:block;height:6px"></span>');
+      var iss = pd(r.issuedOn);
+      html += '<dl>' +
+        row(t.name, esc(r.name), 'nm') +
+        row(t.cert, r.title === 'achievement' ? 'Certificate of Achievement' : 'Certificate of Appreciation') +
+        row(t.reason, esc(reason)) +
+        row(t.event, ev) +
+        row(t.when, esc(eventDate(r))) +
+        row(t.issued, iss ? esc(fd(iss)) : '') +
+        row(t.num, esc(r.num)) +
+        row(t.signed, signers) +
+        '</dl>';
+    }
+    if (k === 'err') html += '<button type="button" class="btn" id="retry">' + esc(t.retry) + '</button>';
+    card.innerHTML = html + (k === 'ok' ? '<div class="bar"></div>' : '');
+    var rb = $('retry'); if (rb) rb.onclick = check;
+  }
+
+  function token() {
+    var h = (location.hash || '').replace(/^#/, '');
+    if (!h) { var q = /[?&]t=([^&]+)/.exec(location.search); h = q ? decodeURIComponent(q[1]) : ''; }
+    return h.trim().toLowerCase();
+  }
+
+  function check() {
+    var tok = token();
+    state = { kind: 'loading', rec: null }; render();
+    if (!/^[a-z0-9]{24}$/.test(tok)) { state.kind = 'nf'; render(); return; }
+    fetch(SUPABASE_URL + '/rest/v1/rpc/cek_sertifikat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+      body: JSON.stringify({ p_token: tok })
+    }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function (j) {
+      if (!j || !j.found) state = { kind: 'nf', rec: null };
+      else state = { kind: j.rec.status === 'valid' ? 'ok' : 'bad', rec: j.rec };
+      render();
+    }).catch(function () { state = { kind: 'err', rec: null }; render(); });
+  }
+
+  $('lang').onclick = function () {
+    lang = lang === 'id' ? 'en' : 'id';
+    try { localStorage.setItem('cek-lang', lang); } catch (e) {}
+    render();
+  };
+  window.addEventListener('hashchange', check);
+  check();
+})();
+</script>
+</body>
+</html>

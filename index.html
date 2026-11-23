@@ -1738,6 +1738,8 @@
     try {
       var res = await sb.auth.getSession();
       var session = res && res.data && res.data.session;
+      // Tanda akses sertifikat (diset lewat SQL di app_metadata) -- hanya untuk menampilkan tautan; aksesnya tetap diperiksa database.
+      S.sertifikatAdmin = !!(session && session.user && session.user.app_metadata && session.user.app_metadata.sertifikat_admin === true);
       if (!session) return null;
       return (session.user && session.user.user_metadata && session.user.user_metadata.role) || 'admin';
     } catch (e) { return 'admin'; }
@@ -2174,6 +2176,7 @@
       '<button class="btn-outline' + (S.adminTab === 'klinik' ? ' active' : '') + '" data-admintab="klinik" style="flex:1 1 45%">Izin Klinik</button>' +
       '<button class="btn-outline' + (S.adminTab === 'prapen' ? ' active' : '') + '" data-admintab="prapen" style="flex:1 1 45%">Pra-Penelitian</button>' +
       '<button class="btn-outline' + (S.adminTab === 'bukunomor' ? ' active' : '') + '" data-admintab="bukunomor" style="flex:1 1 45%">Buku Nomor Surat</button>' +
+      (S.sertifikatAdmin ? '<a class="btn-outline" href="/sertifikat/" style="flex:1 1 45%;text-align:center;text-decoration:none">Sertifikat &#8599;</a>' : '') +
     '</div>';
 
     var bodyHtml;
