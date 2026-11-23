@@ -393,6 +393,83 @@
     'Violeta Sharlene Honggowidjojo', 'Hans Deny (Kepala Sekolah)', 'Danny Gustiawan', 'Wiginy Kusliawan'
   ].sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
   var GURU_OPTIONS = GURU_NAMES.map(function (n) { return { value: n, label: n, labelEn: n }; });
+  // Rekomendasi ke Kepala Sekolah ditulis oleh AA (Academic Advisor) siswa, lalu ditandatangani Kepala Sekolah
+  // ("Acknowledged by"). Permintaan otomatis dialihkan ke nama AA supaya muncul di daftar AA tersebut.
+  var KEPSEK_NAMA = 'Hans Deny (Kepala Sekolah)';
+  // AA per kelas (Daftar AA per Kelas, data absensi 28 Okt 2026); nama = nama di GURU_NAMES.
+  // Kelas tanpa AA (Distance Learning) / alumni: pilih dari semua guru.
+  var AA_PER_KELAS = {
+    'F101': ['Octaviyanto Samuel'],
+    'F102': ['Erawati'],
+    'F103': ['Arif Sutikno'],
+    'F104': ['Theresia Emmanuella'],
+    'F105': ['Frenaldi Abyatar Pappang'],
+    'F106': ['Patryks Gerald Yeheskiel Supit'],
+    'F107': ['Sopian Gysbert Wungow'],
+    'F108': ['Eveline Arauna Putri Imanuela'],
+    'F109': ['Ivana Fajar Kristin Zega'],
+    'F110': ['Helga Evlin Leonora Zendrato'],
+    'F111': ['Velita Theodora Hendriani'],
+    'F112': ['Hebron Winter Pemasela'],
+    'F113': ['Feryan Christ Jonathan'],
+    'F114': ['Merry Stefani Ferin'],
+    'F115': ['Antonius Art'],
+    'F116': ['Yanuar Stefen Tischo Rassi'],
+    'F117': ['Maria Kristiadona Gunawan'],
+    'F118': ['Solusi Kharisnawati Daeli'],
+    'F119': ['Clara Zanetha'],
+    'F120': ['Mikael Faradaey', 'Jm Ja San Mai'],
+    'L301': ['Arrhenius Petwien Gunde'],
+    'L302': ['Claudia Melinda Pidu'],
+    'L303': ['Richard Andre Sunarjo', 'Katrina Febriani Simamora'],
+    'L304': ['Natasha Christin Wijaya Dachi'],
+    'L305': ['Johanes Kristian Wijaya'],
+    'L306': ['Ferdy Rinus Hardianto'],
+    'L307': ['Marshella Novitasari Lukman'],
+    'L308': ['Natanael Rafael Adhinugroho'],
+    'L309': ['Dwie Astuti', 'Desiana Laily Putri'],
+    'L310': ['Apdrie Calyca Jacquiline Nitbani'],
+    'L311': ['Kezia Danes Efriliana'],
+    'L312': ['Armae Dianrevy'],
+    'L313': ['Meyviane Pricilia Gloria'],
+    'L314': ['Nency Pascarina Purba'],
+    'L315': ['Theresia Veni Tri Nugraheni'],
+    'L316': ['Catharine Agatha Kurniawan'],
+    'L317': ['Jhones Gandang Satria'],
+    'L318': ['Petrusmen Laoli'],
+    'S201': ['Joana Nathalia Lisella Pioh'],
+    'S202': ['Firdaus Salim', 'Charles Bong'],
+    'S203': ['Gabriel Christian'],
+    'S204': ['P. Maju Sipahutar', 'Sabina Puspa Lesmana'],
+    'S205': ['Jovan Nathanael Torreno'],
+    'S206': ['Ferry Immanuel Wiguna'],
+    'S207': ['Ira Nugraha'],
+    'S208': ['Afrilia Kristiana'],
+    'S209': ['Selvia Mariana'],
+    'S210': ['Patricia Tessalonika Situmorang'],
+    'S211': ['Wenny Caroline'],
+    'S212': ['Rifaldo Freedom Tatipikalawan', 'Ramesh Mahendra Thangavel', 'Nur Cahya Wulandari'],
+    'S213': ['Timothy Jordan Christianto'],
+    'S214': ['FX. Pujo Santosa'],
+    'S215': ['Ristyan Andhika Setyawan'],
+    'S216': ['Frankie Kusumawardana'],
+    'S217': ['Christeven Mevotema'],
+    'S218': ['Kezia Allenia Putri Asika']
+  };
+  function mintaKeKepsek(d) { return !!d && [d.namaGuru, d.namaGuru2, d.namaGuru3].indexOf(KEPSEK_NAMA) >= 0; }
+  function opsiAaPenulis(d) {
+    var aa = AA_PER_KELAS[String((d && d.kelas) || '').trim()];
+    var list = (aa && aa.length) ? aa : GURU_NAMES.filter(function (x) { return x !== KEPSEK_NAMA; });
+    return list.map(function (x) { return { value: x, label: x, labelEn: x }; });
+  }
+  function siapkanDataRekomendasi(type, d) {
+    if (type !== 'REKOMENDASI') return d;
+    if (!mintaKeKepsek(d) || !d.aaPenulis) { delete d.aaPenulis; return d; }
+    ['namaGuru', 'namaGuru2', 'namaGuru3'].forEach(function (k, i) {
+      if (d[k] === KEPSEK_NAMA) { d[k] = d.aaPenulis; d['untukKepsek' + (i + 1)] = true; }
+    });
+    return d;
+  }
 
   function pronoun(g) {
     if (g === 'P') return { subject: 'she', possessive: 'her', object: 'her' };
@@ -1062,6 +1139,9 @@
         { key: 'namaGuru', label: 'Nama Guru yang Diminta (1)', labelEn: "Requested Teacher's Name (1)", type: 'select', options: GURU_OPTIONS, required: true },
         { key: 'namaGuru2', label: 'Nama Guru yang Diminta (2, opsional)', labelEn: "Requested Teacher's Name (2, optional)", type: 'select', options: GURU_OPTIONS, required: false },
         { key: 'namaGuru3', label: 'Nama Guru yang Diminta (3, opsional)', labelEn: "Requested Teacher's Name (3, optional)", type: 'select', options: GURU_OPTIONS, required: false },
+        { key: 'aaPenulis', label: 'AA yang akan menulis surat untuk Kepala Sekolah', labelEn: 'Academic Advisor (AA) who will write the letter for the Principal', type: 'select', optionsFn: opsiAaPenulis, autoPilihTunggal: true, required: true, showIf: mintaKeKepsek,
+          hint: 'Surat rekomendasi yang diminta ke Kepala Sekolah ditulis oleh AA-mu, lalu ditandatangani Kepala Sekolah (Acknowledged by). Permintaanmu otomatis diteruskan ke AA yang dipilih.',
+          hintEn: 'A recommendation requested from the Principal is written by your AA and then signed by the Principal (Acknowledged by). Your request is forwarded automatically to the selected AA.' },
         { key: 'linkForm', label: 'Link Form Rekomendasi (yang sudah diisi)', labelEn: 'Recommendation Form Link (filled)', placeholder: 'Link OneDrive/Google Drive', placeholderEn: 'OneDrive/Google Drive link', type: 'text', required: true, isLink: true },
         { key: 'keperluan', label: 'Keperluan / Universitas Tujuan', labelEn: 'Purpose / Destination University', type: 'textarea', required: true },
         { key: 'catatanSiswa', label: 'Catatan Tambahan (opsional)', labelEn: 'Additional Notes (optional)', placeholder: 'Contoh: Informasi tambahan yang ingin disampaikan ke guru', placeholderEn: 'e.g. Additional information you would like to share with the teacher', type: 'textarea', required: false }
@@ -1408,6 +1488,7 @@
     if (data.namaGuru3 && String(data.namaGuru3).trim()) slots.push(3);
     return slots;
   }
+  function guruLabelAt(data, n) { return guruNameAt(data, n) + (data['untukKepsek' + n] ? ' (untuk Kepala Sekolah)' : ''); }
   function guruNameAt(data, n) {
     return n === 1 ? data.namaGuru : (n === 2 ? data.namaGuru2 : data.namaGuru3);
   }
@@ -1764,7 +1845,13 @@
         inputEl = '<textarea class="field-input" data-field="' + f.key + '" placeholder="' + escapeHtml(fieldPlaceholder(f)) + '" rows="2">' + val + '</textarea>';
       } else if (f.type === 'select') {
         var groups = {}; var groupOrder = [];
-        f.options.forEach(function (o) {
+        var daftarOpsi = f.optionsFn ? f.optionsFn(S.formDraft || {}) : f.options;
+        if (f.optionsFn && S.formDraft) {
+          var nilai = S.formDraft[f.key];
+          if (nilai && !daftarOpsi.some(function (o) { return o.value === nilai; })) S.formDraft[f.key] = '';
+          if (!S.formDraft[f.key] && f.autoPilihTunggal && daftarOpsi.length === 1) S.formDraft[f.key] = daftarOpsi[0].value;
+        }
+        daftarOpsi.forEach(function (o) {
           var g = o.group || '';
           if (groups[g] === undefined) { groups[g] = []; groupOrder.push(g); }
           groups[g].push(o);
@@ -1849,6 +1936,11 @@
     var noticeHtml = (reqType && reqType.notice) ? '<div class="notice-card">' + escapeHtml(S.lang === 'en' ? (reqType.noticeEn || reqType.notice) : reqType.notice) + '</div>' : '';
     var jumlahHtml = (reqType && reqType.noPayment) ? '' : '<p class="hint">' + escapeHtml(tt('jumlahTransfer')) + ' ' + formatRupiah(req.amount) + '</p>';
     var hintText = (reqType && reqType.noPayment) ? tt('prosesHintRekomendasi') : tt('prosesHint');
+    if (req.type === 'REKOMENDASI' && req.data && req.data.aaPenulis && guruSlotsFor(req.data).some(function (k) { return req.data['untukKepsek' + k]; })) {
+      noticeHtml += '<div class="pickup-card">' + escapeHtml(S.lang === 'en'
+        ? 'Your request to the Principal has been forwarded to your AA, ' + req.data.aaPenulis + '. The letter will be written by your AA and signed by the Principal (Acknowledged by).'
+        : 'Permintaanmu ke Kepala Sekolah sudah diteruskan ke AA-mu, ' + req.data.aaPenulis + '. Surat akan ditulis oleh AA dan ditandatangani Kepala Sekolah (Acknowledged by).') + '</div>';
+    }
     return '' +
       '<div class="hero small">' +
         '<div class="seal">&#10003;</div>' +
@@ -2225,7 +2317,7 @@
         var name = guruNameAt(r.data, n);
         var st = guruStatusAt(r.data, n, r.status);
         var completedAt = guruCompletedAtAt(r.data, n);
-        var line = escapeHtml(name) + ': ' + escapeHtml(statusLabelFor('REKOMENDASI', st));
+        var line = escapeHtml(guruLabelAt(r.data, n)) + ': ' + escapeHtml(statusLabelFor('REKOMENDASI', st));
         if (st === 'selesai' && completedAt) line += ' (' + escapeHtml(formatDateShort(completedAt)) + ')';
         return '<div class="hint" style="margin-top:2px;">' + line + '</div>';
       }).join('');
@@ -2332,7 +2424,7 @@
         var st = guruStatusAt(d, n, r.status);
         var done = guruCompletedAtAt(d, n);
         return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #EEE8DA;">' +
-          '<span>' + escapeHtml(guruNameAt(d, n)) + (st === 'selesai' && done ? '<span class="hint"> &middot; selesai ' + escapeHtml(formatDateShortAdmin(done)) + '</span>' : '') + '</span>' +
+          '<span>' + escapeHtml(guruLabelAt(d, n)) + (st === 'selesai' && done ? '<span class="hint"> &middot; selesai ' + escapeHtml(formatDateShortAdmin(done)) + '</span>' : '') + '</span>' +
           '<span class="stamp ' + st + '">' + escapeHtml(statusLabelFor('REKOMENDASI', st)) + '</span></div>';
       }).join('');
       return '<button class="card list-item" data-detail="' + r.id + '">' +
@@ -2946,7 +3038,8 @@
         var note = guruCatatanAt(req.data, n);
         var completedAt = guruCompletedAtAt(req.data, n);
         return '<div class="card">' +
-          '<p class="field-label">Guru ' + n + ': ' + escapeHtml(name) + '</p>' +
+          '<p class="field-label">Guru ' + n + ': ' + escapeHtml(guruLabelAt(req.data, n)) + '</p>' +
+          (req.data['untukKepsek' + n] ? '<p class="hint" style="margin:0 0 6px">Siswa meminta ke Kepala Sekolah: surat ditulis AA ini, lalu ditandatangani Kepala Sekolah (Acknowledged by).</p>' : '') +
           (completedAt ? '<p class="hint">Selesai: ' + escapeHtml(formatDateTimeFull(completedAt)) + '</p>' : '') +
           '<label class="field"><span class="field-label">Ubah Status</span><select id="guruStatusSelect-' + n + '" class="field-input">' + renderGuruStatusOptions(st) + '</select></label>' +
           '<label class="field"><span class="field-label">Catatan Guru (isi keterangan, mis. alasan Ditolak atau kenapa Link Bermasalah)</span><textarea class="field-input" id="guruNoteInput-' + n + '" rows="2">' + escapeHtml(note) + '</textarea></label>' +
@@ -3109,7 +3202,7 @@
       inp.addEventListener('input', handler);
       inp.addEventListener('change', handler);
       var tAktif = LETTER_TYPES[S.selectedType];
-      if (inp.getAttribute('data-field') === 'kelas' && tAktif && tAktif.fields.some(function (f) { return f.showIf; })) {
+      if (['kelas', 'namaGuru', 'namaGuru2', 'namaGuru3'].indexOf(inp.getAttribute('data-field')) >= 0 && tAktif && tAktif.fields.some(function (f) { return f.showIf || f.optionsFn; })) {
         inp.addEventListener('change', function () { var y = window.scrollY; render(); window.scrollTo(0, y); });
       }
     });
@@ -3121,6 +3214,12 @@
         if (!fieldTampil(f)) return;
         if (f.required && !(S.formDraft[f.key] && String(S.formDraft[f.key]).trim())) errors[f.key] = tt('fieldWajib');
       });
+      if (S.selectedType === 'REKOMENDASI' && mintaKeKepsek(S.formDraft) && S.formDraft.aaPenulis && !errors.aaPenulis &&
+          [S.formDraft.namaGuru, S.formDraft.namaGuru2, S.formDraft.namaGuru3].indexOf(S.formDraft.aaPenulis) >= 0) {
+        errors.aaPenulis = S.lang === 'en'
+          ? 'You also selected this AA in another teacher slot. Remove that slot; choosing the Principal is enough.'
+          : 'AA ini juga kamu pilih di slot guru lain. Hapus pilihan di slot itu, cukup pilih Kepala Sekolah.';
+      }
       var cekTgl = cekTanggalPerjalanan(S.formDraft, todayISO());
       if (cekTgl.kembali && !errors.tanggalKembali) errors.tanggalKembali = S.lang === 'en' ? cekTgl.kembali.en : cekTgl.kembali.id;
       if (cekTgl.berangkat && !errors.tanggalBerangkat) errors.tanggalBerangkat = S.lang === 'en' ? cekTgl.berangkat.en : cekTgl.berangkat.id;
@@ -3147,7 +3246,7 @@
           id: id, type: S.selectedType, submittedAt: new Date().toISOString(), status: 'baru',
           paymentChecked: false, paymentNote: '', paymentDate: null, paymentCode: null, amount: 0,
           adminNote: '', nomorSurat: '', tanggalSurat: '', generatedText: '',
-          data: Object.assign({}, S.formDraft)
+          data: siapkanDataRekomendasi(S.selectedType, Object.assign({}, S.formDraft))
         };
         var result = await insertRequest(newReq);
         if (!result.ok) {
