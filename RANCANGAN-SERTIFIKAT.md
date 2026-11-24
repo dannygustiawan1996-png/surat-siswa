@@ -6,6 +6,8 @@ Status: **sudah dibuat (23 Nov 2026), menunggu SQL dijalankan di Supabase.** Sem
 
 1. **Jalankan SQL.** Buka Supabase → SQL Editor → New query, tempel seluruh isi
    [`supabase/migrations/005_sertifikat.sql`](supabase/migrations/005_sertifikat.sql), lalu klik **Run**. Aman dijalankan ulang.
+   Lalu, di query kosong yang baru, jalankan juga [`006_sertifikat_batas_teks.sql`](supabase/migrations/006_sertifikat_batas_teks.sql)
+   (narasi sampai 300 karakter, kalimat pembuka boleh kosong, teks kepanjangan ditolak — bukan dipotong).
 2. **Beri akses** ke akun yang boleh menerbitkan (ganti emailnya), lalu **Run**:
    ```sql
    update auth.users

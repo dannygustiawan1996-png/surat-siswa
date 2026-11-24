@@ -2780,7 +2780,8 @@ var STORE='uphc-certificates-demo-v2';
 var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 var $=function(id){return document.getElementById(id)};
 var APP='CERTIFICATE OF APPRECIATION',ACH='CERTIFICATE OF ACHIEVEMENT';
-var LIM={name:50,ach:55,role:55,event:60,subtitle:50,organizer:60};
+var LIM={name:50,ach:55,role:55,event:60,subtitle:50,organizer:60};   // suggested length (counter turns red); the fit check decides
+var MAXLEN={name:120,lead:120,ach:300,role:300,event:300,subtitle:300,organizer:300};   // hard limit, same as the database
 var SMALL={a:1,an:1,the:1,of:1,in:1,on:1,at:1,to:1,for:1,and:1,or:1,but:1,by:1,with:1,as:1};
 
 function tc(s){return String(s).split(' ').map(function(w,i){var l=w.toLowerCase();return (i>0&&SMALL[l])?l:w.charAt(0).toUpperCase()+w.slice(1)}).join(' ')}
@@ -2876,7 +2877,13 @@ function validate(rec){
     if(rec.name.length>LIM.name+8)warns.push('This name is very long and will be set on two lines.');
   }
   if(!rec.ach&&!rec.event)missing.push('Achievement or Event');
-  if(rec.ach&&rec.leadUnset)missing.push('Lead-In Phrase');
+  // Lead-in phrase is optional: left unchosen, the wording simply starts with the achievement text.
+  // Hard limits match the database (it refuses longer text rather than cutting it).
+  if(rec.name&&rec.name.length>MAXLEN.name)errs.push('Full Name is longer than '+MAXLEN.name+' characters.');
+  if(rec.lead&&rec.lead.t&&rec.lead.t.length>MAXLEN.lead)errs.push('Lead-In Phrase is longer than '+MAXLEN.lead+' characters.');
+  ['ach','role','event','subtitle','organizer'].forEach(function(k){
+    if((rec[k]||'').length>MAXLEN[k])errs.push(LABEL[k]+' is longer than '+MAXLEN[k]+' characters.');
+  });
   ['ach','role','event','subtitle','organizer'].forEach(function(k){
     var v=rec[k]||'';if(v){var w=caseWarn(LABEL[k],v);if(w)warns.push(w)}
   });
@@ -3427,7 +3434,6 @@ function renderPreview(){
     if(dups.length)notes.push({c:'warn',t:'Repeated name: '+dups.slice(0,3).join(', ')+(dups.length>3?'…':'')+'.'});
     S.rows.forEach(function(r,i){if(!norm(r.name)&&(norm(r.ach)||norm(r.role)))hard.push('Row '+(i+1)+' has details but no name.')});
     list.forEach(function(r){if(!r.ach&&!r.event)hard.push('Row '+(r.row+1)+' needs an achievement, or fill in the event.')});
-    if(base.leadUnset&&list.some(function(r){return r.ach}))missing.push('Lead-In Phrase');
   }else cur=list[0];
   var v=validate(cur);
   v.errs.forEach(function(e){hard.push(e)});

@@ -27,7 +27,11 @@ export async function bukaDb() {
     -- Supabase memberi hak tabel bawaan ke anon/authenticated; tiru supaya revoke di migrasi ikut teruji.
     alter default privileges in schema public grant all on tables to anon, authenticated;
   `);
-  await db.exec(fs.readFileSync(path.join(ROOT, 'supabase', 'migrations', '005_sertifikat.sql'), 'utf8'));
+  // Semua migrasi sertifikat, berurutan (005, 006, ...), sama seperti yang dijalankan di Supabase.
+  const migrasi = path.join(ROOT, 'supabase', 'migrations');
+  for (const f of fs.readdirSync(migrasi).filter((x) => /^\d{3}_sertifikat.*\.sql$/.test(x)).sort()) {
+    await db.exec(fs.readFileSync(path.join(migrasi, f), 'utf8'));
+  }
   return db;
 }
 

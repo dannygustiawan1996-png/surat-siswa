@@ -123,6 +123,18 @@ cek('riwayat lengkap dengan pelaku', r.logs.length >= 10 && r.logs.every((l) => 
 cek('registri: 8 sertifikat (2+3+1+1+1)', r.records.length === 8, r.records.length);
 cek('sigs berisi semua versi TTD yang dipakai', Object.keys(r.sigs).length === 3, Object.keys(r.sigs));
 
+console.log('Teks panjang (006)');
+const narasi = 'For receiving 1st Place at the 3x3 Basketball Competition, hosted by Yayasan Anak Terang, held from October 9 – 10, 2026.';
+r = await A('terbitkan_sertifikat', { p_items: [item('Tes Sistem', { lead: { t: '', brk: 0 }, conn: '', ach: narasi, event: '', mode: 'none', d1: '' })], p_id_permintaan: idp('panjang1') });
+cek('narasi 121 karakter tanpa kalimat pembuka tersimpan utuh', r.records[0].ach === narasi && r.records[0].lead.t === '', r.records[0]);
+r = await rpc(db, 'anon', {}, 'cek_sertifikat', { p_token: r.records[0].token });
+cek('halaman QR menampilkan narasi utuh', r.rec.ach === narasi, r.rec.ach);
+r = await A('terbitkan_sertifikat', { p_items: [item('B', { ach: 'x'.repeat(300) })], p_id_permintaan: idp('panjang2') });
+cek('tepat 300 karakter diterima', r.records[0].ach.length === 300, r.records[0].ach.length);
+await harusGagal('301 karakter ditolak (bukan dipotong)', () => A('terbitkan_sertifikat', { p_items: [item('C', { ach: 'x'.repeat(301) })], p_id_permintaan: idp('panjang3') }), /terlalu panjang \(301 karakter, maksimal 300\)/);
+await harusGagal('nama 121 karakter ditolak', () => A('terbitkan_sertifikat', { p_items: [item('n'.repeat(121))], p_id_permintaan: idp('panjang4') }), /Nama terlalu panjang/);
+await harusGagal('baris batch yang kepanjangan disebut nomornya', () => A('terbitkan_sertifikat', { p_items: [item('Ok'), item('D', { event: 'e'.repeat(301) })], p_id_permintaan: idp('panjang5') }), /Acara terlalu panjang .*baris 2/);
+
 console.log('Nomor > 9999');
 await db.exec(`update sertifikat_setelan set nomor_mulai = 9999, tahun_mulai = ${tahun}`);
 r = await A('terbitkan_sertifikat', { p_items: [item('I1'), item('I2')], p_id_permintaan: idp('req6') });
