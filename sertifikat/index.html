@@ -3147,6 +3147,9 @@ function buildPanel(){
       '<div class="fld" data-key="lead"><label for="fLead">Lead-In Phrase</label><select id="fLead"></select></div>'+
       '<div class="fld" data-key="lead" id="customBox" hidden><label for="fCustom">Custom Lead-In</label><input type="text" id="fCustom"><label class="chk"><input type="checkbox" id="fCustomBrk">Place on Its Own Line</label></div>'+
       '<div class="stack-f" id="singleReason">'+textField('ach')+textField('role')+'</div>'+
+      '<div class="fld" id="batchReason" data-key="ach" hidden><div class="row"><label for="in-achAll">Achievement or Role for Everyone</label><span class="cnt" id="c-achAll"></span></div>'+
+        '<textarea id="in-achAll" rows="4" placeholder="For receiving 3rd Place at the …"></textarea>'+
+        '<p class="hint" style="margin:0">Used for every person in the table. A row with its own Achievement uses that instead.</p></div>'+
     '</section>'+
     '<section class="sec" aria-labelledby="h-event"><h3 id="h-event">Event</h3>'+
       '<div class="fld" data-key="conn"><label for="fConn">Connector</label><select id="fConn"></select></div>'+
@@ -3215,13 +3218,15 @@ function baseRec(){
     event:norm($('in-event').value),subtitle:norm($('in-subtitle').value),organizer:norm($('in-organizer').value),
     mode:$('fMode').value,d1:$('fMode').value==='multi'?S.dates.join(','):$('fD1').value,d2:$('fD2').value,ay:$('fAY').value,issuedOn:$('fIssued').value};
 }
+// Several People: shared achievement text, used for rows that leave their own Achievement empty.
+function achAll(){var el=$('in-achAll');return el?norm(el.value):''}
 function recipients(){
   var base=baseRec();
   if(S.mode==='single'){var r=clone(base);r.name=norm($('fName').value);return [r]}
   var seen={},out=[];
   S.rows.forEach(function(row,i){
     var nm=norm(row.name);if(!nm)return;
-    var r=clone(base);r.name=nm;r.row=i;r.ach=norm(row.ach);r.role=norm(row.role);
+    var r=clone(base);r.name=nm;r.row=i;r.ach=norm(row.ach)||achAll();r.role=norm(row.role);
     r.dup=!!seen[nm.toLowerCase()];seen[nm.toLowerCase()]=1;out.push(r);
   });
   return out;
@@ -3288,6 +3293,12 @@ function initRows(){
     var txt=(e.clipboardData||window.clipboardData).getData('text');
     if(!txt||(txt.indexOf('\t')<0&&txt.indexOf('\n')<0))return;
     e.preventDefault();
+    // Several lines without tabs pasted into Achievement/Role: that is one sentence written over several
+    // lines, not a list of people. Keep it in this one cell.
+    if(c!=='name'&&txt.indexOf('\t')<0){
+      var ri=+e.target.closest('tr').dataset.i;
+      S.rows[ri][c]=norm(txt);S.pv=ri;renderRows(ri,c);refresh();return;
+    }
     var i0=+e.target.closest('tr').dataset.i,c0=COLS.indexOf(c);
     var lines=parseTsv(txt);
     lines.forEach(function(cells,k){
@@ -3320,6 +3331,19 @@ function initCreate(){
   $('fIssued').value=iso(new Date());$('fAY').value=new Date().getFullYear()-1;
   var panel=$('f');
   panel.addEventListener('input',refresh);
+  // One-line fields: text copied over several lines is pasted as one sentence (line breaks become spaces).
+  panel.addEventListener('paste',function(e){
+    var el=e.target;
+    if(el.tagName!=='INPUT'||el.type!=='text'||el.classList.contains('cell'))return;
+    var txt=(e.clipboardData||window.clipboardData).getData('text');
+    if(!txt||!/[\r\n]/.test(txt))return;
+    e.preventDefault();
+    var clean=txt.replace(/\s*[\r\n]+\s*/g,' ').trim();
+    var a=el.selectionStart,b=el.selectionEnd;
+    el.value=el.value.slice(0,a)+clean+el.value.slice(b);
+    el.selectionStart=el.selectionEnd=a+clean.length;
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+  });
   panel.addEventListener('change',function(e){
     var id=e.target.id;
     if(id==='fMode')applyMode();
@@ -3404,6 +3428,7 @@ function applyRecipients(){
   $('singleBox').hidden=S.mode!=='single';
   $('batchBox').hidden=S.mode!=='batch';
   $('singleReason').hidden=S.mode==='batch';
+  $('batchReason').hidden=S.mode!=='batch';
   document.querySelector('.editor').classList.toggle('batch',S.mode==='batch');
 }
 function counters(){
@@ -3411,6 +3436,7 @@ function counters(){
     var n=norm($('in-'+k).value).length,el=$('c-'+k);el.textContent=n+'/'+LIM[k];el.classList.toggle('over',n>LIM[k]);
   });
   var nn=norm($('fName').value).length;$('c-name').textContent=nn+'/'+LIM.name;$('c-name').classList.toggle('over',nn>LIM.name);
+  var na=achAll().length;$('c-achAll').textContent=na+'/'+MAXLEN.ach;$('c-achAll').classList.toggle('over',na>MAXLEN.ach);
   var cnt=S.rows.filter(function(r){return norm(r.name)}).length;
   $('c-batch').textContent=cnt+(cnt===1?' person':' people');
 }
@@ -3427,7 +3453,7 @@ function renderPreview(){
   if(already)notes.push({c:'warn',t:(list.length>1?'These certificates were':'This certificate was')+' just issued. Change the details or press Create Another to issue more.'});
   if(batch){
     cur=null;list.forEach(function(r){if(r.row===S.pv)cur=r});
-    if(!cur){cur=clone(base);cur.name='';var row=S.rows[S.pv];if(row){cur.ach=norm(row.ach);cur.role=norm(row.role)}}
+    if(!cur){cur=clone(base);cur.name='';var row=S.rows[S.pv];cur.ach=achAll();if(row){cur.ach=norm(row.ach)||achAll();cur.role=norm(row.role)}}
     if(empty)missing.push('At Least One Name');
     if(list.length>100)hard.push('Batches are limited to 100 people at a time.');
     var dups=list.filter(function(r){return r.dup}).map(function(r){return r.name});
