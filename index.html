@@ -125,6 +125,14 @@
   .prapen-lang { background: none; border: 1px solid var(--color-brass); color: var(--color-brass); border-radius: 20px; padding: 3px 12px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; margin-right: 26px; }
   body.prapen-noscroll { overflow: hidden; }
 
+  /* ---------- Bukti pembayaran ---------- */
+  .bukti-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .bukti-box { background: #fff; border-radius: 10px; width: min(900px, 100%); max-height: 94vh; display: flex; flex-direction: column; overflow: hidden; }
+  .bukti-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid #E5DECB; }
+  .bukti-bar strong { flex: 1 1 auto; font-size: 14px; }
+  .bukti-isi { display: block; width: 100%; max-height: calc(94vh - 60px); object-fit: contain; border: 0; background: #f4f4f4; }
+  iframe.bukti-isi { height: calc(94vh - 60px); }
+
   /* ---------- Finance & Persetujuan ---------- */
   #app.wide { max-width: 1180px; }
   .fin-tablewrap { overflow-x: auto; margin-top: 8px; }
@@ -1927,6 +1935,13 @@
         '<input class="field-input" id="paymentDate" type="date" value="' + escapeHtml(S.paymentDate) + '">' +
         (S.formErrors.paymentDate ? '<span class="field-error">' + escapeHtml(S.formErrors.paymentDate) + '</span>' : '') +
       '</label>' +
+      '<label class="field">' +
+        '<span class="field-label">' + escapeHtml(bt('label')) + ' <span class="req">*</span></span>' +
+        '<input class="field-input" id="buktiFile" type="file" accept="image/*,application/pdf">' +
+        '<span class="hint">' + escapeHtml(bt('hint')) + '</span>' +
+        (S.buktiDraftMsg ? '<span class="hint" style="color:' + (S.buktiDraft ? '#2E7D5B' : 'var(--color-red)') + '">' + escapeHtml(S.buktiDraftMsg) + '</span>' : '') +
+        (S.formErrors.bukti ? '<span class="field-error">' + escapeHtml(S.formErrors.bukti) + '</span>' : '') +
+      '</label>' +
       (S.formErrors._payment ? '<span class="field-error">' + escapeHtml(S.formErrors._payment) + '</span>' : '') +
       '<button class="btn-primary" id="submitRequestBtn" style="margin-top:12px">' + escapeHtml(tt('kirimPermintaan')) + '</button>';
   }
@@ -1938,6 +1953,8 @@
     var noticeHtml = (reqType && reqType.notice) ? '<div class="notice-card">' + escapeHtml(S.lang === 'en' ? (reqType.noticeEn || reqType.notice) : reqType.notice) + '</div>' : '';
     var jumlahHtml = (reqType && reqType.noPayment) ? '' : '<p class="hint">' + escapeHtml(tt('jumlahTransfer')) + ' ' + formatRupiah(req.amount) + '</p>';
     var hintText = (reqType && reqType.noPayment) ? tt('prosesHintRekomendasi') : tt('prosesHint');
+    if (req.buktiTerkirim === true) noticeHtml += '<div class="pickup-card">' + escapeHtml(bt('terkirim')) + '</div>';
+    else if (req.buktiTerkirim === false) noticeHtml += '<div class="notice-card">' + escapeHtml(bt('gagalKirim')) + '</div>';
     if (req.type === 'REKOMENDASI' && req.data && req.data.aaPenulis && guruSlotsFor(req.data).some(function (k) { return req.data['untukKepsek' + k]; })) {
       noticeHtml += '<div class="pickup-card">' + escapeHtml(S.lang === 'en'
         ? 'Your request to the Principal has been forwarded to your AA, ' + req.data.aaPenulis + '. The letter will be written by your AA and signed by the Principal (Acknowledged by).'
@@ -1990,6 +2007,7 @@
                   : '<button type="button" class="btn-outline" data-unduhkode="' + escapeHtml(r.id) + '" style="margin-top:8px">' + escapeHtml(ut('tombolHasil')) + '</button>')
                 : '')
             : '';
+          var buktiHtml = buktiCekStatusHtml(r);
           var klinikInfoHtml = isKlinik ? '<div class="pickup-card">' + escapeHtml(r.status === 'selesai' ? tt('klinikSelesaiInfo') : tt('klinikBaruInfo')) + '</div>' : '';
           var klinikTreatmentRowsHtml = isKlinik && r.status === 'selesai' ? (
             ((r.data && r.data.diagnosa) ? '<div class="detail-row"><span class="detail-label">' + escapeHtml(tt('klinikDiagnosa')) + '</span><span class="detail-value">' + escapeHtml(r.data.diagnosa) + '</span></div>' : '') +
@@ -2066,6 +2084,7 @@
             noteHtml +
             guruBreakdownHtml +
             pickupHtml +
+            buktiHtml +
             klinikDetailHtml +
             klinikInfoHtml +
             fixLinkHtml +
@@ -3017,6 +3036,10 @@
         '<div class="detail-row"><span class="detail-label">Klaim Sudah Bayar</span><span class="detail-value">' + (req.paymentChecked ? 'Ya' : 'Belum') + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Nama Pengirim</span><span class="detail-value">' + escapeHtml(req.paymentNote || '-') + '</span></div>' +
         '<div class="detail-row"><span class="detail-label">Tanggal Transfer</span><span class="detail-value">' + (req.paymentDate ? formatDateShort(req.paymentDate) : '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Bukti Pembayaran</span><span class="detail-value">' +
+          ((S.buktiInfo && S.buktiInfo[req.id]) ? '<button type="button" class="fin-btn" data-lihatbukti="' + escapeHtml(req.id) + '">Lihat bukti</button> <span class="hint" style="margin:0">terhapus otomatis ' + escapeHtml(formatDateShort(buktiTerhapusTgl(S.buktiInfo[req.id]))) + '</span>'
+            : (S.buktiInfo == null ? '…' : (S.buktiInfoError ? 'tidak bisa dibuka (' + escapeHtml(S.buktiInfoError) + ')' : 'Belum ada'))) +
+        '</span></div>' +
       '</div>'
     );
 
@@ -3273,11 +3296,21 @@
     noteInp.addEventListener('input', function () { S.paymentNote = noteInp.value; });
     var dateInp = document.getElementById('paymentDate');
     dateInp.addEventListener('input', function () { S.paymentDate = dateInp.value; });
+    var buktiInp = document.getElementById('buktiFile');
+    if (buktiInp) buktiInp.addEventListener('change', async function () {
+      var f = buktiInp.files && buktiInp.files[0];
+      if (!f) return;
+      S.buktiDraft = null; S.buktiDraftMsg = bt('memproses'); render();
+      try { S.buktiDraft = await siapkanBukti(f); S.buktiDraftMsg = bt('siap')(S.buktiDraft.kb); if (S.formErrors) delete S.formErrors.bukti; }
+      catch (e) { S.buktiDraft = null; S.buktiDraftMsg = String(e && e.message || e); }
+      render();
+    });
     document.getElementById('submitRequestBtn').addEventListener('click', async function () {
       if (!S.paymentChecked) { S.formErrors._payment = tt('checkPaymentFirst'); render(); return; }
       var errors = {};
       if (!S.paymentNote || !S.paymentNote.trim()) errors.paymentNote = tt('fieldWajib');
       if (!S.paymentDate) errors.paymentDate = tt('fieldWajib');
+      if (!S.buktiDraft) errors.bukti = bt('wajib');
       S.formErrors = errors;
       if (Object.keys(errors).length > 0) { render(); return; }
       var feeForType = (LETTER_TYPES[S.selectedType].fee || FEE);
@@ -3295,8 +3328,11 @@
         btn.disabled = false; btn.textContent = tt('kirimPermintaan');
         return;
       }
+      var hasilBukti = await kirimBukti(newReq.id, S.buktiDraft);
+      newReq.buktiTerkirim = hasilBukti.ok;
       S.lastRequest = newReq;
       S.paymentChecked = false; S.paymentNote = ''; S.paymentDate = ''; S.pendingId = null;
+      S.buktiDraft = null; S.buktiDraftMsg = '';
       go('konfirmasi');
     });
   }
@@ -3378,6 +3414,7 @@
   }
   function attachCekStatus() {
     attachUnduhCard();
+    attachBuktiCekStatus();
     var inp = document.getElementById('statusQuery');
     inp.addEventListener('input', function () { S.statusQuery = inp.value; });
     document.getElementById('searchStatusBtn').addEventListener('click', async function () {
@@ -4580,6 +4617,8 @@
   }
 
   function attachEditDataHandlers() {
+    pastikanBuktiInfo();
+    attachLihatBukti();
     var editBtn = document.getElementById('editDataBtn');
     if (editBtn) editBtn.addEventListener('click', function () { S.editDataId = S.adminSelectedId; render(); });
     var batal = document.getElementById('batalDataBtn');
@@ -4744,10 +4783,10 @@
   }
 
   function buildFinanceCsv(list) {
-    var lines = [['Kode', 'Nama', 'Kelas', 'Jenis Surat', 'Jumlah', 'Tanggal Bayar', 'Nama Pengirim', 'Status', 'Dilunaskan Oleh', 'Waktu Lunas'].map(csvField).join(',')];
+    var lines = [['Kode', 'Nama', 'Kelas', 'Jenis Surat', 'Jumlah', 'Tanggal Bayar', 'Nama Pengirim', 'Bukti Pembayaran', 'Status', 'Dilunaskan Oleh', 'Waktu Lunas'].map(csvField).join(',')];
     list.forEach(function (r) {
       var d = r.data || {};
-      lines.push([r.id, d.namaLengkap || '', d.kelas || '', LETTER_TYPES[r.type].shortLabel, financeJumlah(r), r.paymentDate || '', r.paymentNote || '',
+      lines.push([r.id, d.namaLengkap || '', d.kelas || '', LETTER_TYPES[r.type].shortLabel, financeJumlah(r), r.paymentDate || '', r.paymentNote || '', (S.buktiInfo && S.buktiInfo[r.id]) ? 'Ada' : '-',
         statusLabelFor(r.type, r.status), d.lunasOleh || '', d.lunasAt ? ymdHm(d.lunasAt) : ''].map(csvField).join(','));
     });
     return lines.join('\n');
@@ -4756,7 +4795,7 @@
   // Email tujuan bukti pembayaran (ditampilkan ke siswa lewat catatan status).
   var EMAIL_BUKTI_BAYAR = 'atik.setiyorini@uphcollege.com';
   function catatanBelumBayar() {
-    return 'Pembayaran belum kami terima. Mohon lampirkan bukti pembayaran melalui email ' + EMAIL_BUKTI_BAYAR + '.';
+    return 'Pembayaran belum kami terima. Mohon unggah bukti pembayaran lewat tombol "Unggah / Ganti Bukti Pembayaran" di halaman Cek Status ini, atau kirim ke email ' + EMAIL_BUKTI_BAYAR + '.';
   }
   function financeStatusText(r) {
     if (r.status === 'pembayaran_belum_diterima') return 'Belum ada';
@@ -4797,6 +4836,7 @@
         '<td class="num">' + formatRupiah(financeJumlah(r)) + '</td>' +
         '<td>' + escapeHtml(r.paymentNote || '-') + '</td>' +
         '<td class="nowrap">' + (r.paymentDate ? escapeHtml(formatDateShort(r.paymentDate)) : '-') + '</td>' +
+        '<td class="no-copy nowrap">' + buktiSelHtml(r.id) + '</td>' +
         '<td><span class="fin-st fin-st-' + b + '">' + escapeHtml(financeStatusText(r)) + '</span></td>' +
         '<td class="no-copy nowrap">' + (bisaUbah ?
           '<button type="button" class="fin-btn fin-ok" data-finact="lunas" data-id="' + escapeHtml(r.id) + '"' + (r.status === 'lunas' ? ' disabled' : '') + '>Lunas</button> ' +
@@ -4805,11 +4845,12 @@
     }).join('');
     var table = list.length
       ? '<div class="fin-tablewrap"><table class="fin-table" id="finTable"><thead><tr>' +
-          '<th class="no-copy"></th><th>No</th><th>Nama</th><th>Kelas</th><th>Surat</th><th>Jumlah</th><th>Atas Nama (Pengirim)</th><th>Tgl Bayar</th><th>Status</th><th class="no-copy">Aksi</th>' +
+          '<th class="no-copy"></th><th>No</th><th>Nama</th><th>Kelas</th><th>Surat</th><th>Jumlah</th><th>Atas Nama (Pengirim)</th><th>Tgl Bayar</th><th class="no-copy">Bukti</th><th>Status</th><th class="no-copy">Aksi</th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table></div>'
       : '<p class="hint">Tidak ada pengajuan untuk filter ini.</p>';
 
-    return '<div class="top-row"><h2 style="margin:0">Pembayaran Surat Berbayar</h2><button class="btn-text" id="finLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
+    var buktiPeringatan = S.buktiInfoError ? '<p class="hint" style="color:var(--color-red)">Bukti pembayaran belum bisa dibuka dari akun ini: ' + escapeHtml(S.buktiInfoError) + ' (akun perlu tanda surat_finance, lalu login ulang).</p>' : '';
+    return buktiPeringatan + '<div class="top-row"><h2 style="margin:0">Pembayaran Surat Berbayar</h2><button class="btn-text" id="finLogoutBtn" style="width:auto;padding:0;">Keluar</button></div>' +
       '<p class="hint">Cek di akun keuangan, lalu klik <strong>Lunas</strong>. Kalau dana belum masuk, klik <strong>Belum Ada</strong> &mdash; siswa langsung melihat pesan untuk melampirkan bukti pembayaran lewat email.</p>' +
       '<div class="filter-row" style="flex-wrap:wrap;">' + tab('belum', 'Perlu Dicek', cnt.belum) + tab('tidak', 'Belum Ada', cnt.tidak) + tab('lunas', 'Lunas', cnt.lunas) + tab('all', 'Semua', all.length) + '</div>' +
       '<div class="filter-row">' +
@@ -4822,6 +4863,8 @@
   }
 
   function attachFinanceDashboard() {
+    pastikanBuktiInfo();
+    attachLihatBukti();
     document.getElementById('finLogoutBtn').addEventListener('click', async function () {
       await adminLogout(); S.adminAuthed = false; S.userRole = null; S.requests = []; go('home');
     });
@@ -5375,6 +5418,171 @@
         var card = document.getElementById('unduhCard');
         if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
         var em = document.getElementById('unduhEmail'); if (em) em.focus({ preventScroll: true });
+      });
+    });
+  }
+
+  // ============================================================
+  // BUKTI PEMBAYARAN (tabel bukti_bayar, migrasi 007)
+  // Siswa unggah foto/PDF bukti transfer; foto dikecilkan dulu di browser. Hanya admin
+  // (surat_admin) & Finance (surat_finance) yang bisa melihat. Terhapus otomatis 21 hari.
+  // ============================================================
+  var BUKTI_MAKS_PDF = 2 * 1024 * 1024;
+  var BUKTI_TEKS = {
+    id: {
+      label: 'Bukti Pembayaran (foto/screenshot atau PDF)',
+      hint: 'Unggah bukti transfer supaya Finance bisa langsung mengecek. File otomatis terhapus 3 minggu setelah diunggah.',
+      siap: function (kb) { return '✓ Bukti siap dikirim (' + kb + ' KB).'; },
+      memproses: 'Memproses file...',
+      tipe: 'Format tidak didukung. Pakai foto (JPG/PNG) atau PDF.',
+      besar: 'PDF terlalu besar (maks. 2 MB). Kirim foto/screenshot saja.',
+      gagalBaca: 'File gambar tidak bisa dibaca. Coba screenshot bukti transfer lalu unggah ulang.',
+      wajib: 'Unggah bukti pembayaran dulu.',
+      gagalKirim: 'Bukti pembayaran gagal diunggah. Unggah ulang lewat Cek Status (tombol "Unggah Bukti Pembayaran") dengan kode permintaanmu.',
+      terkirim: '✓ Bukti pembayaran sudah diterima dan akan dicek Finance.',
+      tombol: 'Unggah / Ganti Bukti Pembayaran',
+      mengunggah: 'Mengunggah...',
+      ok: '✓ Bukti pembayaran terkirim. Finance akan mengecek ulang.',
+      tidakBisa: 'Bukti tidak bisa diunggah untuk permintaan ini (mungkin sudah lunas/selesai).'
+    },
+    en: {
+      label: 'Proof of Payment (photo/screenshot or PDF)',
+      hint: 'Upload your transfer receipt so Finance can check it right away. The file is deleted automatically 3 weeks after upload.',
+      siap: function (kb) { return '✓ Proof ready to send (' + kb + ' KB).'; },
+      memproses: 'Processing file...',
+      tipe: 'Unsupported format. Please use a photo (JPG/PNG) or PDF.',
+      besar: 'PDF is too large (max 2 MB). Please send a photo/screenshot instead.',
+      gagalBaca: 'The image could not be read. Please take a screenshot of the receipt and upload it again.',
+      wajib: 'Please upload your proof of payment first.',
+      gagalKirim: 'Your proof of payment failed to upload. Please upload it again via Check Status ("Upload Proof of Payment" button) using your request code.',
+      terkirim: '✓ Your proof of payment has been received and will be checked by Finance.',
+      tombol: 'Upload / Replace Proof of Payment',
+      mengunggah: 'Uploading...',
+      ok: '✓ Proof of payment sent. Finance will check it again.',
+      tidakBisa: 'Proof cannot be uploaded for this request (it may already be paid/completed).'
+    }
+  };
+  function bt(k) { return BUKTI_TEKS[S.lang === 'en' ? 'en' : 'id'][k]; }
+
+  // File -> { nama, mime, b64, kb }. Foto diubah ke JPEG maks. 1600 px supaya kecil.
+  function siapkanBukti(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file) return reject(new Error(bt('wajib')));
+      var tipe = String(file.type || '').toLowerCase();
+      if (tipe === 'application/pdf' || /\.pdf$/i.test(file.name || '')) {
+        if (file.size > BUKTI_MAKS_PDF) return reject(new Error(bt('besar')));
+        var fr = new FileReader();
+        fr.onerror = function () { reject(new Error(bt('gagalBaca'))); };
+        fr.onload = function () { var b64 = String(fr.result).split(',')[1] || ''; resolve({ nama: file.name || 'bukti.pdf', mime: 'application/pdf', b64: b64, kb: Math.round(b64.length * 0.75 / 1024) }); };
+        return fr.readAsDataURL(file);
+      }
+      if (tipe.indexOf('image/') !== 0) return reject(new Error(bt('tipe')));
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error(bt('gagalBaca'))); };
+      img.onload = function () {
+        var maks = 1600, w = img.naturalWidth, h = img.naturalHeight, sk = Math.min(1, maks / Math.max(w, h));
+        var c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(w * sk)); c.height = Math.max(1, Math.round(h * sk));
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        var b64 = c.toDataURL('image/jpeg', 0.82).split(',')[1] || '';
+        var nama = String(file.name || 'bukti').replace(/\.[^.]+$/, '') + '.jpg';
+        resolve({ nama: nama, mime: 'image/jpeg', b64: b64, kb: Math.round(b64.length * 0.75 / 1024) });
+      };
+      img.src = url;
+    });
+  }
+  async function kirimBukti(id, bukti) {
+    try {
+      var res = await sb.rpc('unggah_bukti_bayar', { p_request_id: id, p_nama_file: bukti.nama, p_mime: bukti.mime, p_data: bukti.b64 });
+      if (res.error) return { ok: false, pesan: res.error.message };
+      var d = res.data || {};
+      if (d.status === 'ok') return { ok: true, statusBaru: d.status_baru };
+      return { ok: false, pesan: d.status === 'tidak_bisa' ? bt('tidakBisa') : d.status === 'tipe_ditolak' ? bt('tipe') : d.status === 'ukuran_ditolak' ? bt('besar') : (d.status || 'gagal') };
+    } catch (e) { return { ok: false, pesan: String(e && e.message || e) }; }
+  }
+
+  // ---- sisi admin / Finance: daftar bukti (tanpa isi file) + penampil
+  async function loadBuktiInfo() {
+    try { await sb.rpc('bersihkan_bukti_bayar'); } catch (e) {}
+    try {
+      var res = await sb.from('bukti_bayar').select('request_id,created_at,mime,ukuran');
+      if (res.error) { S.buktiInfo = {}; S.buktiInfoError = res.error.message; return; }
+      var m = {};
+      (res.data || []).forEach(function (r) { m[r.request_id] = r; });
+      S.buktiInfo = m; S.buktiInfoError = null;
+    } catch (e) { S.buktiInfo = {}; S.buktiInfoError = String(e && e.message || e); }
+  }
+  function pastikanBuktiInfo() {
+    if (S.buktiInfo !== undefined) return;
+    S.buktiInfo = null;
+    loadBuktiInfo().then(function () { if (S.view === 'financeDashboard' || S.view === 'adminDetail') render(); });
+  }
+  function buktiTerhapusTgl(info) { return new Date(new Date(info.created_at).getTime() + 21 * 864e5).toISOString(); }
+  async function lihatBukti(id) {
+    var res = await sb.from('bukti_bayar').select('data_base64,mime,nama_file,created_at').eq('request_id', id).single();
+    if (res.error || !res.data) { alert('Bukti tidak bisa dibuka: ' + (res.error ? res.error.message : 'tidak ditemukan (mungkin sudah terhapus otomatis)')); return; }
+    var d = res.data;
+    var blob = base64ToBlob(d.data_base64, d.mime);
+    var url = URL.createObjectURL(blob);
+    var ov = document.createElement('div');
+    ov.className = 'bukti-overlay';
+    ov.innerHTML = '<div class="bukti-box">' +
+      '<div class="bukti-bar"><strong>Bukti pembayaran · ' + escapeHtml(id) + '</strong>' +
+        '<span class="hint" style="margin:0">diunggah ' + escapeHtml(formatDateTimeFull(d.created_at)) + '</span>' +
+        '<a class="btn-outline" href="' + url + '" download="' + escapeHtml('Bukti ' + id + ' - ' + d.nama_file) + '" style="width:auto;padding:6px 12px;margin:0;text-decoration:none">Unduh</a>' +
+        '<button type="button" class="btn-primary" data-tutupbukti style="width:auto;padding:6px 14px;margin:0">Tutup</button></div>' +
+      (d.mime === 'application/pdf'
+        ? '<iframe src="' + url + '" class="bukti-isi" title="Bukti pembayaran"></iframe>'
+        : '<img src="' + url + '" class="bukti-isi" alt="Bukti pembayaran">') +
+    '</div>';
+    function tutup() { ov.remove(); URL.revokeObjectURL(url); }
+    ov.addEventListener('click', function (e) { if (e.target === ov || e.target.hasAttribute('data-tutupbukti')) tutup(); });
+    document.body.appendChild(ov);
+  }
+  function buktiSelHtml(id) {
+    if (S.buktiInfo === undefined || S.buktiInfo === null) return '<span class="hint" style="margin:0">…</span>';
+    var info = S.buktiInfo[id];
+    if (!info) return '<span class="hint" style="margin:0">–</span>';
+    return '<button type="button" class="fin-btn" data-lihatbukti="' + escapeHtml(id) + '">Lihat</button>' +
+      '<div class="hint" style="margin:2px 0 0;font-size:11px">' + escapeHtml(formatDateShortAdmin(info.created_at)) + '</div>';
+  }
+  function attachLihatBukti() {
+    document.querySelectorAll('[data-lihatbukti]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); lihatBukti(b.getAttribute('data-lihatbukti')); });
+    });
+  }
+
+  // ---- Cek Status: unggah / ganti bukti
+  function buktiCekStatusHtml(r) {
+    var t = LETTER_TYPES[r.type];
+    if (!t || t.noPayment || isDedicatedTabType(r.type) || (r.status !== 'baru' && r.status !== 'pembayaran_belum_diterima')) return '';
+    var msg = (S.buktiMsg || {})[r.id];
+    return '<div style="margin-top:8px">' +
+      '<label class="btn-outline" style="display:block;text-align:center;cursor:pointer">' + escapeHtml(bt('tombol')) +
+        '<input type="file" accept="image/*,application/pdf" data-buktiunggah="' + escapeHtml(r.id) + '" style="display:none"></label>' +
+      (msg ? '<p class="hint" style="margin:6px 0 0;' + (msg.ok ? 'color:#2E7D5B' : 'color:var(--color-red)') + '">' + escapeHtml(msg.teks) + '</p>' : '') +
+    '</div>';
+  }
+  function attachBuktiCekStatus() {
+    document.querySelectorAll('[data-buktiunggah]').forEach(function (inp) {
+      inp.addEventListener('change', async function () {
+        var id = inp.getAttribute('data-buktiunggah'), f = inp.files && inp.files[0];
+        if (!f) return;
+        S.buktiMsg = S.buktiMsg || {};
+        S.buktiMsg[id] = { ok: true, teks: bt('mengunggah') }; render();
+        try {
+          var bukti = await siapkanBukti(f);
+          var hasil = await kirimBukti(id, bukti);
+          S.buktiMsg[id] = hasil.ok ? { ok: true, teks: bt('ok') } : { ok: false, teks: hasil.pesan };
+          if (hasil.ok && hasil.statusBaru) {
+            (S.statusResults || []).forEach(function (r) { if (r.id === id) r.status = hasil.statusBaru; });
+          }
+        } catch (e) { S.buktiMsg[id] = { ok: false, teks: String(e && e.message || e) }; }
+        render();
       });
     });
   }
