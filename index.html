@@ -5521,6 +5521,12 @@
       var m = {};
       (res.data || []).forEach(function (r) { m[r.request_id] = r; });
       S.buktiInfo = m; S.buktiInfoError = null; S.buktiInfoAt = Date.now();
+      // RLS tidak memberi error, hanya daftar kosong -> cek tanda akses di sesi login supaya jelas
+      try {
+        var ses = await sb.auth.getSession();
+        var am = (ses.data.session && ses.data.session.user && ses.data.session.user.app_metadata) || {};
+        if (!am.surat_admin && !am.surat_finance) S.buktiInfoError = 'akun ini belum diberi akses melihat bukti (tanda surat_finance belum ada di sesi login)';
+      } catch (e) {}
     } catch (e) { S.buktiInfo = {}; S.buktiInfoError = String(e && e.message || e); }
   }
   function pastikanBuktiInfo() {
