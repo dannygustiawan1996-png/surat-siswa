@@ -5425,13 +5425,13 @@
   // ============================================================
   // BUKTI PEMBAYARAN (tabel bukti_bayar, migrasi 007)
   // Siswa unggah foto/PDF bukti transfer; foto dikecilkan dulu di browser. Hanya admin
-  // (surat_admin) & Finance (surat_finance) yang bisa melihat. Terhapus otomatis 21 hari.
+  // (surat_admin) & Finance (surat_finance) yang bisa melihat. Terhapus otomatis 7 hari (migrasi 008).
   // ============================================================
   var BUKTI_MAKS_PDF = 2 * 1024 * 1024;
   var BUKTI_TEKS = {
     id: {
       label: 'Bukti Pembayaran (foto/screenshot atau PDF)',
-      hint: 'Unggah bukti transfer supaya Finance bisa langsung mengecek. File otomatis terhapus 3 minggu setelah diunggah.',
+      hint: 'Unggah bukti transfer supaya Finance bisa langsung mengecek. File otomatis terhapus 1 minggu setelah diunggah.',
       siap: function (kb) { return '✓ Bukti siap dikirim (' + kb + ' KB).'; },
       memproses: 'Memproses file...',
       tipe: 'Format tidak didukung. Pakai foto (JPG/PNG) atau PDF.',
@@ -5447,7 +5447,7 @@
     },
     en: {
       label: 'Proof of Payment (photo/screenshot or PDF)',
-      hint: 'Upload your transfer receipt so Finance can check it right away. The file is deleted automatically 3 weeks after upload.',
+      hint: 'Upload your transfer receipt so Finance can check it right away. The file is deleted automatically 1 week after upload.',
       siap: function (kb) { return '✓ Proof ready to send (' + kb + ' KB).'; },
       memproses: 'Processing file...',
       tipe: 'Unsupported format. Please use a photo (JPG/PNG) or PDF.',
@@ -5521,7 +5521,7 @@
     S.buktiInfo = null;
     loadBuktiInfo().then(function () { if (S.view === 'financeDashboard' || S.view === 'adminDetail') render(); });
   }
-  function buktiTerhapusTgl(info) { return new Date(new Date(info.created_at).getTime() + 21 * 864e5).toISOString(); }
+  function buktiTerhapusTgl(info) { return new Date(new Date(info.created_at).getTime() + 7 * 864e5).toISOString(); }
   async function lihatBukti(id) {
     var res = await sb.from('bukti_bayar').select('data_base64,mime,nama_file,created_at').eq('request_id', id).single();
     if (res.error || !res.data) { alert('Bukti tidak bisa dibuka: ' + (res.error ? res.error.message : 'tidak ditemukan (mungkin sudah terhapus otomatis)')); return; }

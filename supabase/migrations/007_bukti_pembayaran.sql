@@ -6,7 +6,7 @@
 -- - Yang bisa melihat: akun dengan app_metadata.surat_admin = true (admin) atau
 --   app_metadata.surat_finance = true (Finance). Tanda ini diset lewat SQL, tidak bisa
 --   diubah sendiri oleh pemilik akun.
--- - Dihapus otomatis 21 hari (3 minggu) setelah diunggah: jadwal harian pg_cron, ditambah
+-- - Dihapus otomatis setelah diunggah (21 hari di sini; diubah jadi 7 hari di migrasi 008): jadwal harian pg_cron, ditambah
 --   pembersihan setiap kali ada unggahan / admin membuka dashboard.
 --
 -- Sekali saja, beri tanda Finance ke akun Finance (ganti emailnya), lalu login ulang:
