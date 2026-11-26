@@ -4857,6 +4857,7 @@
         '<input class="field-input" id="finSearch" type="search" placeholder="Cari nama / kelas / kode / pengirim" value="' + escapeHtml(S.financeSearch || '') + '" style="flex:2">' +
         '<button type="button" class="btn-outline" id="finCopy" style="flex:1;white-space:nowrap">Salin untuk Excel</button>' +
         '<button type="button" class="btn-outline" id="finExport" style="flex:1;white-space:nowrap">Unduh Excel</button>' +
+        '<button type="button" class="btn-outline" id="finReload" style="flex:1;white-space:nowrap">Muat Ulang</button>' +
       '</div>' +
       table +
       '<div class="bulk-bar"><button type="button" class="btn-primary" id="finBulkLunas"' + (selCount ? '' : ' disabled') + '>Tandai Lunas (' + selCount + ' dicentang)</button></div>';
@@ -4887,6 +4888,12 @@
       var tsv = buildFinanceTsv(financeFiltered());
       try { await navigator.clipboard.writeText(tsv); alert('Tabel disalin. Tinggal paste (Ctrl+V) di Excel.'); }
       catch (e) { alert('Gagal menyalin otomatis. Gunakan "Unduh Excel", atau blok tabel lalu salin manual.'); }
+    });
+    document.getElementById('finReload').addEventListener('click', async function () {
+      this.disabled = true; this.textContent = 'Memuat...';
+      S.requests = await getRequestsAdmin();
+      await loadBuktiInfo();
+      render();
     });
     document.getElementById('finExport').addEventListener('click', function () {
       downloadCsv('keuangan-surat-' + todayISO() + '.csv', buildFinanceCsv(financeFiltered()));
@@ -5513,12 +5520,14 @@
       if (res.error) { S.buktiInfo = {}; S.buktiInfoError = res.error.message; return; }
       var m = {};
       (res.data || []).forEach(function (r) { m[r.request_id] = r; });
-      S.buktiInfo = m; S.buktiInfoError = null;
+      S.buktiInfo = m; S.buktiInfoError = null; S.buktiInfoAt = Date.now();
     } catch (e) { S.buktiInfo = {}; S.buktiInfoError = String(e && e.message || e); }
   }
   function pastikanBuktiInfo() {
-    if (S.buktiInfo !== undefined) return;
-    S.buktiInfo = null;
+    if (S.buktiInfo === null) return; // sedang dimuat
+    if (S.buktiInfo !== undefined && Date.now() - (S.buktiInfoAt || 0) < 15000) return;
+    if (S.buktiInfo === undefined) S.buktiInfo = null;
+    S.buktiInfoAt = Date.now();
     loadBuktiInfo().then(function () { if (S.view === 'financeDashboard' || S.view === 'adminDetail') render(); });
   }
   function buktiTerhapusTgl(info) { return new Date(new Date(info.created_at).getTime() + 7 * 864e5).toISOString(); }
